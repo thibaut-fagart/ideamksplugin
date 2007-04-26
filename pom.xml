@@ -9,7 +9,7 @@
 	<scm>
 		<connection>scm:svn:http://ideamksplugin.googlecode.com/svn/trunk/</connection>
 		<developerConnection>scm:svn:https://ideamksplugin.googlecode.com/svn/trunk/</developerConnection>
-		<url>svn:http://ideamksplugin.googlecode.com/svn/</url>
+		<url>http://ideamksplugin.googlecode.com/svn/</url>
 	</scm>
     <dependencies>
             <dependency>
