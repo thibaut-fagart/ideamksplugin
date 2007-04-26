@@ -21,15 +21,6 @@
       </library>
     </orderEntry>
     <orderEntry type="module-library">
-      <library name="Maven Dependency: jdom:jdom:jar:1.0:provided">
-        <CLASSES>
-          <root url="jar://$MODULE_DIR$/../../../Documents and Settings/A6253567.HBEU/.m2/repository/jdom/jdom/1.0/jdom-1.0.jar!/" />
-        </CLASSES>
-        <JAVADOC />
-        <SOURCES />
-      </library>
-    </orderEntry>
-    <orderEntry type="module-library">
       <library name="Maven Dependency: com.intellij:openapi:jar:5.0:provided">
         <CLASSES>
           <root url="jar://$MODULE_DIR$/../../../Documents and Settings/A6253567.HBEU/.m2/repository/com/intellij/openapi/5.0/openapi-5.0.jar!/" />
@@ -42,6 +33,15 @@
       <library name="Maven Dependency: com.intellij:extensions:jar:5.0:provided">
         <CLASSES>
           <root url="jar://$MODULE_DIR$/../../../Documents and Settings/A6253567.HBEU/.m2/repository/com/intellij/extensions/5.0/extensions-5.0.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="Maven Dependency: jdom:jdom:jar:1.0:provided">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/../../../Documents and Settings/A6253567.HBEU/.m2/repository/jdom/jdom/1.0/jdom-1.0.jar!/" />
         </CLASSES>
         <JAVADOC />
         <SOURCES />
