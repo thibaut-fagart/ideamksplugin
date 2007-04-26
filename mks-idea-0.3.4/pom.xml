@@ -3,13 +3,13 @@
     <groupId>mks-idea</groupId>
     <artifactId>mks-idea</artifactId>
     <packaging>jar</packaging>
-	<version>0.4.0-SNAPSHOT</version>
+	<version>0.3.4</version>
     <name>IDEA MKS Plugin</name>
     <description>Implementation of an IDEA MKS plugin.</description>
 	<scm>
-		<connection>scm:svn:http://ideamksplugin.googlecode.com/svn/trunk/</connection>
-		<developerConnection>scm:svn:https://ideamksplugin.googlecode.com/svn/trunk/</developerConnection>
-		<url>http://ideamksplugin.googlecode.com/svn/</url>
+		<connection>scm:svn:http://ideamksplugin.googlecode.com/svn/tags/mks-idea-0.3.4</connection>
+		<developerConnection>scm:svn:https://ideamksplugin.googlecode.com/svn/tags/mks-idea-0.3.4</developerConnection>
+		<url>http://ideamksplugin.googlecode.com/svn/tags/mks-idea-0.3.4</url>
 	</scm>
     <dependencies>
             <dependency>
