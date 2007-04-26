@@ -1,8 +1,3 @@
-// Decompiled by Jad v1.5.8e2. Copyright 2001 Pavel Kouznetsov.
-// Jad home page: http://kpdus.tripod.com/jad.html
-// Decompiler options: packimports(100) lnc 
-// Source File Name:   MksConfiguration.java
-
 package org.intellij.vcs.mks;
 
 import com.intellij.openapi.components.ProjectComponent;
@@ -18,12 +13,12 @@ public class MksConfiguration
 
         	public MksConfiguration()
         	{
-/*  18*/		SERVER = "";
-/*  19*/		PORT = 7001;
-/*  20*/		USER = "";
-/*  21*/		PASSWORD = "";
-/*  22*/		SANDBOX = "";
-/*  23*/		PROJECT = "";
+		SERVER = "";
+		PORT = 7001;
+		USER = "";
+		PASSWORD = "";
+		SANDBOX = "";
+		PROJECT = "";
         	}
 
         	public void projectClosed()
@@ -40,7 +35,7 @@ public class MksConfiguration
 
         	public String getComponentName()
         	{
-/*  36*/		return "MksConfiguration";
+		return "MksConfiguration";
         	}
 
         	public void initComponent()
@@ -50,13 +45,13 @@ public class MksConfiguration
         	public void readExternal(Element element)
         		throws InvalidDataException
         	{
-/*  43*/		DefaultJDOMExternalizer.readExternal(this, element);
+		DefaultJDOMExternalizer.readExternal(this, element);
         	}
 
         	public void writeExternal(Element element)
         		throws WriteExternalException
         	{
-/*  47*/		DefaultJDOMExternalizer.writeExternal(this, element);
+		DefaultJDOMExternalizer.writeExternal(this, element);
         	}
 
         	public String SERVER;
