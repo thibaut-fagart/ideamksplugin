@@ -4,10 +4,15 @@
     <groupId>mks-idea</groupId>
     <artifactId>mks-idea</artifactId>
     <packaging>jar</packaging>
-    <version>0.3.4</version>
+	<version>0.3.4-SNAPSHOT</version>
     <name>IDEA MKS Plugin</name>
     <description>Implementation of an IDEA MKS plugin.</description>
-
+	<scm>
+		<connection>scm:svn:http://ideamksplugin.googlecode.com/svn/</connection>
+		<developerConnection>scm:svn:https://ideamksplugin.googlecode.com/svn/</developerConnection>
+		<tag></tag>
+		<url>http://ideamksplugin.googlecode.com/svn/</url>
+	</scm>
     <dependencies>
             <dependency>
                 <groupId>jdom</groupId>
@@ -70,6 +75,13 @@
             </plugin>
 -->	
             <plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-release-plugin</artifactId>
+				<configuration>
+					<tagBase>svn:https://ideamksplugin.googlecode.com/svn/tags</tagBase>
+				</configuration>
+			</plugin>
+			<plugin>
                 <artifactId>maven-assembly-plugin</artifactId>
                 <configuration>
                     <descriptors>
