@@ -44,8 +44,8 @@ public class MksVcs extends AbstractVcs implements ProjectComponent {
     private static final Logger LOGGER = Logger.getInstance(MksVcs.class.getName());
     //	public static TriclopsSiClient CLIENT;
     public static final String TOOL_WINDOW_ID = "MKS";
-    private static final int MAJOR_VERSION = 1;
-    private static final int MINOR_VERSION = 1;
+    private static final int MAJOR_VERSION = 0;
+    private static final int MINOR_VERSION = 4;
     //	protected static final String CLIENT_LIBRARY_NAME = "mkscmapi";
     private ToolWindow mksToolWindow;
     private JTabbedPane mksContentPanel;
@@ -69,11 +69,7 @@ public class MksVcs extends AbstractVcs implements ProjectComponent {
     }
 
     public void initComponent() {
-        try {
-            start();
-        } catch (VcsException e) {
-            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
-        }
+        MKSHelper.startClient();
     }
 
     public void disposeComponent() {
@@ -97,7 +93,7 @@ public class MksVcs extends AbstractVcs implements ProjectComponent {
 
     public void start() throws VcsException {
         super.start();
-        MKSHelper.startClient();
+
         StartupManager.getInstance(myProject).registerPostStartupActivity(new Runnable() {
             public void run() {
                 initToolWindow();
@@ -116,7 +112,7 @@ public class MksVcs extends AbstractVcs implements ProjectComponent {
         if (list.size() > 0) {
             StringBuffer buffer = new StringBuffer(mksTextArea.getText());
             buffer.append("\n");
-            buffer.append(action + " Error: ");
+            buffer.append(action).append(" Error: ");
             VcsException e;
             for (Iterator<VcsException> iterator = list.iterator(); iterator.hasNext(); buffer.append(e.getMessage())) {
                 e = iterator.next();
@@ -173,8 +169,7 @@ public class MksVcs extends AbstractVcs implements ProjectComponent {
                 if (DATA_CONTEXT_PROJECT.equals(name)) {
                     return MksVcs.this.myProject;
                 } else if (DATA_CONTEXT_MODULE.equals(name)) {
-                    Module aModule = findModule(MksVcs.this.myProject, changedResourcesTableModel.getVirtualFile(getSelectedRow()));
-                    return aModule;
+                    return findModule(MksVcs.this.myProject, changedResourcesTableModel.getVirtualFile(getSelectedRow()));
                 } else if (DATA_CONTEXT_VIRTUAL_FILE_ARRAY.equals(name)) {
                     return new VirtualFile[]{changedResourcesTableModel.getVirtualFile(getSelectedRow())};
                 }
@@ -216,7 +211,7 @@ public class MksVcs extends AbstractVcs implements ProjectComponent {
     }
 
     public static AbstractVcs getInstance(Project project) {
-        return (MksVcs) project.getComponent(org.intellij.vcs.mks.MksVcs.class);
+        return project.getComponent(MksVcs.class);
     }
 
     public synchronized boolean fileExistsInVcs(FilePath filePath) {
@@ -264,7 +259,7 @@ public class MksVcs extends AbstractVcs implements ProjectComponent {
             debug("fileIsUnderVcs : " + filePath.getPresentableUrl());
         }
         try {
-            TriclopsSiSandbox sandbox = getSandbox(filePath.getVirtualFile());
+            getSandbox(filePath.getVirtualFile());
             return true;
         } catch (VcsException e) {
             ArrayList<VcsException> l = new ArrayList<VcsException>();
@@ -621,7 +616,6 @@ public class MksVcs extends AbstractVcs implements ProjectComponent {
                                 if (LOGGER.isDebugEnabled()) {
                                     LOGGER.debug("detected project folder :" + projectFolder);
                                 }
-                                boolean found = false;
                                 // add all parent folders : takes care of parent folders that do not have any file children (only directories)
                                 do {
                                     projectFolders.add(projectFolder);
