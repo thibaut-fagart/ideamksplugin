@@ -8,56 +8,47 @@ import com.intellij.openapi.util.WriteExternalException;
 import org.jdom.Element;
 
 public class MksConfiguration
-	implements JDOMExternalizable, ProjectComponent
-{
+        implements JDOMExternalizable, ProjectComponent {
 
-        	public MksConfiguration()
-        	{
-		SERVER = "";
-		PORT = 7001;
-		USER = "";
-		PASSWORD = "";
-		SANDBOX = "";
-		PROJECT = "";
-        	}
+    public MksConfiguration() {
+        SERVER = "";
+        PORT = 7001;
+        USER = "";
+        PASSWORD = "";
+        SANDBOX = "";
+        PROJECT = "";
+    }
 
-        	public void projectClosed()
-        	{
-        	}
+    public void projectClosed() {
+    }
 
-        	public void projectOpened()
-        	{
-        	}
+    public void projectOpened() {
+    }
 
-        	public void disposeComponent()
-        	{
-        	}
+    public void disposeComponent() {
+    }
 
-        	public String getComponentName()
-        	{
-		return "MksConfiguration";
-        	}
+    public String getComponentName() {
+        return "MksConfiguration";
+    }
 
-        	public void initComponent()
-        	{
-        	}
+    public void initComponent() {
+    }
 
-        	public void readExternal(Element element)
-        		throws InvalidDataException
-        	{
-		DefaultJDOMExternalizer.readExternal(this, element);
-        	}
+    public void readExternal(Element element)
+            throws InvalidDataException {
+        DefaultJDOMExternalizer.readExternal(this, element);
+    }
 
-        	public void writeExternal(Element element)
-        		throws WriteExternalException
-        	{
-		DefaultJDOMExternalizer.writeExternal(this, element);
-        	}
+    public void writeExternal(Element element)
+            throws WriteExternalException {
+        DefaultJDOMExternalizer.writeExternal(this, element);
+    }
 
-        	public String SERVER;
-        	public int PORT;
-        	public String USER;
-        	public String PASSWORD;
-        	public String SANDBOX;
-        	public String PROJECT;
+    public String SERVER;
+    public int PORT;
+    public String USER;
+    public String PASSWORD;
+    public String SANDBOX;
+    public String PROJECT;
 }
