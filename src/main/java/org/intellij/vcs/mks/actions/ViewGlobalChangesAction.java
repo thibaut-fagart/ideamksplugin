@@ -7,7 +7,10 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.roots.ModuleRootManager;
-import com.intellij.openapi.vcs.*;
+import com.intellij.openapi.vcs.AbstractVcs;
+import com.intellij.openapi.vcs.FilePath;
+import com.intellij.openapi.vcs.FileStatus;
+import com.intellij.openapi.vcs.VcsException;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.peer.PeerFactory;
 import mks.integrations.common.TriclopsSiSandbox;
@@ -108,11 +111,11 @@ public class ViewGlobalChangesAction extends BasicAction {
         return false;
     }
 
-	protected VirtualFile[] collectAffectedFiles(Project project, VirtualFile[] files) {
-		return files;
-	}
+    protected VirtualFile[] collectAffectedFiles(Project project, VirtualFile[] files) {
+        return files;
+    }
 
-	protected boolean isRecursive() {
+    protected boolean isRecursive() {
         return false;
     }
 }
