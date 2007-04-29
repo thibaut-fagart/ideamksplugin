@@ -3,7 +3,7 @@
 	<groupId>mks-idea</groupId>
 	<artifactId>mks-idea</artifactId>
 	<packaging>jar</packaging>
-	<version>0.4.1-SNAPSHOT</version>
+	<version>0.5-SNAPSHOT</version>
 	<name>IDEA MKS Plugin</name>
 	<description>Implementation of an IDEA MKS plugin.</description>
 	<scm>
@@ -32,19 +32,19 @@
 		<dependency>
 			<groupId>com.intellij.idea</groupId>
 			<artifactId>openapi</artifactId>
-			<version>6.0.4</version>
+			<version>7.0.6827</version>
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
 			<groupId>com.intellij.idea</groupId>
 			<artifactId>annotations</artifactId>
-			<version>6.0.4</version>
+			<version>7.0.6827</version>
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
 			<groupId>com.intellij.idea</groupId>
 			<artifactId>extensions</artifactId>
-			<version>6.0.4</version>
+			<version>7.0.6827</version>
 			<scope>provided</scope>
 		</dependency>
 	</dependencies>
@@ -96,9 +96,9 @@
 		</plugins>
 	</build>
 	<repositories>
-		<repository>
-			<id>local</id>
 			<!-- todo insert your home repository where you have installed MKS mkscmapi.dll -->
+<!--		<repository>
+			<id>local</id>
 			<url>file:///c:/Documents and Settings/A6253567.HBEU/mavenLocalRepository</url>
 			<snapshots>
 				<enabled>true</enabled>
@@ -110,7 +110,7 @@
 				<updatePolicy>always</updatePolicy>
 				<checksumPolicy>ignore</checksumPolicy>
 			</releases>
-		</repository>
+		</repository> -->
 		<!-- mevenide provides com.intellij.idea group with 6.0.4 versions-->
 		<repository>
 			<id>mevenide</id>
