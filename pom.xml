@@ -7,9 +7,9 @@
 	<name>IDEA MKS Plugin</name>
 	<description>Implementation of an IDEA MKS plugin.</description>
 	<scm>
-		<connection>scm:svn:http://ideamksplugin.googlecode.com/svn/tags/mks-idea-0.4.0</connection>
-		<developerConnection>scm:svn:https://ideamksplugin.googlecode.com/svn/tags/mks-idea-0.4.0</developerConnection>
-		<url>http://ideamksplugin.googlecode.com/svn/tags/mks-idea-0.4.0</url>
+		<connection>scm:svn:http://ideamksplugin.googlecode.com/svn/trunk</connection>
+		<developerConnection>scm:svn:https://ideamksplugin.googlecode.com/trunk</developerConnection>
+		<url>http://ideamksplugin.googlecode.com/svn/trunk</url>
 	</scm>
 	<dependencies>
 		<dependency>
