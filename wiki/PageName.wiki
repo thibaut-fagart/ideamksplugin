@@ -5,23 +5,24 @@ This page presents the various ways to interact with MKS
 
 = mkscmapi.jar =
 Contains a set of classes (bound using a native library) allowing limited interaction with the mks local client.
+
 Available operations are
-- checkin members
-- checkout members
-- add members
-- drop members
-- resync members
-- revert members
-- view member differences
-- view member history
-- view member information
-- view sandbox
+ * checkout members
+ * add members
+ * drop members
+ * resync members
+ * revert members
+ * view member differences
+ * view member history
+ * view member information
+ * view sandbox
 
 All of these actions involve intrusive native-client-owned dialogs.
 
 = CLI interface =
 MKS installation provides a command line interface with more possibilities.
 si.exe allows the following operations
+ {{{
  about                   About
  acceptcp                Accept Change Package
  add                     Add Members
@@ -124,11 +125,15 @@ si.exe allows the following operations
  viewprojecthistory      Project History View
  viewrevision            Revision Contents View
  viewsandbox             Sandbox View
+ }}}
+
 
 Add your content here.  Format your content with:
   * Text in *bold* or _italic_
   * Headings, paragraphs, and lists
   * Automatic links to other wiki pages
+
+
 
 
 
