@@ -25,47 +25,47 @@ import java.util.Map;
 
 public class CheckoutAction extends BasicAction {
 
-    public CheckoutAction() {
-    }
+	public CheckoutAction() {
+	}
 
-    protected void perform(Project project, VirtualFile[] affectedFiles, DataContext dataContext, List exceptions) {
-        List<VirtualFile> filesToCheckout = new ArrayList<VirtualFile>(affectedFiles.length);
-        for (VirtualFile file : affectedFiles) {
-            if (appliesTo(file)) {
-                filesToCheckout.add(file);
-            }
-        }
+	protected void perform(Project project, VirtualFile[] affectedFiles, DataContext dataContext, List<VcsException> exceptions) {
+		List<VirtualFile> filesToCheckout = new ArrayList<VirtualFile>(affectedFiles.length);
+		for (VirtualFile file : affectedFiles) {
+			if (appliesTo(file)) {
+				filesToCheckout.add(file);
+			}
+		}
 
-        Map<TriclopsSiSandbox, ArrayList<VirtualFile>> filesBySandbox = MksVcs.dispatchBySandbox(filesToCheckout.toArray(new VirtualFile[0]));
-        for (Map.Entry<TriclopsSiSandbox, ArrayList<VirtualFile>> entry : filesBySandbox.entrySet()) {
-            try {
-                TriclopsSiSandbox sandbox = entry.getKey();
-                TriclopsSiMembers members = MKSHelper.createMembers(sandbox);
-                for (VirtualFile file : entry.getValue()) {
-                    members.addMember(new TriclopsSiMember(file.getPresentableUrl()));
-                }
+		Map<TriclopsSiSandbox, ArrayList<VirtualFile>> filesBySandbox = MksVcs.dispatchBySandbox(filesToCheckout.toArray(new VirtualFile[0]));
+		for (Map.Entry<TriclopsSiSandbox, ArrayList<VirtualFile>> entry : filesBySandbox.entrySet()) {
+			try {
+				TriclopsSiSandbox sandbox = entry.getKey();
+				TriclopsSiMembers members = MKSHelper.createMembers(sandbox);
+				for (VirtualFile file : entry.getValue()) {
+					members.addMember(new TriclopsSiMember(file.getPresentableUrl()));
+				}
 
-                MKSHelper.getMembersStatus(members);
-                try {
-                    MKSHelper.checkoutMembers(members, 0);
-                }
-                catch (TriclopsException e) {
-                    if (MksVcs.isLastCommandCancelled()) {
-                        exceptions.add(new VcsException("Checkout Error: " + MksVcs.getMksErrorMessage()));
-                    }
-                }
+				MKSHelper.getMembersStatus(members);
+				try {
+					MKSHelper.checkoutMembers(members, 0);
+				}
+				catch (TriclopsException e) {
+					if (MksVcs.isLastCommandCancelled()) {
+						exceptions.add(new VcsException("Checkout Error: " + MksVcs.getMksErrorMessage()));
+					}
+				}
 
-            } catch (TriclopsException e) {
-                exceptions.add(new VcsException("Unable to obtain file status"));
-            }
+			} catch (TriclopsException e) {
+				exceptions.add(new VcsException("Unable to obtain file status"));
+			}
 
-        }
-        WindowManager.getInstance().getStatusBar(project).setInfo("CheckOut complete.");
-    }
+		}
+		WindowManager.getInstance().getStatusBar(project).setInfo("CheckOut complete.");
+	}
 
-    protected void perform(Project project, Module module, MksVcs vcs, VirtualFile file, DataContext dataContext)
-            throws VcsException {
-        throw new UnsupportedOperationException();
+	protected void perform(Project project, Module module, MksVcs vcs, VirtualFile file, DataContext dataContext)
+		throws VcsException {
+		throw new UnsupportedOperationException();
 //		if (!appliesTo(file)) {
 //			return;
 //		}
@@ -80,15 +80,15 @@ public class CheckoutAction extends BasicAction {
 //			}
 //		}
 //		WindowManager.getInstance().getStatusBar(project).setInfo("CheckOut complete.");
-    }
+	}
 
 
-    protected String getActionName(AbstractVcs vcs) {
-        return "Check out";
-    }
+	protected String getActionName(AbstractVcs vcs) {
+		return "Check out";
+	}
 
-    protected boolean isEnabled(Project project, AbstractVcs vcs, VirtualFile file) {
-        FilePath filePathOn = PeerFactory.getInstance().getVcsContextFactory().createFilePathOn(file);
-        return vcs.fileExistsInVcs(filePathOn);
-    }
+	protected boolean isEnabled(Project project, AbstractVcs vcs, VirtualFile file) {
+		FilePath filePathOn = PeerFactory.getInstance().getVcsContextFactory().createFilePathOn(file);
+		return vcs.fileExistsInVcs(filePathOn);
+	}
 }
