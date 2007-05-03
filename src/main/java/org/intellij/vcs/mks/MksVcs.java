@@ -279,7 +279,7 @@ public class MksVcs extends AbstractVcs implements ProjectComponent {
 	}
 
 	private void debug(String s, Exception e) {
-		StringBuffer oldText = new StringBuffer(mksTextArea.getText());
+		StringBuffer oldText = new StringBuffer((mksTextArea ==null)?"":mksTextArea.getText());
 		oldText.append("\n").append(s);
 		if (e != null) {
 			LOGGER.info(s, e);
@@ -290,7 +290,9 @@ public class MksVcs extends AbstractVcs implements ProjectComponent {
 		} else {
 			LOGGER.info(s);
 		}
-		mksTextArea.setText(oldText.toString());
+		if (mksTextArea != null) {
+			mksTextArea.setText(oldText.toString());
+		}
 	}
 
 	public DiffProvider getDiffProvider() {
