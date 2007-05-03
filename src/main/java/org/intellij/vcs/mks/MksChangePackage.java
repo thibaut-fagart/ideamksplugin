@@ -1,0 +1,62 @@
+package org.intellij.vcs.mks;
+
+import java.util.List;
+
+/**
+ * @author Thibaut Fagart
+ */
+public class MksChangePackage {
+	private String id;
+	private String owner;
+	private String state;
+	private String description;
+
+	private List<MksChangePackageEntry> entries;
+
+	public MksChangePackage(String id, String owner, String state, String description) {
+		this.description = description;
+		this.id = id;
+		this.owner = owner;
+		this.state = state;
+	}
+
+	public String getDescription() {
+		return description;
+	}
+
+	public void setDescription(String description) {
+		this.description = description;
+	}
+
+	public String getId() {
+		return id;
+	}
+
+	public void setId(String id) {
+		this.id = id;
+	}
+
+	public String getOwner() {
+		return owner;
+	}
+
+	public void setOwner(String owner) {
+		this.owner = owner;
+	}
+
+	public String getState() {
+		return state;
+	}
+
+	public void setState(String state) {
+		this.state = state;
+	}
+
+	public void setEntries(List<MksChangePackageEntry> entries) {
+		this.entries = entries;
+	}
+
+	public List<MksChangePackageEntry> getEntries() {
+		return entries;
+	}
+}

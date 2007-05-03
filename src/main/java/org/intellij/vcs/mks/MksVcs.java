@@ -5,6 +5,7 @@ import com.intellij.openapi.actionSystem.ActionManager;
 import com.intellij.openapi.actionSystem.ActionPopupMenu;
 import com.intellij.openapi.actionSystem.DataProvider;
 import com.intellij.openapi.components.ProjectComponent;
+import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.options.Configurable;
@@ -14,6 +15,7 @@ import com.intellij.openapi.startup.StartupManager;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.util.Computable;
 import com.intellij.openapi.vcs.*;
+import com.intellij.openapi.vcs.changes.ChangeProvider;
 import com.intellij.openapi.vcs.diff.DiffProvider;
 import com.intellij.openapi.vfs.*;
 import com.intellij.openapi.wm.ToolWindow;
@@ -59,7 +61,7 @@ public class MksVcs extends AbstractVcs implements ProjectComponent {
 	public static final String DATA_CONTEXT_PROJECT = "project";
 	public static final String DATA_CONTEXT_MODULE = "module";
 	public static final String DATA_CONTEXT_VIRTUAL_FILE_ARRAY = "virtualFileArray";
-
+	private MKSChangeProvider myChangeProvider = new MKSChangeProvider(this);
 
 	public MksVcs(Project project) {
 		super(project);
@@ -279,7 +281,7 @@ public class MksVcs extends AbstractVcs implements ProjectComponent {
 	}
 
 	private void debug(String s, Exception e) {
-		StringBuffer oldText = new StringBuffer((mksTextArea ==null)?"":mksTextArea.getText());
+		StringBuffer oldText = new StringBuffer((mksTextArea == null) ? "" : mksTextArea.getText());
 		oldText.append("\n").append(s);
 		if (e != null) {
 			LOGGER.info(s, e);
@@ -347,6 +349,22 @@ public class MksVcs extends AbstractVcs implements ProjectComponent {
 		//		}
 		//		LOGGER.info("could not find module for " + child);
 		//		return null;
+	}
+
+	public Project getProject() {
+		return myProject;
+	}
+
+	@Nullable
+	public ChangeProvider getChangeProvider() {
+
+		return myChangeProvider;
+	}
+
+	public String getMksSiEncoding() {
+//		return "IBM437";
+		// todo hardcoded encoding until save/load of mksConfiguration works
+		return ServiceManager.getService(myProject, MksConfiguration.class).SI_ENCODING;
 	}
 
 	//	private class _FileStatusProvider extends DelayedFileStatusProvider {
