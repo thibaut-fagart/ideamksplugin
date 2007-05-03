@@ -1,7 +1,12 @@
 <!DOCTYPE idea-plugin PUBLIC "Plugin/DTD" "http://plugins.intellij.net/plugin.dtd">
 <idea-plugin>
 	<name>MKS</name>
-	<description>Integrates MKS Source Integrity with IDEA</description>
+	<description>
+		<![CDATA[
+	Integrates MKS Source Integrity with IDEA <br/>
+	See <a href=http://code.google.com/p/ideamksplugin/">here</a> for the googlecode project
+	]]>
+	</description>
 	<version>0.5</version>
 	<vendor logo="/icons/mks.png">Eric Sheffer, Thibaut Fagart</vendor>
 	<idea-version since-build="6667"/>

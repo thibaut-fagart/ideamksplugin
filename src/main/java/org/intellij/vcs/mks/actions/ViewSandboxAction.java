@@ -11,35 +11,34 @@ import mks.integrations.common.TriclopsSiSandbox;
 import org.intellij.vcs.mks.MKSHelper;
 import org.intellij.vcs.mks.MksVcs;
 
-// Referenced classes of package org.intellij.vcs.mks.actions:
-//            BasicAction
 
+/**
+ * Opens the current sandbox in the mks client
+ */
 public class ViewSandboxAction extends BasicAction {
 
-    protected boolean isRecursive() {
-        return false;
-    }
+	protected boolean isRecursive() {
+		return false;
+	}
 
-    public ViewSandboxAction() {
-    }
+	public ViewSandboxAction() {
+	}
 
-    protected void perform(Project project, Module module, MksVcs vcs, VirtualFile file, DataContext dataContext)
-            throws VcsException {
-        TriclopsSiSandbox sandbox = null;
-        sandbox = vcs.getSandbox(file);
-        try {
-            MKSHelper.viewSandbox(sandbox);
+	protected void perform(Project project, Module module, MksVcs vcs, VirtualFile file, DataContext dataContext)
+		throws VcsException {
+		TriclopsSiSandbox sandbox = MKSHelper.getSandbox(file);
+		try {
+			MKSHelper.viewSandbox(sandbox);
+		} catch (TriclopsException e) {
+			throw new VcsException("ViewSandbox:  Unable to view sandbox.");
+		}
+	}
 
-        } catch (TriclopsException e) {
-            throw new VcsException("ViewSandbox:  Unable to view sandbox.");
-        }
-    }
+	protected String getActionName(AbstractVcs vcs) {
+		return "View Sandbox";
+	}
 
-    protected String getActionName(AbstractVcs vcs) {
-        return "View Sandbox";
-    }
-
-    protected boolean isEnabled(Project project, AbstractVcs vcs, VirtualFile file) {
-        return true;
-    }
+	protected boolean isEnabled(Project project, AbstractVcs vcs, VirtualFile file) {
+		return true;
+	}
 }
