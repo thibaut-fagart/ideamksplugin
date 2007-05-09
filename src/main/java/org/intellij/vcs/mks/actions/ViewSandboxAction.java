@@ -1,7 +1,5 @@
 package org.intellij.vcs.mks.actions;
 
-import com.intellij.openapi.actionSystem.DataContext;
-import com.intellij.openapi.module.Module;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vcs.AbstractVcs;
 import com.intellij.openapi.vcs.VcsException;
@@ -10,6 +8,11 @@ import mks.integrations.common.TriclopsException;
 import mks.integrations.common.TriclopsSiSandbox;
 import org.intellij.vcs.mks.MKSHelper;
 import org.intellij.vcs.mks.MksVcs;
+import org.jetbrains.annotations.NotNull;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 
 /**
@@ -17,6 +20,7 @@ import org.intellij.vcs.mks.MksVcs;
  */
 public class ViewSandboxAction extends BasicAction {
 
+	@Override
 	protected boolean isRecursive() {
 		return false;
 	}
@@ -24,21 +28,27 @@ public class ViewSandboxAction extends BasicAction {
 	public ViewSandboxAction() {
 	}
 
-	protected void perform(Project project, Module module, MksVcs vcs, VirtualFile file, DataContext dataContext)
-		throws VcsException {
-		TriclopsSiSandbox sandbox = MKSHelper.getSandbox(file);
-		try {
-			MKSHelper.viewSandbox(sandbox);
-		} catch (TriclopsException e) {
-			throw new VcsException("ViewSandbox:  Unable to view sandbox.");
+	@Override
+	protected boolean isEnabled(@NotNull Project project, @NotNull MksVcs vcs, @NotNull VirtualFile... virtualFiles) {
+		Map<TriclopsSiSandbox, ArrayList<VirtualFile>> map = MksVcs.dispatchBySandbox(virtualFiles);
+		return map.size() == 1;
+	}
+
+	@Override
+	protected void perform(@NotNull Project project, MksVcs mksVcs, @NotNull List<VcsException> exceptions, @NotNull VirtualFile[] affectedFiles) {
+		Map<TriclopsSiSandbox, ArrayList<VirtualFile>> map = MksVcs.dispatchBySandbox(affectedFiles);
+		for (TriclopsSiSandbox sandbox : map.keySet()) {
+			try {
+				MKSHelper.viewSandbox(sandbox);
+			} catch (TriclopsException e) {
+				exceptions.add(new VcsException("ViewSandbox:  Unable to view sandbox." + sandbox.getPath()));
+			}
 		}
 	}
 
-	protected String getActionName(AbstractVcs vcs) {
+	@Override
+	@NotNull
+	protected String getActionName(@NotNull AbstractVcs vcs) {
 		return "View Sandbox";
-	}
-
-	protected boolean isEnabled(Project project, AbstractVcs vcs, VirtualFile file) {
-		return true;
 	}
 }

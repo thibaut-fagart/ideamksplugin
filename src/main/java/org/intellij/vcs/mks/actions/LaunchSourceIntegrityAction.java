@@ -6,11 +6,12 @@ import org.intellij.vcs.mks.MKSHelper;
 
 public class LaunchSourceIntegrityAction extends AnAction {
 
-    public LaunchSourceIntegrityAction() {
-    }
+	public LaunchSourceIntegrityAction() {
+	}
 
-    public void actionPerformed(AnActionEvent anActionEvent) {
-        MKSHelper.launchClient();
+	@Override
+	public void actionPerformed(AnActionEvent anActionEvent) {
+		MKSHelper.launchClient();
 
-    }
+	}
 }
