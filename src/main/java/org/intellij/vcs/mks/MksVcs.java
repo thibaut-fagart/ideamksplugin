@@ -154,7 +154,6 @@ public class MksVcs extends AbstractVcs implements ProjectComponent {
 		final JPopupMenu menu = new JPopupMenu();
 		JMenuItem item = new JMenuItem("Clear");
 		item.addActionListener(new ActionListener() {
-			@Override
 			public void actionPerformed(ActionEvent e) {
 				mksTextArea.setText("");
 			}
@@ -177,7 +176,6 @@ public class MksVcs extends AbstractVcs implements ProjectComponent {
 			 * returns the key properties for the table elements : project, module, the VirtualFile
 			 */
 			@Nullable
-			@Override
 			public Object getData(@NonNls String name) {
 				if (DATA_CONTEXT_PROJECT.equals(name)) {
 					return MksVcs.this.myProject;

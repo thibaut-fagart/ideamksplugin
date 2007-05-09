@@ -20,7 +20,6 @@ public class AboutMksAction extends AnAction {
 	@Override
 	public void actionPerformed(final AnActionEvent anActionEvent) {
 		ApplicationManager.getApplication().runReadAction(new Runnable() {
-			@Override
 			public void run() {
 				try {
 					MKSHelper.aboutBox();
