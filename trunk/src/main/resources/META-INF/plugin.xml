@@ -7,14 +7,20 @@
 	See <a href=http://code.google.com/p/ideamksplugin/">here</a> for the googlecode project
 	]]>
 	</description>
-	<version>0.5</version>
+	<version>0.5.1</version>
 	<vendor logo="/icons/mks.png">Eric Sheffer, Thibaut Fagart</vendor>
 	<idea-version since-build="6667"/>
 
 	<change-notes><![CDATA[<ul>
+	<li>0.5.1 View Changes ignores IDEA ignored files <br/>
+	 Most MKS actions now applicable on multiple targets (with *** For all buttons activted) <br/>
+	 MKS Packages viewed as IDEA ChangeLists in the changes view<br/>
+	 Mks Changes view gets focus when GlobalChanges action is run<br/>
+	 bugfixes
+	</li>
 	<li>0.5.0 IDEA 7.x compatible</li>
 	<li>0.4.0 IDEA 6.x compatible, and added a "MKS changes" tool window, displaying (recursively) all differences between a local sandbox and the MKS project</li>
-    	<li>0.3.4 Added logo for IDEA start screen</li>
+    <li>0.3.4 Added logo for IDEA start screen</li>
     </ul>]]>
 	</change-notes>
 

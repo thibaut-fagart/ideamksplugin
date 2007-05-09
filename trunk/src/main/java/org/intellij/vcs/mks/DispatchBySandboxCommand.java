@@ -23,6 +23,7 @@ public class DispatchBySandboxCommand extends AbstractMKSCommand {
 		this.virtualFiles = virtualFiles;
 	}
 
+	@Override
 	public void execute() {
 		Map<String, TriclopsSiSandbox> sandboxesByPath = new HashMap<String, TriclopsSiSandbox>();
 		for (VirtualFile file : virtualFiles) {
@@ -48,5 +49,13 @@ public class DispatchBySandboxCommand extends AbstractMKSCommand {
 		if (MksVcs.DEBUG) {
 			MksVcs.LOGGER.debug("dispatched " + virtualFiles.length + " files to " + filesBySandbox.size() + " sandboxes");
 		}
+	}
+
+	public Map<TriclopsSiSandbox, ArrayList<VirtualFile>> getFilesBySandbox() {
+		return filesBySandbox;
+	}
+
+	public ArrayList<VirtualFile> getNotInSandboxFiles() {
+		return notInSandboxFiles;
 	}
 }

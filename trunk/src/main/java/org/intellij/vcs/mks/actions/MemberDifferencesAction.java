@@ -1,42 +1,40 @@
 package org.intellij.vcs.mks.actions;
 
-import com.intellij.openapi.actionSystem.DataContext;
-import com.intellij.openapi.module.Module;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vcs.AbstractVcs;
 import com.intellij.openapi.vcs.FileStatus;
 import com.intellij.openapi.vcs.FileStatusManager;
-import com.intellij.openapi.vcs.VcsException;
 import com.intellij.openapi.vfs.VirtualFile;
 import mks.integrations.common.TriclopsException;
 import mks.integrations.common.TriclopsSiMembers;
 import org.intellij.vcs.mks.MKSHelper;
 import org.intellij.vcs.mks.MksVcs;
+import org.jetbrains.annotations.NotNull;
 
 // Referenced classes of package org.intellij.vcs.mks.actions:
 //            BasicAction
 
-public class MemberDifferencesAction extends BasicAction {
+public class MemberDifferencesAction extends SingleTargetAction {
 
-    public MemberDifferencesAction() {
-    }
+	public MemberDifferencesAction() {
+	}
 
-    protected void perform(Project project, Module module, MksVcs vcs, VirtualFile file, DataContext dataContext)
-            throws VcsException {
-        TriclopsSiMembers members = createSiMembers(file, vcs);
-        try {
-            MKSHelper.openMemberDiffView(members, 0);
-        } catch (TriclopsException e) {
-            if (!MksVcs.isLastCommandCancelled())
-                throw new VcsException("Diff Error: " + MksVcs.getMksErrorMessage());
-        }
-    }
+	@Override
+	protected void perform(@NotNull TriclopsSiMembers siMembers) throws TriclopsException {
+		MKSHelper.openMemberDiffView(siMembers, 0);
+	}
 
-    protected String getActionName(AbstractVcs vcs) {
-        return null;
-    }
+	@Override
+	@NotNull
+	protected String getActionName(@NotNull AbstractVcs vcs) {
+		return "Differences";
+	}
 
-    protected boolean isEnabled(Project project, AbstractVcs vcs, VirtualFile file) {
-        return !file.isDirectory() && FileStatusManager.getInstance(project).getStatus(file) != FileStatus.ADDED;
-    }
+	@Override
+	protected boolean isEnabled(@NotNull Project project, @NotNull MksVcs vcs, @NotNull VirtualFile... virtualFiles) {
+		return
+			super.isEnabled(project, vcs, virtualFiles)
+				&& !virtualFiles[0].isDirectory() && FileStatusManager.getInstance(project).getStatus(virtualFiles[0]) != FileStatus.ADDED;
+	}
+
 }

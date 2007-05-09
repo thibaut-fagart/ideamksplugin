@@ -1,43 +1,34 @@
 package org.intellij.vcs.mks.actions;
 
-import com.intellij.openapi.actionSystem.DataContext;
-import com.intellij.openapi.module.Module;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vcs.AbstractVcs;
-import com.intellij.openapi.vcs.VcsException;
+import com.intellij.openapi.vcs.FilePath;
 import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.openapi.wm.WindowManager;
+import com.intellij.peer.PeerFactory;
 import mks.integrations.common.TriclopsException;
 import mks.integrations.common.TriclopsSiMembers;
 import org.intellij.vcs.mks.MKSHelper;
 import org.intellij.vcs.mks.MksVcs;
+import org.jetbrains.annotations.NotNull;
 
-// Referenced classes of package org.intellij.vcs.mks.actions:
-//            BasicAction
+public class RevertMembersAction extends MultipleTargetAction {
 
-public class RevertMembersAction extends BasicAction {
+	public RevertMembersAction() {
+	}
 
-    public RevertMembersAction() {
-    }
+	@Override
+	protected void perform(@NotNull TriclopsSiMembers siMembers) throws TriclopsException {
+		MKSHelper.revertMembers(siMembers, 0);
+	}
 
-    protected void perform(Project project, Module module, MksVcs vcs, VirtualFile file, DataContext dataContext)
-            throws VcsException {
-        TriclopsSiMembers members = createSiMembers(file, vcs);
-        try {
-            MKSHelper.revertMembers(members, 0);
-        }
-        catch (TriclopsException e) {
-            if (!MksVcs.isLastCommandCancelled())
-                throw new VcsException("Revert Error: " + MksVcs.getMksErrorMessage());
-        }
-        WindowManager.getInstance().getStatusBar(project).setInfo("Member Reversion complete.");
-    }
+	@Override
+	@NotNull
+	protected String getActionName(@NotNull AbstractVcs vcs) {
+		return "Revert";
+	}
 
-    protected String getActionName(AbstractVcs vcs) {
-        return "Revert";
-    }
-
-    protected boolean isEnabled(Project project, AbstractVcs vcs, VirtualFile file) {
-        return true;
-    }
+	protected boolean isEnabled(@NotNull Project project, @NotNull MksVcs vcs, @NotNull VirtualFile file) {
+		FilePath filePathOn = PeerFactory.getInstance().getVcsContextFactory().createFilePathOn(file);
+		return vcs.fileExistsInVcs(filePathOn);
+	}
 }

@@ -8,9 +8,9 @@ import com.intellij.openapi.components.ProjectComponent;
 import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.module.Module;
+import com.intellij.openapi.module.ModuleUtil;
 import com.intellij.openapi.options.Configurable;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.roots.ProjectRootManager;
 import com.intellij.openapi.startup.StartupManager;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.util.Computable;
@@ -49,7 +49,7 @@ public class MksVcs extends AbstractVcs implements ProjectComponent {
 	static final Logger LOGGER = Logger.getInstance(MksVcs.class.getName());
 	//	public static TriclopsSiClient CLIENT;
 	public static final String TOOL_WINDOW_ID = "MKS";
-	private static final int MAJOR_VERSION = 0;
+	private static final int MAJOR_VERSION = 1;
 	private static final int MINOR_VERSION = 5;
 	private ToolWindow mksToolWindow;
 	private JTabbedPane mksContentPanel;
@@ -80,22 +80,23 @@ public class MksVcs extends AbstractVcs implements ProjectComponent {
 	public void disposeComponent() {
 	}
 
+	@Override
 	public Configurable getConfigurable() {
 		return new MksConfigurable(myProject);
 	}
 
+	@Override
 	public String getDisplayName() {
 		return "MKS";
 	}
 
-	//	public byte[] getFileContent(String path) throws VcsException {
-	//		return new byte[0];
-	//	}
 
+	@Override
 	public String getName() {
 		return "MKS";
 	}
 
+	@Override
 	public void start() throws VcsException {
 		super.start();
 
@@ -107,6 +108,7 @@ public class MksVcs extends AbstractVcs implements ProjectComponent {
 
 	}
 
+	@Override
 	public void shutdown() throws VcsException {
 		super.shutdown();
 		unregisterToolWindow();
@@ -152,24 +154,30 @@ public class MksVcs extends AbstractVcs implements ProjectComponent {
 		final JPopupMenu menu = new JPopupMenu();
 		JMenuItem item = new JMenuItem("Clear");
 		item.addActionListener(new ActionListener() {
+			@Override
 			public void actionPerformed(ActionEvent e) {
 				mksTextArea.setText("");
 			}
 		});
 		menu.add(item);
 		mksTextArea.addMouseListener(new MouseAdapter() {
+			@Override
 			public void mousePressed(MouseEvent e) {
 				maybeShowPopup(e, menu);
 			}
 
+			@Override
 			public void mouseReleased(MouseEvent e) {
 				maybeShowPopup(e, menu);
 			}
 		});
 
 		class MyJTable extends JTable implements DataProvider {
+			/**
+			 * returns the key properties for the table elements : project, module, the VirtualFile
+			 */
 			@Nullable
-			/** returns the key properties for the table elements : project, module, the VirtualFile*/
+			@Override
 			public Object getData(@NonNls String name) {
 				if (DATA_CONTEXT_PROJECT.equals(name)) {
 					return MksVcs.this.myProject;
@@ -187,6 +195,7 @@ public class MksVcs extends AbstractVcs implements ProjectComponent {
 		changesTable.setModel(changedResourcesTableModel);
 		mksContentPanel.add(new JScrollPane(changesTable), "Changes", CHANGES_TAB_INDEX);
 		final class MksChangePanelMouseAdapter extends MouseAdapter {
+			@Override
 			public void mouseClicked(MouseEvent e) {
 				if (MouseEvent.BUTTON3 == e.getButton() && e.getClickCount() == 1) {
 					// Single right click
@@ -215,10 +224,11 @@ public class MksVcs extends AbstractVcs implements ProjectComponent {
 		mksToolWindow = null;
 	}
 
-	public static AbstractVcs getInstance(Project project) {
+	public static MksVcs getInstance(Project project) {
 		return project.getComponent(MksVcs.class);
 	}
 
+	@Override
 	public synchronized boolean fileExistsInVcs(FilePath filePath) {
 		if (DEBUG) {
 			debug("fileExistsInVcs : " + filePath.getPresentableUrl());
@@ -255,11 +265,9 @@ public class MksVcs extends AbstractVcs implements ProjectComponent {
 	/**
 	 * checks if the file is in a directory controlled by mks
 	 *
-	 * @param filePath
+	 * @param filePath the file designation
 	 * @return true if the file is in a directory controlled by mks
 	 */
-	@SuppressWarnings({"JavaDoc"})
-	// IDEA should document it
 	@Override
 	public synchronized boolean fileIsUnderVcs(FilePath filePath) {
 		if (!filePath.getName().equals("project.pj")) {
@@ -297,6 +305,7 @@ public class MksVcs extends AbstractVcs implements ProjectComponent {
 		}
 	}
 
+	@Override
 	public DiffProvider getDiffProvider() {
 		// todo
 		return super.getDiffProvider();
@@ -331,7 +340,8 @@ public class MksVcs extends AbstractVcs implements ProjectComponent {
 		// implementation for IDEA 5.1.x
 		// see http://www.intellij.net/forums/thread.jspa?messageID=3311171&#3311171
 		LOGGER.debug("findModule(project=" + project.getName() + ",file=" + child.getPresentableName() + ")");
-		return ProjectRootManager.getInstance(project).getFileIndex().getModuleForFile(child);
+		return ModuleUtil.findModuleForFile(child, project);
+
 		//  for IDEA 6, could it also use same as 5.1.x ?
 		//		Module[] projectModules = ModuleManager.getInstance(project).getModules();
 		//		for (Module projectModule : projectModules) {
@@ -355,6 +365,7 @@ public class MksVcs extends AbstractVcs implements ProjectComponent {
 		return myProject;
 	}
 
+	@Override
 	@Nullable
 	public ChangeProvider getChangeProvider() {
 
@@ -366,37 +377,6 @@ public class MksVcs extends AbstractVcs implements ProjectComponent {
 		// todo hardcoded encoding until save/load of mksConfiguration works
 		return ServiceManager.getService(myProject, MksConfiguration.class).SI_ENCODING;
 	}
-
-	//	private class _FileStatusProvider extends DelayedFileStatusProvider {
-	//		public _FileStatusProvider(Project project) {
-	//			super(project);
-	//		}
-	//
-	//		protected Map<VirtualFile, FileStatus> calcStatus(final Collection<VirtualFile> collection) {
-	//			return ApplicationManager.getApplication().runReadAction(new Computable<Map<VirtualFile, FileStatus>>() {
-	//				public Map<VirtualFile, FileStatus> compute() {
-	//					Map<VirtualFile, FileStatus> ret = new HashMap<VirtualFile, FileStatus>();
-	//					ArrayList<VcsException> dispatchErrors = new ArrayList<VcsException>();
-	//					DispatchBySandboxCommand dispatchCommand = new DispatchBySandboxCommand(dispatchErrors,
-	//							collection.toArray(new VirtualFile[collection.size()]));
-	//					dispatchCommand.execute();
-	//					for (VirtualFile virtualFile : dispatchCommand.notInSandboxFiles) {
-	//						ret.put(virtualFile, FileStatus.UNKNOWN);
-	//					}
-	//					for (Map.Entry<TriclopsSiSandbox, ArrayList<VirtualFile>> entry : dispatchCommand.filesBySandbox
-	//							.entrySet()) {
-	//						TriclopsSiSandbox sandbox = entry.getKey();
-	//						ArrayList<VirtualFile> files = entry.getValue();
-	//						ArrayList<VcsException> getStatusErrors = new ArrayList<VcsException>();
-	//						GetStatusesCommand getStatusesCommand = new GetStatusesCommand(MksVcs.this, getStatusErrors, sandbox, files);
-	//						getStatusesCommand.execute();
-	//						ret.putAll(getStatusesCommand.statuses);
-	//					}
-	//					return ret;
-	//				}
-	//			});
-	//		}
-	//	}
 
 	private class _EditFileProvider implements EditFileProvider {
 		public void editFiles(VirtualFile[] virtualFiles) throws VcsException {
@@ -438,6 +418,7 @@ public class MksVcs extends AbstractVcs implements ProjectComponent {
 			this.files = files;
 		}
 
+		@Override
 		public void execute() {
 			try {
 				TriclopsSiMembers members = queryMksMemberStatus(files, sandbox);
@@ -451,6 +432,7 @@ public class MksVcs extends AbstractVcs implements ProjectComponent {
 
 	private final EditFileProvider editFileProvider = new _EditFileProvider();
 
+	@Override
 	@Nullable
 	public EditFileProvider getEditFileProvider() {
 		return editFileProvider;
@@ -462,36 +444,43 @@ public class MksVcs extends AbstractVcs implements ProjectComponent {
 			debug("new MyVirtualFileAdapter");
 		}
 
+		@Override
 		public void propertyChanged(VirtualFilePropertyEvent event) {
 			super.propertyChanged(event);	//To change body of overridden methods use File | Settings | File Templates.
 			debug("propertyChanged[" + event + "]");
 		}
 
+		@Override
 		public void contentsChanged(VirtualFileEvent virtualFileEvent) {
 			super.contentsChanged(virtualFileEvent);	//To change body of overridden methods use File | Settings | File Templates.
 			debug("contentsChanged[" + virtualFileEvent + "]");
 		}
 
+		@Override
 		public void beforeContentsChange(VirtualFileEvent virtualFileEvent) {
 			super.beforeContentsChange(virtualFileEvent);	//To change body of overridden methods use File | Settings | File Templates.
 			debug("beforeContentsChange[" + virtualFileEvent + "]");
 		}
 
+		@Override
 		public void beforeFileDeletion(VirtualFileEvent virtualFileEvent) {
 			super.beforeFileDeletion(virtualFileEvent);	//To change body of overridden methods use File | Settings | File Templates.
 			debug("beforeFileDeletion[" + virtualFileEvent + "]");
 		}
 
+		@Override
 		public void fileCreated(VirtualFileEvent virtualFileEvent) {
 			super.fileCreated(virtualFileEvent);	//To change body of overridden methods use File | Settings | File Templates.
 			debug("fileCreated[" + virtualFileEvent + "]");
 		}
 
+		@Override
 		public void fileDeleted(VirtualFileEvent virtualFileEvent) {
 			super.fileDeleted(virtualFileEvent);	//To change body of overridden methods use File | Settings | File Templates.
 			debug("fileDeleted[" + virtualFileEvent + "]");
 		}
 
+		@Override
 		public void beforePropertyChange(VirtualFilePropertyEvent event) {
 			super.beforePropertyChange(event);	//To change body of overridden methods use File | Settings | File Templates.
 			debug("beforePropertyChange[" + event + "]");
@@ -518,11 +507,13 @@ public class MksVcs extends AbstractVcs implements ProjectComponent {
 			//			}
 		}
 
+		@Override
 		public void fileMoved(VirtualFileMoveEvent virtualFileMoveEvent) {
 			super.fileMoved(virtualFileMoveEvent);	//To change body of overridden methods use File | Settings | File Templates.
 			debug("fileMoved[" + virtualFileMoveEvent + "]");
 		}
 
+		@Override
 		public void beforeFileMovement(VirtualFileMoveEvent virtualFileMoveEvent) {
 			super.beforeFileMovement(virtualFileMoveEvent);
 			debug("beforeFileMovement[" + virtualFileMoveEvent + "]");
