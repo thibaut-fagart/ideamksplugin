@@ -52,6 +52,7 @@ public abstract class BasicAction extends AnAction {
 // not sure this is usefull, according do javadoc
 			//Runs the runnable inside the vcs transaction (if needed), collects all exceptions, commits/rollbacks transaction and returns all exceptions together.
 			// todo but what kind of commit/rollback will be done against mks ?
+			// todo seem to be related to com.intellij.openapi.vcs.TransactionProvider and com.intellij.openapi.vcs.AbstractVcs.getTransactionProvider()
 			List<VcsException> exceptions = helper.runTransactionRunnable(mksvcs, new TransactionRunnable() {
 				public void run(List exceptions) {
 					final VirtualFile[] affectedFiles = collectAffectedFiles(project, vFiles);
