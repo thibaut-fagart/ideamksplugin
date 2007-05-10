@@ -22,6 +22,9 @@ import mks.integrations.common.TriclopsException;
 import mks.integrations.common.TriclopsSiMember;
 import mks.integrations.common.TriclopsSiMembers;
 import mks.integrations.common.TriclopsSiSandbox;
+import org.intellij.vcs.mks.sicommands.GetContentRevision;
+import org.intellij.vcs.mks.sicommands.ListChangePackageEntries;
+import org.intellij.vcs.mks.sicommands.ListChangePackages;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -77,7 +80,7 @@ public class MksVcs extends AbstractVcs implements ProjectComponent {
 
 	@Override
 	public Configurable getConfigurable() {
-		return new MksConfigurable(myProject);
+		return new MksConfigurableForm(myProject);
 	}
 
 	@Override
@@ -364,10 +367,13 @@ public class MksVcs extends AbstractVcs implements ProjectComponent {
 		return myChangeProvider;
 	}
 
-	public String getMksSiEncoding() {
+	public String getMksSiEncoding(String command) {
 //		return "IBM437";
 		// todo hardcoded encoding until save/load of mksConfiguration works
-		return ServiceManager.getService(myProject, MksConfiguration.class).SI_ENCODING;
+		MksConfiguration configuration = ServiceManager.getService(myProject, MksConfiguration.class);
+		Map<String, String> encodings = configuration.SI_ENCODINGS.getMap();
+		return (encodings.containsKey(command)) ? encodings.get(command) : configuration.defaultEncoding;
+
 	}
 
 	private class _EditFileProvider implements EditFileProvider {
@@ -485,7 +491,7 @@ public class MksVcs extends AbstractVcs implements ProjectComponent {
 		}
 	}
 
-	FileStatus getIdeaStatus(TriclopsSiSandbox sandbox, TriclopsSiMember member, VirtualFile virtualFile) {
+	FileStatus getIdeaStatus(TriclopsSiSandbox sandbox, TriclopsSiMember member, VirtualFile virtualFile) throws VcsException {
 		FileStatus status = FileStatus.UNKNOWN;
 		if (virtualFile.isDirectory()) {
 			status = FileStatus.NOT_CHANGED;
@@ -512,5 +518,11 @@ public class MksVcs extends AbstractVcs implements ProjectComponent {
 	}
 
 	public void projectOpened() {
+	}
+
+	public static String[] getCommands() {
+		return new String[]{
+			GetContentRevision.COMMAND, ListChangePackageEntries.COMMAND, ListChangePackages.COMMAND
+		};
 	}
 }

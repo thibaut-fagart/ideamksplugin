@@ -1,10 +1,10 @@
 package org.intellij.vcs.mks.sicommands;
 
-import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.vcs.VcsException;
 import org.intellij.vcs.mks.MksChangePackage;
 import org.intellij.vcs.mks.MksChangePackageEntry;
 import org.intellij.vcs.mks.MksVcs;
+import org.jetbrains.annotations.NonNls;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -14,16 +14,18 @@ import java.util.List;
  * @author Thibaut Fagart
  */
 public class ListChangePackageEntries extends SiCLICommand {
-	private final Logger LOGGER = Logger.getInstance(getClass().getName());
 	public List<MksChangePackageEntry> changePackageEntries;
 	private MksChangePackage mksChangePackage;
+	@NonNls
+	public static final String COMMAND = "viewcp";
 
 	public ListChangePackageEntries(List<VcsException> errors, MksVcs mksvcs, MksChangePackage mksChangePackage) {
-		super(errors, mksvcs, "viewcp", mksChangePackage.getId());
+		super(errors, mksvcs, COMMAND, mksChangePackage.getId());
 		this.mksChangePackage = mksChangePackage;
 
 	}
 
+	@Override
 	public void execute() {
 		ArrayList<MksChangePackageEntry> tempEntries = new ArrayList<MksChangePackageEntry>();
 		try {

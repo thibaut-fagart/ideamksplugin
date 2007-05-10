@@ -1,6 +1,5 @@
 package org.intellij.vcs.mks.sicommands;
 
-import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.vcs.VcsException;
 import org.intellij.vcs.mks.AbstractMKSCommand;
 import org.intellij.vcs.mks.MksVcs;
@@ -15,7 +14,6 @@ import java.util.List;
  * @author Thibaut Fagart
  */
 public abstract class SiCLICommand extends AbstractMKSCommand {
-	private final Logger LOGGER = Logger.getInstance(getClass().getName());
 	private MksVcs mksvcs;
 	private String command;
 	private String[] args;
@@ -38,7 +36,7 @@ public abstract class SiCLICommand extends AbstractMKSCommand {
 		builder.redirectErrorStream(true);
 		Process process = builder.start();
 		InputStream is = process.getInputStream();
-		InputStreamReader reader = new InputStreamReader(is, mksvcs.getMksSiEncoding());
+		InputStreamReader reader = new InputStreamReader(is, mksvcs.getMksSiEncoding(command));
 		StringWriter sw;
 		try {
 			char[] buffer = new char[512];

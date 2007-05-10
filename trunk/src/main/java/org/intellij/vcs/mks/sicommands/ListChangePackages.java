@@ -1,9 +1,9 @@
 package org.intellij.vcs.mks.sicommands;
 
-import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.vcs.VcsException;
 import org.intellij.vcs.mks.MksChangePackage;
 import org.intellij.vcs.mks.MksVcs;
+import org.jetbrains.annotations.NonNls;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -14,12 +14,14 @@ import java.util.List;
  */
 public class ListChangePackages extends SiCLICommand {
 	public List<MksChangePackage> changePackages;
-	private final Logger LOGGER = Logger.getInstance(getClass().getName());
+	@NonNls
+	public static final String COMMAND = "viewcps";
 
 	public ListChangePackages(List<VcsException> errors, MksVcs mksvcs) {
-		super(errors, mksvcs, "viewcps");
+		super(errors, mksvcs, COMMAND);
 	}
 
+	@Override
 	public void execute() {
 		ArrayList<MksChangePackage> tempChangePackages = new ArrayList<MksChangePackage>();
 		try {
