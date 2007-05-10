@@ -31,6 +31,7 @@ public class GetStatusesCommand extends AbstractMKSCommand {
 		statuses = new HashMap<VirtualFile, FileStatus>();
 	}
 
+	@Override
 	public void execute() {
 		long deb = System.currentTimeMillis();
 		try {
@@ -80,7 +81,7 @@ public class GetStatusesCommand extends AbstractMKSCommand {
 				TriclopsSiMember member = members.getMember(i);
 				// directories status is not available in mks
 				VirtualFile virtualFile = filesToQueryMksFor.get(i);
-				FileStatus status = mksvcs.getIdeaStatus(member, virtualFile);
+				FileStatus status = mksvcs.getIdeaStatus(sandbox, member, virtualFile);
 				statuses.put(filesToQueryMksFor.get(i), status);
 			}
 		} catch (TriclopsException e) {

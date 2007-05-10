@@ -15,7 +15,8 @@
 	<li>0.5.1 View Changes ignores IDEA ignored files <br/>
 	 Most MKS actions now applicable on multiple targets (with *** For all buttons activted) <br/>
 	 MKS Packages viewed as IDEA ChangeLists in the changes view<br/>
-	 Mks Changes view gets focus when GlobalChanges action is run<br/>
+	 MKS Changes view gets focus when GlobalChanges action is run<br/>
+	 MKS project files are properly ignored<br/>
 	 bugfixes
 	</li>
 	<li>0.5.0 IDEA 7.x compatible</li>

@@ -101,6 +101,8 @@ class MKSChangeProvider implements ChangeProvider {
 		FilePath filePath = VcsUtil.getFilePath(virtualFile.getPath());
 		if (virtualFile.isDirectory()) {
 			// todo  status = FileStatus.NOT_CHANGED;
+		} else if (MKSHelper.isIgnoredFile(sandbox, virtualFile)) {
+			builder.processIgnoredFile(virtualFile);
 		} else if (triclopsSiMember.isStatusKnown() && triclopsSiMember.isStatusNotControlled()) {
 			LOGGER.debug("UNKNOWN " + virtualFile);
 			builder.processUnversionedFile(virtualFile);
@@ -115,7 +117,7 @@ class MKSChangeProvider implements ChangeProvider {
 			} else if (triclopsSiMember.isStatusDifferent()) {
 				LOGGER.debug("MODIFIED " + virtualFile);
 				// todo : find the change packages for each change
-				Change change = new Change(new MksContentRevision(mksvcs, filePath, getRevision(triclopsSiMember)), CurrentContentRevision.create(filePath), getStatus(triclopsSiMember, virtualFile));
+				Change change = new Change(new MksContentRevision(mksvcs, filePath, getRevision(triclopsSiMember)), CurrentContentRevision.create(filePath), getStatus(sandbox, triclopsSiMember, virtualFile));
 				if (changePackage != null) {
 					ChangeListManager changeListManager = ChangeListManager.getInstance(mksvcs.getProject());
 					LocalChangeList changeList = changeListManager.findChangeList(createChangeListName(changePackage));
@@ -170,8 +172,8 @@ class MKSChangeProvider implements ChangeProvider {
 		return changeList;
 	}
 
-	private FileStatus getStatus(TriclopsSiMember triclopsSiMember, VirtualFile virtualFile) {
-		return mksvcs.getIdeaStatus(triclopsSiMember, virtualFile);
+	private FileStatus getStatus(TriclopsSiSandbox sandbox, TriclopsSiMember triclopsSiMember, VirtualFile virtualFile) throws VcsException {
+		return mksvcs.getIdeaStatus(sandbox, triclopsSiMember, virtualFile);
 	}
 
 	private MksRevisionNumber getRevision(TriclopsSiMember triclopsSiMember) throws VcsException {
