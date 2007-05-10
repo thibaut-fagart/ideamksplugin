@@ -2,10 +2,12 @@ package org.intellij.vcs.mks;
 
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.vcs.VcsException;
+import com.intellij.openapi.vfs.VfsUtil;
 import com.intellij.openapi.vfs.VirtualFile;
 import mks.integrations.common.*;
 import org.jetbrains.annotations.NotNull;
 
+import java.io.File;
 import java.util.HashMap;
 
 public class MKSHelper {
@@ -287,5 +289,16 @@ public class MKSHelper {
 			project.setPath(sandbox.getSandboxProject());
 			return project.getMemberList();
 		}
+	}
+
+	/**
+	 * Ignores the files materializing MKS projects
+	 *
+	 * @param sandbox	 the sandbox containing the file
+	 * @param virtualFile the file to be tested for ignore
+	 * @return whether this file is ignorable according to MKS
+	 */
+	public static boolean isIgnoredFile(TriclopsSiSandbox sandbox, VirtualFile virtualFile) {
+		return VfsUtil.virtualToIoFile(virtualFile).equals(new File(sandbox.getPath()));
 	}
 }

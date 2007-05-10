@@ -1,9 +1,6 @@
 package org.intellij.vcs.mks;
 
-import com.intellij.openapi.actionSystem.ActionGroup;
-import com.intellij.openapi.actionSystem.ActionManager;
-import com.intellij.openapi.actionSystem.ActionPopupMenu;
-import com.intellij.openapi.actionSystem.DataProvider;
+import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.components.ProjectComponent;
 import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
@@ -17,7 +14,7 @@ import com.intellij.openapi.util.Computable;
 import com.intellij.openapi.vcs.*;
 import com.intellij.openapi.vcs.changes.ChangeProvider;
 import com.intellij.openapi.vcs.diff.DiffProvider;
-import com.intellij.openapi.vfs.*;
+import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowAnchor;
 import com.intellij.openapi.wm.ToolWindowManager;
@@ -47,14 +44,12 @@ import java.util.List;
 
 public class MksVcs extends AbstractVcs implements ProjectComponent {
 	static final Logger LOGGER = Logger.getInstance(MksVcs.class.getName());
-	//	public static TriclopsSiClient CLIENT;
 	public static final String TOOL_WINDOW_ID = "MKS";
-	private static final int MAJOR_VERSION = 1;
-	private static final int MINOR_VERSION = 5;
+	private static final int MAJOR_VERSION = 5;
+	private static final int MINOR_VERSION = 1;
 	private ToolWindow mksToolWindow;
 	private JTabbedPane mksContentPanel;
 	private JTextPane mksTextArea;
-	private MksVcs.MyVirtualFileAdapter myVirtualFileAdapter;
 	static final boolean DEBUG = true;
 	private ChangedResourcesTableModel changedResourcesTableModel;
 	private static final int CHANGES_TAB_INDEX = 1;
@@ -65,7 +60,7 @@ public class MksVcs extends AbstractVcs implements ProjectComponent {
 
 	public MksVcs(Project project) {
 		super(project);
-//        fileStatusProvider = new _FileStatusProvider(myProject);
+
 	}
 
 	@NotNull
@@ -105,7 +100,6 @@ public class MksVcs extends AbstractVcs implements ProjectComponent {
 				initToolWindow();
 			}
 		});
-
 	}
 
 	@Override
@@ -177,11 +171,11 @@ public class MksVcs extends AbstractVcs implements ProjectComponent {
 			 */
 			@Nullable
 			public Object getData(@NonNls String name) {
-				if (DATA_CONTEXT_PROJECT.equals(name)) {
+				if (DataKeys.PROJECT.getName().equals(name)) {
 					return MksVcs.this.myProject;
-				} else if (DATA_CONTEXT_MODULE.equals(name)) {
+				} else if (DataKeys.MODULE.getName().equals(name)) {
 					return findModule(MksVcs.this.myProject, changedResourcesTableModel.getVirtualFile(getSelectedRow()));
-				} else if (DATA_CONTEXT_VIRTUAL_FILE_ARRAY.equals(name)) {
+				} else if (DataKeys.VIRTUAL_FILE_ARRAY.getName().equals(name)) {
 					return new VirtualFile[]{changedResourcesTableModel.getVirtualFile(getSelectedRow())};
 				}
 				//                System.out.println("ignoring data : "+name);
@@ -436,88 +430,6 @@ public class MksVcs extends AbstractVcs implements ProjectComponent {
 		return editFileProvider;
 	}
 
-	private class MyVirtualFileAdapter extends VirtualFileAdapter {
-		public MyVirtualFileAdapter() {
-			super();	//To change body of overridden methods use File | Settings | File Templates.
-			debug("new MyVirtualFileAdapter");
-		}
-
-		@Override
-		public void propertyChanged(VirtualFilePropertyEvent event) {
-			super.propertyChanged(event);	//To change body of overridden methods use File | Settings | File Templates.
-			debug("propertyChanged[" + event + "]");
-		}
-
-		@Override
-		public void contentsChanged(VirtualFileEvent virtualFileEvent) {
-			super.contentsChanged(virtualFileEvent);	//To change body of overridden methods use File | Settings | File Templates.
-			debug("contentsChanged[" + virtualFileEvent + "]");
-		}
-
-		@Override
-		public void beforeContentsChange(VirtualFileEvent virtualFileEvent) {
-			super.beforeContentsChange(virtualFileEvent);	//To change body of overridden methods use File | Settings | File Templates.
-			debug("beforeContentsChange[" + virtualFileEvent + "]");
-		}
-
-		@Override
-		public void beforeFileDeletion(VirtualFileEvent virtualFileEvent) {
-			super.beforeFileDeletion(virtualFileEvent);	//To change body of overridden methods use File | Settings | File Templates.
-			debug("beforeFileDeletion[" + virtualFileEvent + "]");
-		}
-
-		@Override
-		public void fileCreated(VirtualFileEvent virtualFileEvent) {
-			super.fileCreated(virtualFileEvent);	//To change body of overridden methods use File | Settings | File Templates.
-			debug("fileCreated[" + virtualFileEvent + "]");
-		}
-
-		@Override
-		public void fileDeleted(VirtualFileEvent virtualFileEvent) {
-			super.fileDeleted(virtualFileEvent);	//To change body of overridden methods use File | Settings | File Templates.
-			debug("fileDeleted[" + virtualFileEvent + "]");
-		}
-
-		@Override
-		public void beforePropertyChange(VirtualFilePropertyEvent event) {
-			super.beforePropertyChange(event);	//To change body of overridden methods use File | Settings | File Templates.
-			debug("beforePropertyChange[" + event + "]");
-			//			if (event.getPropertyName().equalsIgnoreCase(VirtualFile.PROP_NAME)) {
-			//				final VirtualFile file = event.getFile();
-			//				final VirtualFile parent = file.getParent();
-			//				try {
-			//					try {
-			//						TriclopsSiSandbox sandbox = null;
-			//						sandbox = MKSHelper.getSandbox(file);
-			//						TriclopsSiMembers members = new TriclopsSiMembers(MksVcs.CLIENT, sandbox);
-			//
-			//						members.addMember(new TriclopsSiMember(file.getPresentableUrl()));
-			//						members.addMember(new TriclopsSiMember(file.getParent().getPresentableUrl()+"\\"+event.getNewValue()));
-			//
-			//						members.renameMember(TriclopsSiMembers.SI_RENAME_MEMBER_CONFIRM);
-			//					} catch (TriclopsException e) {
-			//						debug("rename member [" + file.getPath() + "] to [" + event.getNewValue() + "] failed", e);
-			//						throw new VcsException("rename member [" + file.getPath() + "] to [" + event.getNewValue() + "] failed");
-			//					}
-			//				} catch (VcsException e) {
-			//					debug(e.getMessage(), e);
-			//				}
-			//			}
-		}
-
-		@Override
-		public void fileMoved(VirtualFileMoveEvent virtualFileMoveEvent) {
-			super.fileMoved(virtualFileMoveEvent);	//To change body of overridden methods use File | Settings | File Templates.
-			debug("fileMoved[" + virtualFileMoveEvent + "]");
-		}
-
-		@Override
-		public void beforeFileMovement(VirtualFileMoveEvent virtualFileMoveEvent) {
-			super.beforeFileMovement(virtualFileMoveEvent);
-			debug("beforeFileMovement[" + virtualFileMoveEvent + "]");
-		}
-	}
-
 	public static Map<TriclopsSiSandbox, ArrayList<VirtualFile>> dispatchBySandbox(VirtualFile[] files) {
 		ArrayList<VcsException> dispatchErrors = new ArrayList<VcsException>();
 		DispatchBySandboxCommand dispatchCommand = new DispatchBySandboxCommand(dispatchErrors, files);
@@ -573,94 +485,12 @@ public class MksVcs extends AbstractVcs implements ProjectComponent {
 		}
 	}
 
-/* todo shelved
-	@Nullable
-	public CommittedChangesProvider getCommittedChangesProvider() {
-		return super.getCommittedChangesProvider();
-	}
-
-	@Nullable
-	public ChangeProvider getChangeProvider() {
-		return new MKSChangeProvider(this);
-	}
-*/
-
-	/**
-	 * pour IDEA 6
-	 * /
-	 * private class _FileStatusProvider implements FileStatusProvider {
-	 * private final Project project;
-	 * <p/>
-	 * public _FileStatusProvider(Project project) {
-	 * this.project = project;
-	 * }
-	 * <p/>
-	 * <p/>
-	 * public FileStatus getStatus(VirtualFile virtualFile) {
-	 * ArrayList<VirtualFile> collection = new ArrayList<VirtualFile>();
-	 * collection.add(virtualFile);
-	 * <p/>
-	 * Map<VirtualFile, FileStatus> map = ApplicationManager.getApplication().runReadAction(new CalcStatusComputable(MksVcs.this, collection));
-	 * FileStatus fileStatus = map.get(virtualFile);
-	 * LOGGER.info("status for : " + virtualFile + " = " + fileStatus);
-	 * <p/>
-	 * return fileStatus;
-	 * /*			return fileStatus;
-	 * if (!PerforceSettings.getSettings(myProject).ENABLED) return FileStatus.NOT_CHANGED;
-	 * if (PerforceManager.getInstance(myProject).isUnderPerforceRoot(virtualFile)) {
-	 * if (!virtualFile.isDirectory()) {
-	 * final FStat fStat;
-	 * try {
-	 * final P4File p4File = P4File.create(virtualFile);
-	 * fStat = p4File.getFstat(PerforceSettings.getSettings(myProject),
-	 * PerforceConnectionManager.getInstance(myProject).getConnectionForFile(virtualFile), false);
-	 * }
-	 * catch (VcsException e) {
-	 * return FileStatus.UNKNOWN;
-	 * }
-	 * <p/>
-	 * return convertToFileStatus(fStat);
-	 * }
-	 * else {
-	 * return FileStatus.NOT_CHANGED;
-	 * }
-	 * }
-	 * else {
-	 * return FileStatus.UNKNOWN;
-	 * }
-	 * /
-	 * }
-	 * / *
-	 * protected Map<VirtualFile, FileStatus> calcStatus(final Collection<VirtualFile> collection) {
-	 * return ApplicationManager.getApplication().runReadAction(new CalcStatusComputable(MksVcs.this, collection));
-	 * }
-	 * /
-	 * }
-	 */
-
-//    private final FileStatusProvider fileStatusProvider;
-
-//    public FileStatusProvider getFileStatusProvider() {
-//        return fileStatusProvider;
-
-	//		return LocalVcsServices.getInstance(myProject).getFileStatusProvider();
-//    }
-	public void projectOpened() {
-		myVirtualFileAdapter = new MyVirtualFileAdapter();
-		// todo desactivé
-		//		VirtualFileManager.getInstance().addVirtualFileListener(myVirtualFileAdapter);
-	}
-
-	public void projectClosed() {
-		if (myVirtualFileAdapter != null) {
-			VirtualFileManager.getInstance().removeVirtualFileListener(myVirtualFileAdapter);
-		}
-	}
-
-	FileStatus getIdeaStatus(TriclopsSiMember member, VirtualFile virtualFile) {
+	FileStatus getIdeaStatus(TriclopsSiSandbox sandbox, TriclopsSiMember member, VirtualFile virtualFile) {
 		FileStatus status = FileStatus.UNKNOWN;
 		if (virtualFile.isDirectory()) {
 			status = FileStatus.NOT_CHANGED;
+		} else if (MKSHelper.isIgnoredFile(sandbox, virtualFile)) {
+			status = FileStatus.IGNORED;
 		} else if (member.isStatusKnown() && member.isStatusNotControlled()) {
 			status = FileStatus.UNKNOWN;
 		} else if (member.isStatusKnown() && member.isStatusControlled()) {
@@ -678,5 +508,9 @@ public class MksVcs extends AbstractVcs implements ProjectComponent {
 		return status;
 	}
 
+	public void projectClosed() {
+	}
 
+	public void projectOpened() {
+	}
 }
