@@ -114,7 +114,11 @@ class MKSChangeProvider implements ChangeProvider {
 				LOGGER.debug("LOCALLY DELETED " + virtualFile);
 				builder.processLocallyDeletedFile(filePath);
 //					status = FileStatus.DELETED_FROM_FS;
-			} else if (triclopsSiMember.isStatusDifferent()) {
+
+			} else if (triclopsSiMember.isStatusDifferent() && !triclopsSiMember.isStatusLocked()) {
+				LOGGER.debug("MODIFIED WITHOUT CHECKOUT" + virtualFile);
+				builder.processModifiedWithoutCheckout(virtualFile);
+			} else if (triclopsSiMember.isStatusDifferent() && triclopsSiMember.isStatusLocked()) {
 				LOGGER.debug("MODIFIED " + virtualFile);
 				// todo : find the change packages for each change
 				Change change = new Change(new MksContentRevision(mksvcs, filePath, getRevision(triclopsSiMember)), CurrentContentRevision.create(filePath), getStatus(sandbox, triclopsSiMember, virtualFile));
