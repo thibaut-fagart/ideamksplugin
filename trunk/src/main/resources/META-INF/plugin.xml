@@ -12,11 +12,13 @@
 	<idea-version since-build="6667"/>
 
 	<change-notes><![CDATA[<ul>
-	<li>0.5.1 View Changes ignores IDEA ignored files <br/>
-	 Most MKS actions now applicable on multiple targets (with *** For all buttons activted) <br/>
-	 MKS Packages viewed as IDEA ChangeLists in the changes view<br/>
-	 MKS Changes view gets focus when GlobalChanges action is run<br/>
-	 MKS project files are properly ignored<br/>
+	<li>0.5.1 View Changes ignores IDEA ignored files <br>
+	 Most MKS actions now applicable on multiple targets (with *** For all buttons activated) <br>
+	 MKS Packages viewed as IDEA ChangeLists in the changes view<br>
+	 MKS Changes view gets focus when GlobalChanges action is run<br>
+	 MKS project files are properly ignored<br>
+	 MKS Changes integration : encoding support per si CLI command (different commands seem to use different encodings) see the configuration<br>
+	 Files locally modified (without checkout) are distinguished from properly checked out ones<br>
 	 bugfixes
 	</li>
 	<li>0.5.0 IDEA 7.x compatible</li>
