@@ -14,7 +14,7 @@ import java.util.List;
  * @author Thibaut Fagart
  */
 public abstract class SiCLICommand extends AbstractMKSCommand {
-	private MksVcs mksvcs;
+	protected final MksVcs mksvcs;
 	private String command;
 	private String[] args;
 	protected String commandOutput;
@@ -32,6 +32,7 @@ public abstract class SiCLICommand extends AbstractMKSCommand {
 		processArgs[1] = command;
 		System.arraycopy(args, 0, processArgs, 2, args.length);
 		ProcessBuilder builder = new ProcessBuilder(processArgs);
+//		System.out.println("command " + builder.command());
 		LOGGER.debug("command " + builder.command());
 		builder.redirectErrorStream(true);
 		Process process = builder.start();

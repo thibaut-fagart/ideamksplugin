@@ -12,9 +12,12 @@ import com.intellij.openapi.startup.StartupManager;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.util.Computable;
 import com.intellij.openapi.vcs.*;
+import com.intellij.openapi.vcs.changes.ChangeListManager;
 import com.intellij.openapi.vcs.changes.ChangeProvider;
+import com.intellij.openapi.vcs.checkin.CheckinEnvironment;
 import com.intellij.openapi.vcs.diff.DiffProvider;
 import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.openapi.vfs.VirtualFileManager;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowAnchor;
 import com.intellij.openapi.wm.ToolWindowManager;
@@ -42,9 +45,6 @@ import java.io.StringWriter;
 import java.util.*;
 import java.util.List;
 
-// Referenced classes of package org.intellij.vcs.mks:
-//            MksConfigurable
-
 public class MksVcs extends AbstractVcs implements ProjectComponent {
 	static final Logger LOGGER = Logger.getInstance(MksVcs.class.getName());
 	public static final String TOOL_WINDOW_ID = "MKS";
@@ -53,13 +53,18 @@ public class MksVcs extends AbstractVcs implements ProjectComponent {
 	private ToolWindow mksToolWindow;
 	private JTabbedPane mksContentPanel;
 	private JTextPane mksTextArea;
-	static final boolean DEBUG = true;
+	private MksVirtualFileAdapter myVirtualFileAdapter;
+	static final boolean DEBUG = false;
 	private ChangedResourcesTableModel changedResourcesTableModel;
 	private static final int CHANGES_TAB_INDEX = 1;
 	public static final String DATA_CONTEXT_PROJECT = "project";
 	public static final String DATA_CONTEXT_MODULE = "module";
 	public static final String DATA_CONTEXT_VIRTUAL_FILE_ARRAY = "virtualFileArray";
 	private MKSChangeProvider myChangeProvider = new MKSChangeProvider(this);
+	private final MksCheckinEnvironment mksCheckinEnvironment = new MksCheckinEnvironment(this);
+	private final MksChangeListAdapter changeListAdapter = new MksChangeListAdapter(this);
+	private final EditFileProvider editFileProvider = new _EditFileProvider(this);
+
 
 	public MksVcs(Project project) {
 		super(project);
@@ -103,6 +108,10 @@ public class MksVcs extends AbstractVcs implements ProjectComponent {
 				initToolWindow();
 			}
 		});
+	}
+
+	public MksChangeListAdapter getChangeListAdapter() {
+		return changeListAdapter;
 	}
 
 	@Override
@@ -230,7 +239,7 @@ public class MksVcs extends AbstractVcs implements ProjectComponent {
 		}
 		try {
 
-			TriclopsSiSandbox sandbox = MKSHelper.getSandbox(filePath.getVirtualFile());
+			TriclopsSiSandbox sandbox = MKSHelper.getSandbox(filePath.getVirtualFile(), this);
 			TriclopsSiMembers members = MKSHelper.createMembers(sandbox);
 			TriclopsSiMember triclopsSiMember = new TriclopsSiMember(filePath.getPresentableUrl());
 			members.addMember(triclopsSiMember);
@@ -270,7 +279,7 @@ public class MksVcs extends AbstractVcs implements ProjectComponent {
 				debug("fileIsUnderVcs : " + filePath.getPresentableUrl());
 			}
 			try {
-				MKSHelper.getSandbox(filePath.getVirtualFile());
+				MKSHelper.getSandbox(filePath.getVirtualFile(), this);
 				return true;
 			} catch (VcsException e) {
 				ArrayList<VcsException> l = new ArrayList<VcsException>();
@@ -361,15 +370,13 @@ public class MksVcs extends AbstractVcs implements ProjectComponent {
 	}
 
 	@Override
-	@Nullable
+	@NotNull
 	public ChangeProvider getChangeProvider() {
 
 		return myChangeProvider;
 	}
 
 	public String getMksSiEncoding(String command) {
-//		return "IBM437";
-		// todo hardcoded encoding until save/load of mksConfiguration works
 		MksConfiguration configuration = ServiceManager.getService(myProject, MksConfiguration.class);
 		Map<String, String> encodings = configuration.SI_ENCODINGS.getMap();
 		return (encodings.containsKey(command)) ? encodings.get(command) : configuration.defaultEncoding;
@@ -377,9 +384,15 @@ public class MksVcs extends AbstractVcs implements ProjectComponent {
 	}
 
 	private class _EditFileProvider implements EditFileProvider {
+		private final MksVcs mksVcs;
+
+		public _EditFileProvider(MksVcs mksVcs) {
+			this.mksVcs = mksVcs;
+		}
+
 		public void editFiles(VirtualFile[] virtualFiles) throws VcsException {
 			List<VcsException> errors = new ArrayList<VcsException>();
-			DispatchBySandboxCommand dispatchCommand = new DispatchBySandboxCommand(errors, virtualFiles);
+			DispatchBySandboxCommand dispatchCommand = new DispatchBySandboxCommand(mksVcs, errors, virtualFiles);
 			dispatchCommand.execute();
 			if (!dispatchCommand.errors.isEmpty()) {
 				Messages.showErrorDialog("Unable to find the sandbox(es) for the file(s)", "Could Not Start checkout");
@@ -428,17 +441,15 @@ public class MksVcs extends AbstractVcs implements ProjectComponent {
 
 	}
 
-	private final EditFileProvider editFileProvider = new _EditFileProvider();
-
 	@Override
 	@Nullable
 	public EditFileProvider getEditFileProvider() {
 		return editFileProvider;
 	}
 
-	public static Map<TriclopsSiSandbox, ArrayList<VirtualFile>> dispatchBySandbox(VirtualFile[] files) {
+	public Map<TriclopsSiSandbox, ArrayList<VirtualFile>> dispatchBySandbox(VirtualFile[] files) {
 		ArrayList<VcsException> dispatchErrors = new ArrayList<VcsException>();
-		DispatchBySandboxCommand dispatchCommand = new DispatchBySandboxCommand(dispatchErrors, files);
+		DispatchBySandboxCommand dispatchCommand = new DispatchBySandboxCommand(this, dispatchErrors, files);
 		dispatchCommand.execute();
 		return dispatchCommand.filesBySandbox;
 	}
@@ -460,7 +471,7 @@ public class MksVcs extends AbstractVcs implements ProjectComponent {
 		public Map<VirtualFile, FileStatus> compute() {
 			Map<VirtualFile, FileStatus> ret = new HashMap<VirtualFile, FileStatus>();
 			ArrayList<VcsException> dispatchErrors = new ArrayList<VcsException>();
-			DispatchBySandboxCommand dispatchCommand = new DispatchBySandboxCommand(dispatchErrors,
+			DispatchBySandboxCommand dispatchCommand = new DispatchBySandboxCommand(mksvcs, dispatchErrors,
 				collection.toArray(new VirtualFile[collection.size()]));
 			long deb = System.currentTimeMillis();
 			dispatchCommand.execute();
@@ -491,6 +502,26 @@ public class MksVcs extends AbstractVcs implements ProjectComponent {
 		}
 	}
 
+	public void projectOpened() {
+		// todo MksVirtualFileAdapter
+//		if (myVirtualFileAdapter == null) {
+//			myVirtualFileAdapter = new MksVirtualFileAdapter(this);
+//
+//			VirtualFileManager.getInstance().addVirtualFileListener(myVirtualFileAdapter);
+//		}
+		ChangeListManager changeListManager = ChangeListManager.getInstance(getProject());
+		changeListManager.addChangeListListener(changeListAdapter);
+	}
+
+	public void projectClosed() {
+		if (myVirtualFileAdapter != null) {
+			VirtualFileManager.getInstance().removeVirtualFileListener(myVirtualFileAdapter);
+		}
+		ChangeListManager changeListManager = ChangeListManager.getInstance(getProject());
+		changeListManager.removeChangeListListener(changeListAdapter);
+
+	}
+
 	FileStatus getIdeaStatus(TriclopsSiSandbox sandbox, TriclopsSiMember member, VirtualFile virtualFile) throws VcsException {
 		FileStatus status = FileStatus.UNKNOWN;
 		if (virtualFile.isDirectory()) {
@@ -502,6 +533,9 @@ public class MksVcs extends AbstractVcs implements ProjectComponent {
 		} else if (member.isStatusKnown() && member.isStatusControlled()) {
 			if (member.isStatusNoWorkingFile()) {
 				status = FileStatus.DELETED_FROM_FS;
+			} else if (member.isStatusDifferent() && !member.isStatusLocked()) {
+				// todo this is a FileSystem modificaction, with no prior checkout, which filestatus should we use ?
+				status = FileStatus.MODIFIED;
 			} else if (member.isStatusDifferent()) {
 				status = FileStatus.MODIFIED;
 			} else if (!member.isStatusDifferent()) {
@@ -514,15 +548,15 @@ public class MksVcs extends AbstractVcs implements ProjectComponent {
 		return status;
 	}
 
-	public void projectClosed() {
-	}
-
-	public void projectOpened() {
-	}
-
 	public static String[] getCommands() {
 		return new String[]{
 			GetContentRevision.COMMAND, ListChangePackageEntries.COMMAND, ListChangePackages.COMMAND
 		};
+	}
+
+	@Override
+	@Nullable
+	public CheckinEnvironment getCheckinEnvironment() {
+		return mksCheckinEnvironment;
 	}
 }

@@ -22,7 +22,7 @@ public abstract class MultipleTargetAction extends BasicAction {
 					// todo if active change list is an mks one, use it as the change package ?
 					perform(siMembers);
 				} catch (TriclopsException e) {
-					if (MksVcs.isLastCommandCancelled()) {
+					if (!MksVcs.isLastCommandCancelled()) {
 						exceptions.add(new VcsException(getActionName(mksVcs) +
 							" Error: " + MksVcs.getMksErrorMessage()));
 					}

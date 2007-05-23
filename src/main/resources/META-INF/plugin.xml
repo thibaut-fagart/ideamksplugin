@@ -33,6 +33,10 @@
 			<implementation-class>org.intellij.vcs.mks.MksVcs</implementation-class>
 		</component>
 		<component>
+			<implementation-class>org.intellij.vcs.mks.MKSChangeProvider</implementation-class>
+			<option name="workspace" value="true"/>
+		</component>
+		<component>
 			<interface-class>org.intellij.vcs.mks.MksConfiguration</interface-class>
 			<implementation-class>org.intellij.vcs.mks.MksConfiguration</implementation-class>
 			<option name="workspace" value="true"/>

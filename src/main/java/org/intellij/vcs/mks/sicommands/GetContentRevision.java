@@ -12,13 +12,11 @@ import java.util.List;
  * @author Thibaut Fagart
  */
 public class GetContentRevision extends SiCLICommand {
-	private final int prevErrorCount;
 	@NonNls
 	public static final String COMMAND = "viewrevision";
 
 	public GetContentRevision(List<VcsException> errors, MksVcs mksvcs, MksContentRevision mksContentRevision) {
 		super(errors, mksvcs, COMMAND, "-r", mksContentRevision.getRevisionNumber().asString(), mksContentRevision.getFile().getPath());
-		prevErrorCount = errors.size();
 
 	}
 
@@ -32,11 +30,11 @@ public class GetContentRevision extends SiCLICommand {
 	}
 
 	public String getContent() throws VcsException {
-		if (errors.size() > prevErrorCount) {
-			for (VcsException vcsException : errors.subList(prevErrorCount, errors.size())) {
+		if (foundError()) {
+			for (VcsException vcsException : errors.subList(previousErrorCount, errors.size())) {
 				LOGGER.error(vcsException);
 			}
-			throw new VcsException(errors.get(prevErrorCount));
+			throw new VcsException(errors.get(previousErrorCount));
 		} else {
 			return commandOutput;
 		}

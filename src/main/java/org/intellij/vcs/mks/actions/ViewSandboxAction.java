@@ -30,13 +30,13 @@ public class ViewSandboxAction extends BasicAction {
 
 	@Override
 	protected boolean isEnabled(@NotNull Project project, @NotNull MksVcs vcs, @NotNull VirtualFile... virtualFiles) {
-		Map<TriclopsSiSandbox, ArrayList<VirtualFile>> map = MksVcs.dispatchBySandbox(virtualFiles);
+		Map<TriclopsSiSandbox, ArrayList<VirtualFile>> map = vcs.dispatchBySandbox(virtualFiles);
 		return map.size() == 1;
 	}
 
 	@Override
 	protected void perform(@NotNull Project project, MksVcs mksVcs, @NotNull List<VcsException> exceptions, @NotNull VirtualFile[] affectedFiles) {
-		Map<TriclopsSiSandbox, ArrayList<VirtualFile>> map = MksVcs.dispatchBySandbox(affectedFiles);
+		Map<TriclopsSiSandbox, ArrayList<VirtualFile>> map = mksVcs.dispatchBySandbox(affectedFiles);
 		for (TriclopsSiSandbox sandbox : map.keySet()) {
 			try {
 				MKSHelper.viewSandbox(sandbox);
