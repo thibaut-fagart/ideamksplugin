@@ -150,7 +150,7 @@ public abstract class BasicAction extends AnAction {
 	@NotNull
 	protected TriclopsSiMembers[] createSiMembers(@NotNull MksVcs vcs, @NotNull VirtualFile... files) throws VcsException {
 		try {
-			DispatchBySandboxCommand dispatchAction = new DispatchBySandboxCommand(new ArrayList<VcsException>(), files);
+			DispatchBySandboxCommand dispatchAction = new DispatchBySandboxCommand(vcs, new ArrayList<VcsException>(), files);
 			dispatchAction.execute();
 
 			Map<TriclopsSiSandbox, ArrayList<VirtualFile>> filesBysandbox = dispatchAction.getFilesBySandbox();
@@ -161,8 +161,8 @@ public abstract class BasicAction extends AnAction {
 				result[i++] = members;
 				for (VirtualFile virtualFile : entry.getValue()) {
 					members.addMember(new TriclopsSiMember(virtualFile.getPresentableUrl()));
-					MKSHelper.getMembersStatus(members);
 				}
+				MKSHelper.getMembersStatus(members);
 			}
 			return result;
 		} catch (TriclopsException e) {
