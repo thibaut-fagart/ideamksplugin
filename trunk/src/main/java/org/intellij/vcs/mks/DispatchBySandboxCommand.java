@@ -13,13 +13,15 @@ import java.util.Map;
  * @author Thibaut Fagart
  */
 public class DispatchBySandboxCommand extends AbstractMKSCommand {
+	private final MksVcs mksVcs;
 	private VirtualFile[] virtualFiles;
 	protected Map<TriclopsSiSandbox, ArrayList<VirtualFile>> filesBySandbox =
 		new HashMap<TriclopsSiSandbox, ArrayList<VirtualFile>>();
 	protected ArrayList<VirtualFile> notInSandboxFiles = new ArrayList<VirtualFile>();
 
-	public DispatchBySandboxCommand(List<VcsException> errors, VirtualFile[] virtualFiles) {
+	public DispatchBySandboxCommand(MksVcs mksVcs, List<VcsException> errors, VirtualFile[] virtualFiles) {
 		super(errors);
+		this.mksVcs = mksVcs;
 		this.virtualFiles = virtualFiles;
 	}
 
@@ -28,7 +30,7 @@ public class DispatchBySandboxCommand extends AbstractMKSCommand {
 		Map<String, TriclopsSiSandbox> sandboxesByPath = new HashMap<String, TriclopsSiSandbox>();
 		for (VirtualFile file : virtualFiles) {
 			try {
-				TriclopsSiSandbox sandbox = MKSHelper.getSandbox(file);
+				TriclopsSiSandbox sandbox = MKSHelper.getSandbox(file, mksVcs);
 				TriclopsSiSandbox existingSandbox = sandboxesByPath.get(sandbox.getPath());
 				if (existingSandbox == null) {
 					existingSandbox = sandbox;

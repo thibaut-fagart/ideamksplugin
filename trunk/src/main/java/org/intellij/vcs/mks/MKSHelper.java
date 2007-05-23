@@ -4,10 +4,14 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.vcs.VcsException;
 import com.intellij.openapi.vfs.VfsUtil;
 import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.vcsUtil.VcsUtil;
 import mks.integrations.common.*;
+import org.intellij.vcs.mks.sicommands.ListSandboxes;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.HashMap;
 
 public class MKSHelper {
@@ -19,7 +23,13 @@ public class MKSHelper {
 
 	private static boolean isClientLoaded;
 	private static boolean isClientValid;
+	/**
+	 * sandboxFolder virtualFile => TriclopsSiSandbox
+	 */
 	private static final HashMap<VirtualFile, TriclopsSiSandbox> SANDBOX_CACHE = new HashMap<VirtualFile, TriclopsSiSandbox>();
+	private static long LAST_SANDBOX_CACHE_REFRESH = 0;
+	private static final long SECOND = 1000;
+	private static long SANDBOX_REFRESH_IF_OLDER = 5 * SECOND;
 
 	public static void getMembersStatus(TriclopsSiMembers members) throws TriclopsException {
 		synchronized (mksLock) {
@@ -43,44 +53,96 @@ public class MKSHelper {
 
 	/**
 	 * @param virtualFile a mks controlled file
+	 * @param mksVcs
 	 * @return the mks sandbox in which the filepath is if any
 	 * @throws com.intellij.openapi.vcs.VcsException
 	 *          if the file is not in a sandbox
 	 */
 	@NotNull
-	public static TriclopsSiSandbox getSandbox(@NotNull VirtualFile virtualFile) throws VcsException {
-		VirtualFile temp = virtualFile.getParent(), candidate = null;
-		while (candidate == null && temp != null) {
-			candidate = temp.findFileByRelativePath("project.pj");
-			temp = temp.getParent();
+	public static TriclopsSiSandbox getSandbox(@NotNull VirtualFile virtualFile, MksVcs mksVcs) throws VcsException {
+		TriclopsSiSandbox sandbox = findSandboxInCache(virtualFile, false);
+		if (sandbox == null) {
+			refreshSandboxCache(mksVcs);
+			sandbox = findSandboxInCache(virtualFile, true);
+			if (sandbox == null) {
+				System.out.println("can't find sandbox for file[" + virtualFile.getPath() + "]");
+				throw new VcsException("can't find sandbox for file[" + virtualFile.getPath() + "]");
+			}
 		}
-		if (candidate != null) {
-			TriclopsSiSandbox sandbox = getSandBoxForProjectPj(candidate, virtualFile);
-			sandbox.setIdeProjectPath(virtualFile.getPresentableUrl());
-			return sandbox;
+		return sandbox;
+		//		VirtualFile temp = virtualFile.getParent(), candidate = null;
+//		while (candidate == null && temp != null) {
+//			candidate = temp.findFileByRelativePath("project.pj");
+//			temp = temp.getParent();
+//		}
+//		if (candidate != null) {
+//			TriclopsSiSandbox sandbox = getSandBoxForProjectPj(candidate, virtualFile);
+//			sandbox.setIdeProjectPath(virtualFile.getPresentableUrl());
+//			return sandbox;
+//
+//		} else {
+//			if (LOGGER.isDebugEnabled()) {
+//				LOGGER.debug("did not find sandbox for " + virtualFile);
+//			}
+//			synchronized (mksLock) {
+//				if (!isClientValid) {
+//					startClient();
+//				}
+//				try {
+//					TriclopsSiSandbox sandbox = new TriclopsSiSandbox(CLIENT);
+//					sandbox.setIdeProjectPath(virtualFile.getPresentableUrl());
+//					sandbox.validate();
+//					return sandbox;
+//				} catch (TriclopsException e) {
+//					throw new VcsException("can't find sandbox for file[" + virtualFile.getPath() + "]" + "\n" + getMksErrorMessage());
+//				}
+//			}
+//		}
+	}
 
+	@Nullable
+	private static TriclopsSiSandbox findSandboxInCache(@NotNull VirtualFile virtualFile, boolean recursive) {
+		TriclopsSiSandbox sandbox = null;
+		VirtualFile cursorDir = (virtualFile.isDirectory() ? virtualFile : virtualFile.getParent());
+		if (recursive) {
+			for (; cursorDir != null && sandbox == null; cursorDir = cursorDir.getParent()) {
+				sandbox = SANDBOX_CACHE.get(cursorDir);
+			}
 		} else {
-			LOGGER.error("did not find sandbox for " + virtualFile);
-			synchronized (mksLock) {
-				if (!isClientValid) {
-					startClient();
-				}
-				try {
-					TriclopsSiSandbox sandbox = new TriclopsSiSandbox(CLIENT);
-					sandbox.setIdeProjectPath(virtualFile.getPresentableUrl());
-					sandbox.validate();
-					return sandbox;
-				} catch (TriclopsException e) {
-					throw new VcsException("can't find sandbox for file[" + virtualFile.getPath() + "]" + "\n" + getMksErrorMessage());
+			return SANDBOX_CACHE.get(cursorDir);
+		}
+		return sandbox;
+	}
+
+	private static void refreshSandboxCache(MksVcs mksVcs) {
+		synchronized (SANDBOX_CACHE) {
+			if (System.currentTimeMillis() > LAST_SANDBOX_CACHE_REFRESH + SANDBOX_REFRESH_IF_OLDER) {
+				ListSandboxes listSandboxes = new ListSandboxes(new ArrayList<VcsException>(), mksVcs);
+				listSandboxes.execute();
+				if (listSandboxes.foundError()) {
+					LOGGER.error("error while refreshing sandbox list");
+					return;
+				} else {
+					SANDBOX_CACHE.clear();
+					for (TriclopsSiSandbox sandbox : listSandboxes.sandboxes) {
+						VirtualFile virtualFile = VcsUtil.getVirtualFile(sandbox.getPath());
+						if (virtualFile == null) {
+							LOGGER.error("No VirtualFile for " + sandbox.getPath());
+							break;
+						}
+						SANDBOX_CACHE.put(virtualFile.getParent(), sandbox);
+					}
+					LAST_SANDBOX_CACHE_REFRESH = System.currentTimeMillis();
 				}
 			}
 		}
 	}
 
-	private static TriclopsSiSandbox getSandBoxForProjectPj(VirtualFile sandboxProjectFile, VirtualFile sandboxMember) throws VcsException {
-//		System.out.println("looking up sandbox cache for " + sandboxProjectFile);
+/*
+	private static TriclopsSiSandbox getSandBoxForProjectPj(String sandboxPath, VirtualFile sandboxMember) throws VcsException {
+//		System.out.println("looking up sandbox cache for " + sandboxPath);
 		synchronized (mksLock) {
-			TriclopsSiSandbox sandbox = SANDBOX_CACHE.get(sandboxProjectFile);
+			TriclopsSiSandbox sandbox = SANDBOX_CACHE.get(sandboxPath);
 			if (sandbox == null) {
 				if (LOGGER.isDebugEnabled()) {
 					LOGGER.debug("SANDBOX_CACHE cache miss");
@@ -92,13 +154,14 @@ public class MKSHelper {
 					sandbox = new TriclopsSiSandbox(CLIENT);
 					sandbox.setIdeProjectPath(sandboxMember.getPresentableUrl());
 					sandbox.validate();
+
 				} catch (TriclopsException e) {
-					throw new VcsException("can't find sandbox for file[" + sandboxProjectFile.getPath() + "]" + "\n" + getMksErrorMessage());
+					throw new VcsException("can't find sandbox for file[" + sandboxPath + "]" + "\n" + getMksErrorMessage());
 				}
 				if (LOGGER.isDebugEnabled()) {
-					LOGGER.debug("SANDBOX_CACHE adding  " + sandboxProjectFile + " for member " + sandboxMember);
+					LOGGER.debug("SANDBOX_CACHE adding  " + sandboxPath + " for member " + sandboxMember);
 				}
-				SANDBOX_CACHE.put(sandboxProjectFile, sandbox);
+				SANDBOX_CACHE.put(sandbox.getPath(), sandbox);
 			} else {
 //				System.out.println("SANDBOX_CACHE cache hit");
 			}
@@ -106,6 +169,7 @@ public class MKSHelper {
 		}
 
 	}
+*/
 
 	public static void disconnect() throws VcsException {
 		if (CLIENT != null) {
@@ -146,7 +210,7 @@ public class MKSHelper {
 
 	public static boolean isLastCommandCancelled() {
 		synchronized (mksLock) {
-			return !"The command was cancelled.".equals(CLIENT.getErrorMessage());
+			return "The command was cancelled.".equals(CLIENT.getErrorMessage());
 		}
 	}
 
@@ -301,4 +365,15 @@ public class MKSHelper {
 	public static boolean isIgnoredFile(TriclopsSiSandbox sandbox, VirtualFile virtualFile) {
 		return VfsUtil.virtualToIoFile(virtualFile).equals(new File(sandbox.getPath()));
 	}
+
+	public static TriclopsSiSandbox createSandbox(String pjFilePath) throws TriclopsException {
+		synchronized (mksLock) {
+			TriclopsSiSandbox siSandbox = new TriclopsSiSandbox(CLIENT);
+			siSandbox.setPath(pjFilePath);
+			siSandbox.setIdeProjectPath(pjFilePath);
+			siSandbox.validate();
+			return siSandbox;
+		}
+	}
+
 }

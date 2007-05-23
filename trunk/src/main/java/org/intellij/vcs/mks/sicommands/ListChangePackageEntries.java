@@ -42,9 +42,9 @@ public class ListChangePackageEntries extends SiCLICommand {
 			// skipping the first 2 lines which display change package information
 			String[] strings = lines[start].split("\t");
 			if (strings.length != 2 || !mksChangePackage.getId().trim().equals(strings[0].trim())
-				|| !mksChangePackage.getDescription().trim().equals(strings[1].trim())) {
+				|| !mksChangePackage.getSummary().trim().equals(strings[1].trim())) {
 				LOGGER.error("unexpected si viewcp output {" + commandOutput + "}, expected line " + start + "{" + lines[start] + "} to be " +
-					"{" + mksChangePackage.getId() + "\t" + mksChangePackage.getDescription() + "\t}");
+					"{" + mksChangePackage.getId() + "\t" + mksChangePackage.getSummary() + "\t}");
 				errors.add(new VcsException("unexpected si viewcp output"));
 				return;
 			}

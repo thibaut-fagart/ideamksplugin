@@ -9,23 +9,23 @@ public class MksChangePackage {
 	private String id;
 	private String owner;
 	private String state;
-	private String description;
+	private String summary;
 
 	private List<MksChangePackageEntry> entries;
 
-	public MksChangePackage(String id, String owner, String state, String description) {
-		this.description = description;
+	public MksChangePackage(String id, String owner, String state, String summary) {
+		this.summary = summary;
 		this.id = id;
 		this.owner = owner;
 		this.state = state;
 	}
 
-	public String getDescription() {
-		return description;
+	public String getSummary() {
+		return summary;
 	}
 
-	public void setDescription(String description) {
-		this.description = description;
+	public void setSummary(String summary) {
+		this.summary = summary;
 	}
 
 	public String getId() {
