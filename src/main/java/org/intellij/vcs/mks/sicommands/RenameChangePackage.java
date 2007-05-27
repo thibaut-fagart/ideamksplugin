@@ -11,30 +11,32 @@ import java.util.List;
  * @author Thibaut Fagart
  */
 public class RenameChangePackage extends SiCLICommand {
-	private final MksChangePackage changePackage;
+    private final MksChangePackage changePackage;
 
-	public RenameChangePackage(List<VcsException> errors, MksVcs mksvcs, MksChangePackage changePackage, String newName) {
-		super(errors, mksvcs, "editcp", "--summary", newName, changePackage.getId());
-		this.changePackage = changePackage;
-	}
+    public RenameChangePackage(List<VcsException> errors, MksVcs mksvcs, MksChangePackage changePackage, String newName) {
+        super(errors, mksvcs, "editcp", "--summary", newName, changePackage.getId());
+        this.changePackage = changePackage;
+    }
 
-	@Override
-	public void execute() {
-		try {
-			executeCommand();
-			String[] lines = commandOutput.split("\r\n");
-			int start = 0;
-			while (shoudIgnore(lines[start])) {
-				// skipping connecting/reconnecting lines
-				start++;
-			}
-			if (lines.length != (start + 1) || !lines[start].equals(changePackage.getId())) {
-				String message = "unexpected command output {" + lines[start] + "}, expected {" + changePackage.getId() + "}";
-				LOGGER.error(message);
-				errors.add(new VcsException(message));
-			}
-		} catch (IOException e) {
-			errors.add(new VcsException(e));
-		}
-	}
+    @Override
+    public void execute() {
+        try {
+            executeCommand();
+            String[] lines = commandOutput.split("\r\n");
+            int start = 0;
+            while (shoudIgnore(lines[start])) {
+                // skipping connecting/reconnecting lines
+                start++;
+            }
+            if (lines.length != (start + 1) || !lines[start].equals(changePackage.getId())) {
+                String message = "unexpected command output {" + lines[start] + "}, expected {" + changePackage.getId() + "}";
+                LOGGER.error(message);
+                //noinspection ThrowableInstanceNeverThrown
+                errors.add(new VcsException(message));
+            }
+        } catch (IOException e) {
+            //noinspection ThrowableInstanceNeverThrown
+            errors.add(new VcsException(e));
+        }
+    }
 }
