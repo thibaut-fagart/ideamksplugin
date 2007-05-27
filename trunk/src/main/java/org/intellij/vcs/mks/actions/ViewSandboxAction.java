@@ -20,35 +20,36 @@ import java.util.Map;
  */
 public class ViewSandboxAction extends BasicAction {
 
-	@Override
-	protected boolean isRecursive() {
-		return false;
-	}
+    @Override
+    protected boolean isRecursive() {
+        return false;
+    }
 
-	public ViewSandboxAction() {
-	}
+    public ViewSandboxAction() {
+    }
 
-	@Override
-	protected boolean isEnabled(@NotNull Project project, @NotNull MksVcs vcs, @NotNull VirtualFile... virtualFiles) {
-		Map<TriclopsSiSandbox, ArrayList<VirtualFile>> map = vcs.dispatchBySandbox(virtualFiles);
-		return map.size() == 1;
-	}
+    @Override
+    protected boolean isEnabled(@NotNull Project project, @NotNull MksVcs vcs, @NotNull VirtualFile... virtualFiles) {
+        Map<TriclopsSiSandbox, ArrayList<VirtualFile>> map = vcs.dispatchBySandbox(virtualFiles);
+        return map.size() == 1;
+    }
 
-	@Override
-	protected void perform(@NotNull Project project, MksVcs mksVcs, @NotNull List<VcsException> exceptions, @NotNull VirtualFile[] affectedFiles) {
-		Map<TriclopsSiSandbox, ArrayList<VirtualFile>> map = mksVcs.dispatchBySandbox(affectedFiles);
-		for (TriclopsSiSandbox sandbox : map.keySet()) {
-			try {
-				MKSHelper.viewSandbox(sandbox);
-			} catch (TriclopsException e) {
-				exceptions.add(new VcsException("ViewSandbox:  Unable to view sandbox." + sandbox.getPath()));
-			}
-		}
-	}
+    @Override
+    protected void perform(@NotNull Project project, MksVcs mksVcs, @NotNull List<VcsException> exceptions, @NotNull VirtualFile[] affectedFiles) {
+        Map<TriclopsSiSandbox, ArrayList<VirtualFile>> map = mksVcs.dispatchBySandbox(affectedFiles);
+        for (TriclopsSiSandbox sandbox : map.keySet()) {
+            try {
+                MKSHelper.viewSandbox(sandbox);
+            } catch (TriclopsException e) {
+                //noinspection ThrowableInstanceNeverThrown
+                exceptions.add(new VcsException("ViewSandbox:  Unable to view sandbox." + sandbox.getPath()));
+            }
+        }
+    }
 
-	@Override
-	@NotNull
-	protected String getActionName(@NotNull AbstractVcs vcs) {
-		return "View Sandbox";
-	}
+    @Override
+    @NotNull
+    protected String getActionName(@NotNull AbstractVcs vcs) {
+        return "View Sandbox";
+    }
 }

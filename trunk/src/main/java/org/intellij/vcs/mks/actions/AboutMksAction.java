@@ -14,23 +14,24 @@ import java.util.ArrayList;
 
 public class AboutMksAction extends AnAction {
 
-	public AboutMksAction() {
-	}
+    public AboutMksAction() {
+    }
 
-	@Override
-	public void actionPerformed(final AnActionEvent anActionEvent) {
-		ApplicationManager.getApplication().runReadAction(new Runnable() {
-			public void run() {
-				try {
-					MKSHelper.aboutBox();
-				} catch (TriclopsException e) {
-					final Project project = anActionEvent.getData(DataKeys.PROJECT);
-					ArrayList<VcsException> errors = new ArrayList<VcsException>();
-					errors.add(new VcsException(e));
-					MksVcs.getInstance(project).showErrors(errors, "About MKS");
-				}
-			}
-		});
-	}
+    @Override
+    public void actionPerformed(final AnActionEvent anActionEvent) {
+        ApplicationManager.getApplication().runReadAction(new Runnable() {
+            public void run() {
+                try {
+                    MKSHelper.aboutBox();
+                } catch (TriclopsException e) {
+                    final Project project = anActionEvent.getData(DataKeys.PROJECT);
+                    ArrayList<VcsException> errors = new ArrayList<VcsException>();
+                    //noinspection ThrowableInstanceNeverThrown
+                    errors.add(new VcsException(e));
+                    MksVcs.getInstance(project).showErrors(errors, "About MKS");
+                }
+            }
+        });
+    }
 
 }

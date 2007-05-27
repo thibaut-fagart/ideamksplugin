@@ -14,23 +14,24 @@ import java.util.ArrayList;
 
 public class SourceIntegrityPreferencesAction extends AnAction {
 
-	public SourceIntegrityPreferencesAction() {
-	}
+    public SourceIntegrityPreferencesAction() {
+    }
 
-	@Override
-	public void actionPerformed(final AnActionEvent anActionEvent) {
+    @Override
+    public void actionPerformed(final AnActionEvent anActionEvent) {
 
-		ApplicationManager.getApplication().runReadAction(new Runnable() {
-			public void run() {
-				try {
-					MKSHelper.aboutBox();
-				} catch (TriclopsException e) {
-					final Project project = anActionEvent.getData(DataKeys.PROJECT);
-					ArrayList<VcsException> errors = new ArrayList<VcsException>();
-					errors.add(new VcsException(e));
-					MksVcs.getInstance(project).showErrors(errors, "MKS Preferences");
-				}
-			}
-		});
-	}
+        ApplicationManager.getApplication().runReadAction(new Runnable() {
+            public void run() {
+                try {
+                    MKSHelper.aboutBox();
+                } catch (TriclopsException e) {
+                    final Project project = anActionEvent.getData(DataKeys.PROJECT);
+                    ArrayList<VcsException> errors = new ArrayList<VcsException>();
+                    //noinspection ThrowableInstanceNeverThrown
+                    errors.add(new VcsException(e));
+                    MksVcs.getInstance(project).showErrors(errors, "MKS Preferences");
+                }
+            }
+        });
+    }
 }

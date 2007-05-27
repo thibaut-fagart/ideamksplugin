@@ -12,31 +12,32 @@ import java.util.List;
  * @author Thibaut Fagart
  */
 public class GetContentRevision extends SiCLICommand {
-	@NonNls
-	public static final String COMMAND = "viewrevision";
+    @NonNls
+    public static final String COMMAND = "viewrevision";
 
-	public GetContentRevision(List<VcsException> errors, MksVcs mksvcs, MksContentRevision mksContentRevision) {
-		super(errors, mksvcs, COMMAND, "-r", mksContentRevision.getRevisionNumber().asString(), mksContentRevision.getFile().getPath());
+    public GetContentRevision(List<VcsException> errors, MksVcs mksvcs, MksContentRevision mksContentRevision) {
+        super(errors, mksvcs, COMMAND, "-r", mksContentRevision.getRevisionNumber().asString(), mksContentRevision.getFile().getPath());
 
-	}
+    }
 
-	@Override
-	public void execute() {
-		try {
-			executeCommand();
-		} catch (IOException e) {
-			errors.add(new VcsException(e));
-		}
-	}
+    @Override
+    public void execute() {
+        try {
+            executeCommand();
+        } catch (IOException e) {
+            //noinspection ThrowableInstanceNeverThrown
+            errors.add(new VcsException(e));
+        }
+    }
 
-	public String getContent() throws VcsException {
-		if (foundError()) {
-			for (VcsException vcsException : errors.subList(previousErrorCount, errors.size())) {
-				LOGGER.error(vcsException);
-			}
-			throw new VcsException(errors.get(previousErrorCount));
-		} else {
-			return commandOutput;
-		}
-	}
+    public String getContent() throws VcsException {
+        if (foundError()) {
+            for (VcsException vcsException : errors.subList(previousErrorCount, errors.size())) {
+                LOGGER.error(vcsException);
+            }
+            throw new VcsException(errors.get(previousErrorCount));
+        } else {
+            return commandOutput;
+        }
+    }
 }
