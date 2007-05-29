@@ -50,9 +50,9 @@
 		<group id="MKS.Menu" text="_MKS" class="org.intellij.vcs.mks.actions.MksGroup" popup="true">
 			<separator/>
 
-			<action id="MKS.ViewGlobalChangesAction" class="org.intellij.vcs.mks.actions.ViewGlobalChangesAction"
-					text="View Changes"
-					description="View Changes"/>
+			<!--<action id="MKS.ViewGlobalChangesAction" class="org.intellij.vcs.mks.actions.ViewGlobalChangesAction"-->
+			<!--text="View Changes"-->
+			<!--description="View Changes"/>-->
 			<action id="MKS.CheckoutAction" class="org.intellij.vcs.mks.actions.CheckoutAction" text="Check Out"
 					description="Check out" icon="/icons/checkout.gif"/>
 			<action id="Mks.CheckinAction" class="org.intellij.vcs.mks.actions.CheckinAction" text="Check In"
