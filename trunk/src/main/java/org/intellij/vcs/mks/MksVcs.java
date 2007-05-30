@@ -9,7 +9,10 @@ import com.intellij.openapi.options.Configurable;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.startup.StartupManager;
 import com.intellij.openapi.ui.Messages;
-import com.intellij.openapi.vcs.*;
+import com.intellij.openapi.vcs.AbstractVcs;
+import com.intellij.openapi.vcs.EditFileProvider;
+import com.intellij.openapi.vcs.FilePath;
+import com.intellij.openapi.vcs.VcsException;
 import com.intellij.openapi.vcs.changes.ChangeListManager;
 import com.intellij.openapi.vcs.changes.ChangeProvider;
 import com.intellij.openapi.vcs.checkin.CheckinEnvironment;
@@ -44,7 +47,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-public class MksVcs extends AbstractVcs implements ProjectComponent {
+public class MksVcs extends AbstractVcs implements ProjectComponent, EncodingProvider {
 	static final Logger LOGGER = Logger.getInstance(MksVcs.class.getName());
 	public static final String TOOL_WINDOW_ID = "MKS";
 	private static final int MAJOR_VERSION = 5;
@@ -419,32 +422,6 @@ public class MksVcs extends AbstractVcs implements ProjectComponent {
 		ChangeListManager changeListManager = ChangeListManager.getInstance(getProject());
 		changeListManager.removeChangeListListener(changeListAdapter);
 
-	}
-
-	FileStatus getIdeaStatus(TriclopsSiSandbox sandbox, TriclopsSiMember member, VirtualFile virtualFile) throws VcsException {
-		FileStatus status = FileStatus.UNKNOWN;
-		if (virtualFile.isDirectory()) {
-			status = FileStatus.NOT_CHANGED;
-		} else if (MKSHelper.isIgnoredFile(sandbox, virtualFile)) {
-			status = FileStatus.IGNORED;
-		} else if (member.isStatusKnown() && member.isStatusNotControlled()) {
-			status = FileStatus.UNKNOWN;
-		} else if (member.isStatusKnown() && member.isStatusControlled()) {
-			if (member.isStatusNoWorkingFile()) {
-				status = FileStatus.DELETED_FROM_FS;
-			} else if (member.isStatusDifferent() && !member.isStatusLocked()) {
-				// todo this is a FileSystem modificaction, with no prior checkout, which filestatus should we use ?
-				status = FileStatus.MODIFIED;
-			} else if (member.isStatusDifferent()) {
-				status = FileStatus.MODIFIED;
-			} else if (!member.isStatusDifferent()) {
-				status = FileStatus.NOT_CHANGED;
-			}
-		}
-		if (MksVcs.DEBUG) {
-			debug("status " + member.getPath() + "==" + status);
-		}
-		return status;
 	}
 
 	public static String[] getCommands() {

@@ -19,7 +19,7 @@ import java.util.List;
  * @author Thibaut Fagart
  */
 public abstract class AbstractMKSCommand {
-	protected final Logger LOGGER = MksVcs.LOGGER;
+	protected final Logger LOGGER = Logger.getInstance(getClass().getName());
 	//		Logger.getInstance(getClass().getName());
 	protected List<VcsException> errors;
 	protected final int previousErrorCount;
