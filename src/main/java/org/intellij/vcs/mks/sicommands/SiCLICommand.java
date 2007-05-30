@@ -2,7 +2,7 @@ package org.intellij.vcs.mks.sicommands;
 
 import com.intellij.openapi.vcs.VcsException;
 import org.intellij.vcs.mks.AbstractMKSCommand;
-import org.intellij.vcs.mks.MksVcs;
+import org.intellij.vcs.mks.EncodingProvider;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -14,14 +14,14 @@ import java.util.List;
  * @author Thibaut Fagart
  */
 public abstract class SiCLICommand extends AbstractMKSCommand {
-	protected final MksVcs mksvcs;
+	protected final EncodingProvider encodingProvider;
 	private String command;
 	private String[] args;
 	protected String commandOutput;
 
-	public SiCLICommand(List<VcsException> errors, MksVcs mksvcs, String command, String... args) {
+	public SiCLICommand(List<VcsException> errors, EncodingProvider encodingProvider, String command, String... args) {
 		super(errors);
-		this.mksvcs = mksvcs;
+		this.encodingProvider = encodingProvider;
 		this.command = command;
 		this.args = args;
 	}
@@ -32,12 +32,11 @@ public abstract class SiCLICommand extends AbstractMKSCommand {
 		processArgs[1] = command;
 		System.arraycopy(args, 0, processArgs, 2, args.length);
 		ProcessBuilder builder = new ProcessBuilder(processArgs);
-//		System.out.println("command " + builder.command());
-		LOGGER.debug("command " + builder.command());
+		LOGGER.info("executing " + builder.command());
 		builder.redirectErrorStream(true);
 		Process process = builder.start();
 		InputStream is = process.getInputStream();
-		InputStreamReader reader = new InputStreamReader(is, mksvcs.getMksSiEncoding(command));
+		InputStreamReader reader = new InputStreamReader(is, encodingProvider.getMksSiEncoding(command));
 		StringWriter sw;
 		try {
 			char[] buffer = new char[512];

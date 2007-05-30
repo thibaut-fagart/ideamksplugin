@@ -38,6 +38,7 @@ class MKSChangeProvider implements ChangeProvider, ProjectComponent, ChangeListD
 
 	public void getChanges(final VcsDirtyScope dirtyScope, final ChangelistBuilder builder, final ProgressIndicator progress) throws VcsException {
 		ArrayList<VcsException> errors = new ArrayList<VcsException>();
+		LOGGER.info("start getChanges");
 		try {
 //			System.out.println("dirtyScope " + dirtyScope);
 //			System.out.println("getDirtyFiles " + dirtyScope.getDirtyFiles());
@@ -50,7 +51,7 @@ class MKSChangeProvider implements ChangeProvider, ProjectComponent, ChangeListD
 			}
 			listCpsAction.execute();
 			if (listCpsAction.foundError()) {
-				System.out.println("failed querying mks cps");
+				LOGGER.error("failed querying mks cps");
 				return;
 			}
 			final Map<String, List<MksChangePackageEntry>> changePackageEntriesByMksProject = new HashMap<String, List<MksChangePackageEntry>>();
@@ -63,7 +64,7 @@ class MKSChangeProvider implements ChangeProvider, ProjectComponent, ChangeListD
 				}
 				listEntries.execute();
 				if (listEntries.foundError()) {
-					System.out.println("failed querying mks cp entries for " + changePackage);
+					LOGGER.error("failed querying mks cp entries for " + changePackage);
 				} else {
 					changePackage.setEntries(listEntries.changePackageEntries);
 					for (MksChangePackageEntry changePackageEntry : listEntries.changePackageEntries) {
@@ -137,6 +138,8 @@ class MKSChangeProvider implements ChangeProvider, ProjectComponent, ChangeListD
 		} catch (RuntimeException e) {
 			e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
 			throw e;
+		} finally {
+			LOGGER.info("end getChanges");
 		}
 		if (!errors.isEmpty()) {
 			mksvcs.showErrors(errors, "ChangeProvider");
@@ -145,10 +148,11 @@ class MKSChangeProvider implements ChangeProvider, ProjectComponent, ChangeListD
 
 	}
 
-	private void processMember(final TriclopsSiSandbox sandbox, final TriclopsSiMember triclopsSiMember, final VirtualFile virtualFile, final ChangelistBuilder builder, final List<MksChangePackage> changePackages, final FilePath filePath, final Map<String, List<MksChangePackageEntry>> changePackageEntriesByMksProject, final Map<MksChangePackageEntry, MksChangePackage> changePackagesByChangePackageEntry) throws VcsException {
+	private void processMember(final TriclopsSiSandbox sandbox, final TriclopsSiMember triclopsSiMember, final VirtualFile virtualFile, final ChangelistBuilder builder, final List<MksChangePackage> changePackages, final FilePath filePath, final Map<String, List<MksChangePackageEntry>> cpEntriesByMksProject, final Map<MksChangePackageEntry, MksChangePackage> mksCpsByCPEntry) throws VcsException {
 		if (virtualFile.isDirectory()) {
 			// todo  status = FileStatus.NOT_CHANGED;
 		} else if (MKSHelper.isIgnoredFile(sandbox, virtualFile)) {
+			// todo better handle MKS project files : should they be returned by DispatchBySandbox ?
 			builder.processIgnoredFile(virtualFile);
 		} else if (triclopsSiMember.isStatusKnown() && triclopsSiMember.isStatusNotControlled()) {
 			LOGGER.debug("UNKNOWN " + virtualFile);
@@ -165,7 +169,7 @@ class MKSChangeProvider implements ChangeProvider, ProjectComponent, ChangeListD
 				builder.processModifiedWithoutCheckout(virtualFile);
 			} else if (triclopsSiMember.isStatusDifferent() && triclopsSiMember.isStatusLocked()) {
 				LOGGER.debug("MODIFIED " + virtualFile);
-				MksChangePackage changePackage = findChangePackage(filePath, triclopsSiMember, sandbox, changePackages, changePackageEntriesByMksProject, changePackagesByChangePackageEntry);
+				MksChangePackage changePackage = findChangePackage(filePath, triclopsSiMember, sandbox, changePackages, cpEntriesByMksProject, mksCpsByCPEntry);
 				Change change = new Change(new MksContentRevision(mksvcs, filePath, getRevision(triclopsSiMember)), CurrentContentRevision.create(filePath), getStatus(sandbox, triclopsSiMember, virtualFile));
 				if (changePackage != null) {
 					ChangeList changeList = mksvcs.getChangeListAdapter().trackMksChangePackage(changePackage);
@@ -183,9 +187,7 @@ class MKSChangeProvider implements ChangeProvider, ProjectComponent, ChangeListD
 	}
 
 
-	/*
-			 * todo optimize this, it is not efficient
-			 */
+	//  todo optimize this, it is not efficient
 	private MksChangePackage findChangePackage(FilePath filePath, TriclopsSiMember siMember, TriclopsSiSandbox sandbox, List<MksChangePackage> changeLists, Map<String, List<MksChangePackageEntry>> changePackageEntriesByMksProject, Map<MksChangePackageEntry, MksChangePackage> changePackagesByChangePackageEntry) throws VcsException {
 		String sandboxProject = sandbox.getSandboxProject();
 		String mksRevision = getRevision(siMember).asString();
@@ -219,8 +221,30 @@ class MKSChangeProvider implements ChangeProvider, ProjectComponent, ChangeListD
 		return changeList;
 	}
 
-	private FileStatus getStatus(TriclopsSiSandbox sandbox, TriclopsSiMember triclopsSiMember, VirtualFile virtualFile) throws VcsException {
-		return mksvcs.getIdeaStatus(sandbox, triclopsSiMember, virtualFile);
+	private FileStatus getStatus(TriclopsSiSandbox sandbox, TriclopsSiMember member, VirtualFile virtualFile) throws VcsException {
+		FileStatus status = FileStatus.UNKNOWN;
+		if (virtualFile.isDirectory()) {
+			status = FileStatus.NOT_CHANGED;
+		} else if (MKSHelper.isIgnoredFile(sandbox, virtualFile)) {
+			status = FileStatus.IGNORED;
+		} else if (member.isStatusKnown() && member.isStatusNotControlled()) {
+			status = FileStatus.UNKNOWN;
+		} else if (member.isStatusKnown() && member.isStatusControlled()) {
+			if (member.isStatusNoWorkingFile()) {
+				status = FileStatus.DELETED_FROM_FS;
+			} else if (member.isStatusDifferent() && !member.isStatusLocked()) {
+				// todo this is a FileSystem modificaction, with no prior checkout, which filestatus should we use ?
+				status = FileStatus.MODIFIED;
+			} else if (member.isStatusDifferent()) {
+				status = FileStatus.MODIFIED;
+			} else if (!member.isStatusDifferent()) {
+				status = FileStatus.NOT_CHANGED;
+			}
+		}
+		if (MksVcs.DEBUG) {
+			LOGGER.debug("status " + member.getPath() + "==" + status);
+		}
+		return status;
 	}
 
 	private MksRevisionNumber getRevision(TriclopsSiMember triclopsSiMember) throws VcsException {
