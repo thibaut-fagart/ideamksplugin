@@ -1,18 +1,18 @@
 package org.intellij.vcs.mks.actions;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import org.intellij.vcs.mks.MKSHelper;
+import org.intellij.vcs.mks.MksVcs;
+import org.intellij.vcs.mks.MksVcsException;
+import org.jetbrains.annotations.NotNull;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vcs.AbstractVcs;
 import com.intellij.openapi.vcs.VcsException;
 import com.intellij.openapi.vfs.VirtualFile;
 import mks.integrations.common.TriclopsException;
 import mks.integrations.common.TriclopsSiSandbox;
-import org.intellij.vcs.mks.MKSHelper;
-import org.intellij.vcs.mks.MksVcs;
-import org.jetbrains.annotations.NotNull;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 
 
 /**
@@ -42,7 +42,7 @@ public class ViewSandboxAction extends BasicAction {
                 MKSHelper.viewSandbox(sandbox);
             } catch (TriclopsException e) {
                 //noinspection ThrowableInstanceNeverThrown
-                exceptions.add(new VcsException("ViewSandbox:  Unable to view sandbox." + sandbox.getPath()));
+                exceptions.add(new MksVcsException("ViewSandbox:  Unable to view sandbox." + sandbox.getPath(), e));
             }
         }
     }

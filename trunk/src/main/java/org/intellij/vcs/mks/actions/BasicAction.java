@@ -7,6 +7,7 @@ import org.intellij.vcs.mks.DispatchBySandboxCommand;
 import org.intellij.vcs.mks.MKSHelper;
 import org.intellij.vcs.mks.MksConfiguration;
 import org.intellij.vcs.mks.MksVcs;
+import org.intellij.vcs.mks.MksVcsException;
 import org.jetbrains.annotations.NotNull;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
@@ -14,7 +15,6 @@ import com.intellij.openapi.actionSystem.DataContext;
 import com.intellij.openapi.actionSystem.DataKeys;
 import com.intellij.openapi.actionSystem.Presentation;
 import com.intellij.openapi.application.ApplicationManager;
-import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vcs.AbstractVcs;
@@ -31,7 +31,6 @@ import mks.integrations.common.TriclopsSiSandbox;
 
 public abstract class BasicAction extends AnAction {
     protected MksConfiguration configuration;
-    private final Logger LOG = Logger.getInstance(getClass().getName());
     protected static final String ACTION_CANCELLED_MSG = "The command was cancelled.";
 
     public BasicAction() {
@@ -173,7 +172,7 @@ public abstract class BasicAction extends AnAction {
             }
             return result;
         } catch (TriclopsException e) {
-            throw new VcsException("Unable to obtain file status");
+            throw new MksVcsException("Unable to obtain file status", e);
         }
 
     }
