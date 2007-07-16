@@ -1,15 +1,15 @@
 package org.intellij.vcs.mks.actions;
 
+import java.util.List;
+import org.intellij.vcs.mks.MksVcs;
+import org.intellij.vcs.mks.MksVcsException;
+import org.jetbrains.annotations.NotNull;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vcs.VcsException;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.wm.WindowManager;
 import mks.integrations.common.TriclopsException;
 import mks.integrations.common.TriclopsSiMembers;
-import org.intellij.vcs.mks.MksVcs;
-import org.jetbrains.annotations.NotNull;
-
-import java.util.List;
 
 
 public abstract class MultipleTargetAction extends BasicAction {
@@ -24,14 +24,14 @@ public abstract class MultipleTargetAction extends BasicAction {
                 } catch (TriclopsException e) {
                     if (!MksVcs.isLastCommandCancelled()) {
                         //noinspection ThrowableInstanceNeverThrown
-                        exceptions.add(new VcsException(getActionName(mksVcs) +
-                                " Error: " + MksVcs.getMksErrorMessage()));
+                        exceptions.add(new MksVcsException(getActionName(mksVcs) +
+                            " Error: " + MksVcs.getMksErrorMessage(), e));
                     }
                 }
             }
         } catch (VcsException e) {
             //noinspection ThrowableInstanceNeverThrown
-            exceptions.add(new VcsException("Unable to obtain file status"));
+            exceptions.add(new MksVcsException("Unable to obtain file status", e));
         }
 
         WindowManager.getInstance().getStatusBar(project).setInfo(getActionName(mksVcs) + " complete.");

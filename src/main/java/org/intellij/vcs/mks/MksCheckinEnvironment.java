@@ -1,5 +1,10 @@
 package org.intellij.vcs.mks;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import org.jetbrains.annotations.NonNls;
+import org.jetbrains.annotations.Nullable;
 import com.intellij.openapi.vcs.CheckinProjectPanel;
 import com.intellij.openapi.vcs.FilePath;
 import com.intellij.openapi.vcs.FileStatus;
@@ -14,12 +19,6 @@ import mks.integrations.common.TriclopsException;
 import mks.integrations.common.TriclopsSiMember;
 import mks.integrations.common.TriclopsSiMembers;
 import mks.integrations.common.TriclopsSiSandbox;
-import org.jetbrains.annotations.NonNls;
-import org.jetbrains.annotations.Nullable;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 
 /**
  * @author Thibaut Fagart
@@ -61,16 +60,16 @@ public class MksCheckinEnvironment implements CheckinEnvironment {
                 MKSHelper.getMembersStatus(members);
             } catch (TriclopsException e) {
                 //noinspection ThrowableInstanceNeverThrown
-                exceptions.add(new VcsException(getCheckinOperationName() +
-                        " Error obtaining mks status: " + MksVcs.getMksErrorMessage()));
+                exceptions.add(new MksVcsException(getCheckinOperationName() +
+                    " Error obtaining mks status: " + MksVcs.getMksErrorMessage(), e));
             }
             try {
                 MKSHelper.checkinMembers(members, 0);
             } catch (TriclopsException e) {
                 if (!MksVcs.isLastCommandCancelled()) {
                     //noinspection ThrowableInstanceNeverThrown
-                    exceptions.add(new VcsException(getCheckinOperationName() +
-                            " Error checking in: " + MksVcs.getMksErrorMessage()));
+                    exceptions.add(new MksVcsException(getCheckinOperationName() +
+                        " Error checking in: " + MksVcs.getMksErrorMessage(), e));
                 }
             }
         }
@@ -83,7 +82,7 @@ public class MksCheckinEnvironment implements CheckinEnvironment {
 
             if (change != null) {
                 System.out.println("change " + change.getFileStatus() + " " + (
-                        (change.getAfterRevision() != null) ? change.getAfterRevision() : "unknown")
+                    (change.getAfterRevision() != null) ? change.getAfterRevision() : "unknown")
                 );
             }
         }
