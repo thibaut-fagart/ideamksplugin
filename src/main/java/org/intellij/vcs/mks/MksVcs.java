@@ -64,6 +64,7 @@ public class MksVcs extends AbstractVcs implements ProjectComponent, EncodingPro
     private final MksCheckinEnvironment mksCheckinEnvironment = new MksCheckinEnvironment(this);
     private final MksChangeListAdapter changeListAdapter = new MksChangeListAdapter(this);
     private final EditFileProvider editFileProvider = new _EditFileProvider(this);
+    private final MksDiffProvider diffProvider = new MksDiffProvider(this);
 
 
     public MksVcs(Project project) {
@@ -273,8 +274,7 @@ public class MksVcs extends AbstractVcs implements ProjectComponent, EncodingPro
 
     @Override
     public DiffProvider getDiffProvider() {
-        // todo
-        return super.getDiffProvider();
+        return diffProvider;
     }
 
     public static boolean isLastCommandCancelled() {
