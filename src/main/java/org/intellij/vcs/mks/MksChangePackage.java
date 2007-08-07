@@ -6,57 +6,59 @@ import java.util.List;
  * @author Thibaut Fagart
  */
 public class MksChangePackage {
-	private String id;
-	private String owner;
-	private String state;
-	private String summary;
+    private String id;
+    private String owner;
+    private String state;
+    private String summary;
 
-	private List<MksChangePackageEntry> entries;
+    private List<MksChangePackageEntry> entries;
+    public final String server;
 
-	public MksChangePackage(String id, String owner, String state, String summary) {
-		this.summary = summary;
-		this.id = id;
-		this.owner = owner;
-		this.state = state;
-	}
+    public MksChangePackage(final String server, String id, String owner, String state, String summary) {
+        this.server = server;
+        this.summary = summary;
+        this.id = id;
+        this.owner = owner;
+        this.state = state;
+    }
 
-	public String getSummary() {
-		return summary;
-	}
+    public String getSummary() {
+        return summary;
+    }
 
-	public void setSummary(String summary) {
-		this.summary = summary;
-	}
+    public void setSummary(String summary) {
+        this.summary = summary;
+    }
 
-	public String getId() {
-		return id;
-	}
+    public String getId() {
+        return id;
+    }
 
-	public void setId(String id) {
-		this.id = id;
-	}
+    public void setId(String id) {
+        this.id = id;
+    }
 
-	public String getOwner() {
-		return owner;
-	}
+    public String getOwner() {
+        return owner;
+    }
 
-	public void setOwner(String owner) {
-		this.owner = owner;
-	}
+    public void setOwner(String owner) {
+        this.owner = owner;
+    }
 
-	public String getState() {
-		return state;
-	}
+    public String getState() {
+        return state;
+    }
 
-	public void setState(String state) {
-		this.state = state;
-	}
+    public void setState(String state) {
+        this.state = state;
+    }
 
-	public void setEntries(List<MksChangePackageEntry> entries) {
-		this.entries = entries;
-	}
+    public void setEntries(List<MksChangePackageEntry> entries) {
+        this.entries = entries;
+    }
 
-	public List<MksChangePackageEntry> getEntries() {
-		return entries;
-	}
+    public List<MksChangePackageEntry> getEntries() {
+        return entries;
+    }
 }
