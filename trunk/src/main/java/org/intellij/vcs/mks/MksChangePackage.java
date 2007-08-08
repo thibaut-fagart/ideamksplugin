@@ -61,4 +61,9 @@ public class MksChangePackage {
     public List<MksChangePackageEntry> getEntries() {
         return entries;
     }
+
+    @Override
+    public String toString() {
+        return "MksChangePackage{id='" + id + "\'}";
+    }
 }
