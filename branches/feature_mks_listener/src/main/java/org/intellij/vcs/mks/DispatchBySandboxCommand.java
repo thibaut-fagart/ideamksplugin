@@ -27,26 +27,23 @@ public class DispatchBySandboxCommand extends AbstractMKSCommand {
 
 	@Override
 	public void execute() {
-		Map<String, TriclopsSiSandbox> sandboxesByPath = new HashMap<String, TriclopsSiSandbox>();
 		for (VirtualFile file : virtualFiles) {
-			try {
-				TriclopsSiSandbox sandbox = MKSHelper.getSandbox(file, mksVcs);
-				TriclopsSiSandbox existingSandbox = sandboxesByPath.get(sandbox.getPath());
-				if (existingSandbox == null) {
-					existingSandbox = sandbox;
-					sandboxesByPath.put(existingSandbox.getPath(), existingSandbox);
-				}
-				ArrayList<VirtualFile> managedFiles = filesBySandbox.get(existingSandbox);
-				if (managedFiles == null) {
-					managedFiles = new ArrayList<VirtualFile>();
-					filesBySandbox.put(existingSandbox, managedFiles);
-				}
-				managedFiles.add(file);
-			} catch (VcsException e) {
-				MksVcs.LOGGER.debug("File not in sand box " + file.getPresentableUrl() + "\n" + MksVcs.getMksErrorMessage());
-				notInSandboxFiles.add(file);
-				//					errors.add(new VcsException(e));
-			}
+            if (file == null) {
+                LOGGER.warn ("null virtual file passed to DispatchBySandboxCommand#execute");
+            } else {
+                TriclopsSiSandbox sandbox = mksVcs.getSandboxCache().findSandbox(file);
+                if (sandbox == null) {
+                    notInSandboxFiles.add(file);
+                } else {
+                    TriclopsSiSandbox existingSandbox = sandbox;
+                    ArrayList<VirtualFile> managedFiles = filesBySandbox.get(existingSandbox);
+                    if (managedFiles == null) {
+                        managedFiles = new ArrayList<VirtualFile>();
+                        filesBySandbox.put(existingSandbox, managedFiles);
+                    }
+                    managedFiles.add(file);
+                }
+            }
 		}
 		if (MksVcs.DEBUG) {
 			MksVcs.LOGGER.debug("dispatched " + virtualFiles.length + " files to " + filesBySandbox.size() + " sandboxes");

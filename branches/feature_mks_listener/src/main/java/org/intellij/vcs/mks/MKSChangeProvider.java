@@ -53,10 +53,10 @@ class MKSChangeProvider implements ChangeProvider, ProjectComponent, ChangeListD
         ArrayList<VcsException> errors = new ArrayList<VcsException>();
         LOGGER.info("start getChanges");
         try {
-//			System.out.println("dirtyScope " + dirtyScope);
+            System.out.println("dirtyScope " + dirtyScope);
 //			System.out.println("getDirtyFiles " + dirtyScope.getDirtyFiles());
 //			System.out.println("getAffectedContentRoots " + dirtyScope.getAffectedContentRoots());
-//			System.out.println("getRecursivelyDirtyDirectories " + dirtyScope.getRecursivelyDirtyDirectories());
+            System.out.println("getRecursivelyDirtyDirectories " + dirtyScope.getRecursivelyDirtyDirectories());
             final List<MksChangePackage> changePackages = getChangePackages(progress, errors);
             final Map<String, List<MksChangePackageEntry>> changePackageEntriesByMksProject = new HashMap<String, List<MksChangePackageEntry>>();
             final Map<MksChangePackageEntry, MksChangePackage> changePackagesByChangePackageEntry = new HashMap<MksChangePackageEntry, MksChangePackage>();
@@ -94,7 +94,7 @@ class MKSChangeProvider implements ChangeProvider, ProjectComponent, ChangeListD
 //					if (VcsUtil.isFileUnderVcs(mksvcs.getProject(), filePath)) {
                     VirtualFile virtualFile = filePath.getVirtualFile();
                     if (virtualFile == null) {
-                        LOGGER.warn("null virtual file for path : " + filePath);
+                        LOGGER.warn("null virtual file for path : "+filePath);
                     } else {
                         filesTocheckVFiles.add(virtualFile);
                         filePathsByVFile.put(virtualFile, filePath);
@@ -131,8 +131,7 @@ class MKSChangeProvider implements ChangeProvider, ProjectComponent, ChangeListD
                 if (command.foundError()) {
                     break;
                 }
-                for (int i = 0, max = command.triclopsSiMembers.getNumMembers(); i < max; i++)
-                {
+                for (int i = 0, max = command.triclopsSiMembers.getNumMembers(); i < max; i++) {
 
                     final TriclopsSiMember triclopsSiMember = command.triclopsSiMembers.getMember(i);
                     final VirtualFile virtualFile = sandboxFiles.get(i);
@@ -185,7 +184,7 @@ class MKSChangeProvider implements ChangeProvider, ProjectComponent, ChangeListD
     private void processMember(final TriclopsSiSandbox sandbox, final TriclopsSiMember triclopsSiMember, final VirtualFile virtualFile, final ChangelistBuilder builder, final List<MksChangePackage> changePackages, final FilePath filePath, final Map<String, List<MksChangePackageEntry>> cpEntriesByMksProject, final Map<MksChangePackageEntry, MksChangePackage> mksCpsByCPEntry) throws VcsException {
         if (virtualFile.isDirectory()) {
             // todo  status = FileStatus.NOT_CHANGED;
-        } else if (MKSHelper.isIgnoredFile(sandbox, virtualFile)) {
+        } else if (mksvcs.getSandboxCache().isSandboxProject(virtualFile)) {
             // todo better handle MKS project files : should they be returned by DispatchBySandbox ?
             builder.processIgnoredFile(virtualFile);
         } else
@@ -207,8 +206,12 @@ class MKSChangeProvider implements ChangeProvider, ProjectComponent, ChangeListD
             } else
             if (triclopsSiMember.isStatusDifferent() && triclopsSiMember.isStatusLocked()) {
                 LOGGER.debug("MODIFIED " + virtualFile);
-                MksChangePackage changePackage = findChangePackage(filePath, triclopsSiMember, sandbox, changePackages, cpEntriesByMksProject, mksCpsByCPEntry);
-                Change change = new Change(new MksContentRevision(mksvcs, filePath, getRevision(triclopsSiMember)), CurrentContentRevision.create(filePath), getStatus(sandbox, triclopsSiMember, virtualFile));
+                MksChangePackage changePackage = findChangePackage(filePath, triclopsSiMember, sandbox, changePackages,
+                    cpEntriesByMksProject, mksCpsByCPEntry);
+                Change change = new Change(
+                    new MksContentRevision(mksvcs, filePath, getRevision(triclopsSiMember)),
+                    CurrentContentRevision.create(filePath),
+                    getStatus(sandbox, triclopsSiMember, virtualFile));
                 if (changePackage != null) {
                     ChangeList changeList = mksvcs.getChangeListAdapter().trackMksChangePackage(changePackage);
                     builder.processChangeInList(change, changeList);
