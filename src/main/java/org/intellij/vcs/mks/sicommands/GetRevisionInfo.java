@@ -19,9 +19,11 @@ public class GetRevisionInfo extends SiCLICommand {
     private MksRevisionNumber branchTip;
     private MksRevisionNumber memberRev;
     private MksRevisionNumber workingRev;
+    private final String memberPath;
 
     public GetRevisionInfo(List<VcsException> errors, EncodingProvider encodingProvider, String memberPath, File directory) {
         super(errors, encodingProvider, COMMAND, "--noheaderformat", "--notrailerformat", "--fields=branchtiprev,memberrev,workingrev", memberPath);
+        this.memberPath = memberPath;
         setWorkingDir(directory);
     }
 
@@ -74,4 +76,9 @@ public class GetRevisionInfo extends SiCLICommand {
     public MksRevisionNumber getWorkingRev() {
         return workingRev;
     }
+    @Override
+    public String toString() {
+        return "GetRevisionInfo[" + memberPath + "]";
+    }
+
 }

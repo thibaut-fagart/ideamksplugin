@@ -2,6 +2,7 @@ package org.intellij.vcs.mks.sicommands;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import org.intellij.vcs.mks.EncodingProvider;
 import org.intellij.vcs.mks.MksChangePackage;
@@ -13,14 +14,15 @@ import com.intellij.openapi.vcs.VcsException;
  * @author Thibaut Fagart
  */
 public class ListChangePackageEntries extends SiCLICommand {
-    public List<MksChangePackageEntry> changePackageEntries;
-    private MksChangePackage mksChangePackage;
     @NonNls
     public static final String COMMAND = "viewcp";
     private static final int TYPE = 0;
     private static final int MEMBER = 1;
     private static final int REVISION = 2;
     private static final int PROJECT = 3;
+
+    public List<MksChangePackageEntry> changePackageEntries;
+    public final  MksChangePackage mksChangePackage;
 
     public ListChangePackageEntries(List<VcsException> errors, EncodingProvider encodingProvider, MksChangePackage mksChangePackage) {
         super(errors, encodingProvider, COMMAND,
@@ -81,4 +83,12 @@ public class ListChangePackageEntries extends SiCLICommand {
     }
 
 
+    public List<VcsException> getErrors() {
+        return Collections.unmodifiableList(errors.subList(previousErrorCount, errors.size()));
+    }
+
+    @Override
+    public String toString() {
+        return "ListChangePackageEntrie["+mksChangePackage.getId()+"]";
+    }
 }

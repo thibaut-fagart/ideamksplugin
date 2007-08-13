@@ -1,9 +1,11 @@
 package org.intellij.vcs.mks.sicommands;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.Reader;
 import java.io.StringWriter;
 import java.util.List;
 import org.intellij.vcs.mks.AbstractMKSCommand;
@@ -13,7 +15,7 @@ import com.intellij.openapi.vcs.VcsException;
 /**
  * @author Thibaut Fagart
  */
-public abstract class SiCLICommand extends AbstractMKSCommand {
+public abstract class SiCLICommand extends AbstractMKSCommand implements Runnable {
     protected final EncodingProvider encodingProvider;
     private String command;
     private String[] args;
@@ -46,11 +48,12 @@ public abstract class SiCLICommand extends AbstractMKSCommand {
             buf.append(s);
             buf.append(" ");
         }
+        long start = System.currentTimeMillis();
         LOGGER.info("executing " + buf.toString());
         builder.redirectErrorStream(true);
         Process process = builder.start();
         InputStream is = process.getInputStream();
-        InputStreamReader reader = new InputStreamReader(is, encodingProvider.getMksSiEncoding(command));
+        Reader reader = new BufferedReader(new InputStreamReader(is, encodingProvider.getMksSiEncoding(command)));
         StringWriter sw;
         try {
             char[] buffer = new char[512];
@@ -61,6 +64,12 @@ public abstract class SiCLICommand extends AbstractMKSCommand {
             }
         } finally {
             reader.close();
+            try {
+                process.exitValue();
+            } catch (IllegalThreadStateException e) {
+                process.destroy();
+            }
+            LOGGER.info(toString()+" finished in "+(System.currentTimeMillis()-start+" ms"));
         }
         commandOutput = sw.toString();
         return buf.toString();
@@ -68,5 +77,9 @@ public abstract class SiCLICommand extends AbstractMKSCommand {
 
     protected boolean shoudIgnore(String line) {
         return line.startsWith("Reconnecting") || line.startsWith("Connecting");
+    }
+
+    public void run() {
+        execute();
     }
 }

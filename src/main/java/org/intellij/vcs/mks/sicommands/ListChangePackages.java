@@ -56,4 +56,9 @@ public class ListChangePackages extends SiCLICommand {
             errors.add(new VcsException(e));
         }
     }
+
+    @Override
+    public String toString() {
+        return "ListChangePackages["+server+"]";
+    }
 }
