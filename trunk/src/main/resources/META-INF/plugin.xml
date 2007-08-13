@@ -5,11 +5,12 @@
     <description>
         <![CDATA[
 	Integrates MKS Source Integrity with IDEA <br/>
-	See <a href=http://code.google.com/p/ideamksplugin/">here</a> for the googlecode project
+	See <a href="http://code.google.com/p/ideamksplugin/">here</a> for the googlecode project
 	]]>
     </description>
     <version>${project.version}</version>
-    <vendor logo="/icons/mks.png">Eric Sheffer, Thibaut Fagart</vendor>
+    <vendor logo="/icons/mks.png" url="http://code.google.com/p/ideamksplugin/">Eric Sheffer, Thibaut Fagart</vendor>
+	<category>VCS Integration</category>
     <idea-version since-build="7002"/>
 
     <change-notes><![CDATA[<ul>
