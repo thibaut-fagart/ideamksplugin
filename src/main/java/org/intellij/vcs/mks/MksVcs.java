@@ -49,8 +49,6 @@ import mks.integrations.common.TriclopsSiSandbox;
 public class MksVcs extends AbstractVcs implements ProjectComponent, EncodingProvider {
     static final Logger LOGGER = Logger.getInstance(MksVcs.class.getName());
     public static final String TOOL_WINDOW_ID = "MKS";
-    private static final int MAJOR_VERSION = 5;
-    private static final int MINOR_VERSION = 1;
     private ToolWindow mksToolWindow;
     private JTabbedPane mksContentPanel;
     private JTextPane mksTextArea;

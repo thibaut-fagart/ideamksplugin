@@ -8,19 +8,21 @@
 	See <a href=http://code.google.com/p/ideamksplugin/">here</a> for the googlecode project
 	]]>
     </description>
-    <version>0.5.1-SNAPSHOT</version>
+    <version>${project.version}</version>
     <vendor logo="/icons/mks.png">Eric Sheffer, Thibaut Fagart</vendor>
     <idea-version since-build="7002"/>
 
     <change-notes><![CDATA[<ul>
-	<li>0.5.1 View Changes ignores IDEA ignored files <br>
-	 Most MKS actions now applicable on multiple targets (with *** For all buttons activated) <br>
-	 MKS Packages viewed as IDEA ChangeLists in the changes view<br>
-	 MKS Changes view gets focus when GlobalChanges action is run<br>
+	<li>0.6 <a href="http://code.google.com/p/ideamksplugin/issues/list?q=Milestone%20Release0.6&can=1">googlecode issues resolved in 0.6</a> <br>
+	 View Changes ignores IDEA ignored files <br>
+	 Most MKS actions now applicable on multiple targets (Actions will only be available if applicable on the current selection)<br>
+	 MKS Packages viewed as IDEA ChangeLists in the changes view. Depending on the MKS server, this may be slow to refresh<br>
+	 Suppressed GlobalChanges action as it is now handled by the IDEA Changes view<br>
 	 MKS project files are properly ignored<br>
-	 MKS Changes integration : encoding support per si CLI command (different commands seem to use different encodings) see the configuration<br>
-	 Files locally modified (without checkout) are distinguished from properly checked out ones<br>
-	 IDEA 7002+ compatible
+	 MKS Changes integration : encoding support per si CLI MKS commands (different commands seem to use different encodings) see the configuration.
+	 On windows (france) encoding seems to be IBM437<br>
+	 Files locally modified (without checkout) are distinguished from properly checked out ones. Files need to be moddified (and not just locked)<br>
+	 IDEA 7002+ compatible, tested with 7.0M2 (7123)
 	 bugfixes
 	</li>
 	<li>0.5.0 IDEA 7.x compatible</li>
