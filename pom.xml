@@ -3,7 +3,7 @@
 	<groupId>mks-idea</groupId>
 	<artifactId>mks-idea</artifactId>
 	<packaging>jar</packaging>
-	<version>0.7-SNAPSHOT</version>
+	<version>0.6-SNAPSHOT</version>
 	<name>IDEA MKS Plugin</name>
 	<description>Implementation of an IDEA MKS plugin.</description>
 	<properties>
@@ -71,6 +71,13 @@
 				<includes>
 					<include>**/plugin.xml</include>
 				</includes>
+			</resource>
+			<resource>
+				<filtering>false</filtering>
+				<directory>${basedir}/src/main/resources</directory>
+				<excludes>
+					<exclude>**/plugin.xml</exclude>
+				</excludes>
 			</resource>
 		</resources>
 
