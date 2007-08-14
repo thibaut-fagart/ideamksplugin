@@ -22,6 +22,7 @@ import org.intellij.vcs.mks.sicommands.ListChangePackageEntries;
 import org.intellij.vcs.mks.sicommands.ListChangePackages;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import com.intellij.ProjectTopics;
 import com.intellij.openapi.components.ProjectComponent;
 import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
@@ -31,6 +32,7 @@ import com.intellij.openapi.options.Configurable;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.startup.StartupManager;
 import com.intellij.openapi.ui.Messages;
+import com.intellij.openapi.util.IconLoader;
 import com.intellij.openapi.vcs.AbstractVcs;
 import com.intellij.openapi.vcs.EditFileProvider;
 import com.intellij.openapi.vcs.FilePath;
@@ -44,12 +46,10 @@ import com.intellij.openapi.vfs.VirtualFileManager;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowAnchor;
 import com.intellij.openapi.wm.ToolWindowManager;
-import com.intellij.openapi.roots.ModuleRootListener;
-import com.intellij.openapi.roots.ModuleRootEvent;
-import com.intellij.ProjectTopics;
+import com.intellij.peer.PeerFactory;
+import com.intellij.ui.content.Content;
 import com.intellij.util.messages.MessageBusConnection;
 import mks.integrations.common.TriclopsException;
-import mks.integrations.common.TriclopsSiMember;
 import mks.integrations.common.TriclopsSiMembers;
 import mks.integrations.common.TriclopsSiSandbox;
 
@@ -177,7 +177,7 @@ public class MksVcs extends AbstractVcs implements ProjectComponent, EncodingPro
         tabbedPane.add(panelDebug, "Log", 0);
 
         mksPanel.add(tabbedPane, BorderLayout.CENTER);
-        mksToolWindow = toolWindowManager.registerToolWindow("MKS", mksPanel, ToolWindowAnchor.BOTTOM);
+        mksToolWindow = registerToolWindow(toolWindowManager, mksPanel);
         java.net.URL iconUrl = getClass().getResource("/icons/mks.gif");
         javax.swing.Icon icn = new ImageIcon(iconUrl);
         mksToolWindow.setIcon(icn);
@@ -202,7 +202,15 @@ public class MksVcs extends AbstractVcs implements ProjectComponent, EncodingPro
         });
     }
 
-    private void maybeShowPopup(MouseEvent e, JPopupMenu menu) {
+	private ToolWindow registerToolWindow(final ToolWindowManager toolWindowManager, final JPanel mksPanel) {
+		ToolWindow toolWindow = toolWindowManager.registerToolWindow("MKS", true, ToolWindowAnchor.BOTTOM);
+		PeerFactory pf = com.intellij.peer.PeerFactory.getInstance();
+		Content content = pf.getContentFactory().createContent(mksPanel, "", false); // first arg is a JPanel
+		toolWindow.getContentManager().addContent(content);
+		return toolWindow;
+	}
+
+	private void maybeShowPopup(MouseEvent e, JPopupMenu menu) {
         if (e.isPopupTrigger()) {
             menu.show(mksTextArea, e.getX(), e.getY());
         }
@@ -222,25 +230,7 @@ public class MksVcs extends AbstractVcs implements ProjectComponent, EncodingPro
         if (DEBUG) {
             debug("fileExistsInVcs : " + filePath.getPresentableUrl());
         }
-        try {
-
-			TriclopsSiSandbox sandbox = getSandboxCache().findSandbox(filePath.getVirtualFile());
-            TriclopsSiMembers members = MKSHelper.createMembers(sandbox);
-            TriclopsSiMember triclopsSiMember = new TriclopsSiMember(filePath.getPresentableUrl());
-            members.addMember(triclopsSiMember);
-            try {
-                MKSHelper.getMembersStatus(members);
-            } catch (TriclopsException e) {
-                throw new MksVcsException("can't get MKS status for [" + filePath.getPath() + "]\n" + getMksErrorMessage(), e);
-            }
-            TriclopsSiMember returnedMember = members.getMember(0);
-            return returnedMember.isStatusControlled();
-        } catch (VcsException e) {
-            ArrayList<VcsException> l = new ArrayList<VcsException>();
-            l.add(e);
-            showErrors(l, "fileExistsInVcs for " + filePath.getPath());
-            return false;
-        }
+	    return getSandboxCache().isPartOfSandbox(filePath.getVirtualFile());
     }
 
     public static synchronized String getMksErrorMessage() {
@@ -263,7 +253,7 @@ public class MksVcs extends AbstractVcs implements ProjectComponent, EncodingPro
             if (DEBUG) {
                 debug("fileIsUnderVcs : " + filePath.getPresentableUrl());
             }
-			return getSandboxCache().findSandbox(filePath.getVirtualFile()) != null;
+			return getSandboxCache().getSandboxInfo(filePath.getVirtualFile()) != null;
         } else {
             return false;
         }

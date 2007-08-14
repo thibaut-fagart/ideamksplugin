@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import org.intellij.vcs.mks.EncodingProvider;
+import org.intellij.vcs.mks.MksMemberState;
 import com.intellij.openapi.vcs.VcsException;
 import junit.framework.TestCase;
 
@@ -27,9 +28,9 @@ public class ViewSandboxChangesCommandTest extends TestCase {
         String sandboxPath = null;
         ViewSandboxChangesCommand command = createCommand(errors, sandboxPath);
         command.execute();
-        Map<String, AbstractViewSandboxCommand.MemberState> states = command.getMemberStates();
-        for (Map.Entry<String, ViewSandboxWithoutChangesCommand.MemberState> entry : states.entrySet()) {
-            AbstractViewSandboxCommand.MemberState state = entry.getValue();
+        Map<String, MksMemberState> states = command.getMemberStates();
+        for (Map.Entry<String, MksMemberState> entry : states.entrySet()) {
+            MksMemberState state = entry.getValue();
             assertTrue("should only see modified files", state.modifiedWithoutCheckout || state.checkedout);
             assertNotNull("no member revision", state.memberRevision);
             assertNotNull("no working revision", state.workingRevision);
