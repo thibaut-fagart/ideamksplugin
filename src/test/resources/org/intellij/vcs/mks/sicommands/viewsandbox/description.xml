@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<samples>
+    <sample name="sample1.txt" encoding="IBM437">
+        <command>si viewsandbox --batch --recurse --filter= --fields workingrev,memberrev,workingcpid,deferred,pendingcpid,type,locker,name</command>
+        <description>
+            sandbox path : c:\Documents and Settings\A6253567.HBEU\sandboxes\J2EE\HJF-Core\project.pj
+            locally modified without checkout : c:\Documents and Settings\A6253567.HBEU\sandboxes\J2EE\HJF-Core\src\com\hsbc\hbfr\ccf\at\persistence\PoolConnectionMgr.java
+            locked with cpid=2875:1
+                c:\Documents and Settings\A6253567.HBEU\sandboxes\J2EE\HJF-Core\unittestsrc\com\hsbc\hbfr\ccf\at\util\PerfLogUtilsTestCase.java
+                c:\Documents and Settings\A6253567.HBEU\sandboxes\J2EE\HJF-Core\unittestsrc\config\persistence.properties
+        </description>
+    </sample>
+
+    <sample name="sample2.txt" encoding="IBM437">
+        <command>si viewsandbox --batch --recurse --filter=changed,locked --fields workingrev,memberrev,workingcpid,deferred,pendingcpid,type,locker,name</command>
+        <description>
+            sandbox path : c:\Documents and Settings\A6253567.HBEU\sandboxes\J2EE\HJF-Core\project.pj
+            locally modified without checkout : c:\Documents and Settings\A6253567.HBEU\sandboxes\J2EE\HJF-Core\src\com\hsbc\hbfr\ccf\at\persistence\PoolConnectionMgr.java
+            locked with cpid=2875:1
+                c:\Documents and Settings\A6253567.HBEU\sandboxes\J2EE\HJF-Core\unittestsrc\com\hsbc\hbfr\ccf\at\util\PerfLogUtilsTestCase.java
+                c:\Documents and Settings\A6253567.HBEU\sandboxes\J2EE\HJF-Core\unittestsrc\config\persistence.properties
+        </description>
+    </sample>
+</samples>
+
