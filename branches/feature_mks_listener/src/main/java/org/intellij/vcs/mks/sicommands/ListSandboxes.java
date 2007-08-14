@@ -45,6 +45,11 @@ public class ListSandboxes extends SiCLICommand {
             //noinspection ThrowableInstanceNeverThrown
             errors.add(new VcsException(e));
         }
-
     }
+
+    @Override
+    public String toString() {
+        return "ListSandboxes";
+    }
+
 }

@@ -39,4 +39,9 @@ public class RenameChangePackage extends SiCLICommand {
             errors.add(new VcsException(e));
         }
     }
+    @Override
+    public String toString() {
+        return "RenameChangePackage["+changePackage.getId()+"]";
+    }
+
 }

@@ -10,7 +10,6 @@ import com.intellij.openapi.vcs.VcsException;
  * @author Thibaut Fagart
  */
 public class ListServers extends SiCLICommand {
-    private static final String LINE_SEPARATOR = " -> ";
     public ArrayList<String> servers;
     public static final String COMMAND = "servers";
 
@@ -48,4 +47,9 @@ public class ListServers extends SiCLICommand {
             errors.add(new VcsException(e));
         }
     }
+    @Override
+    public String toString() {
+        return "ListServers";
+    }
+
 }
