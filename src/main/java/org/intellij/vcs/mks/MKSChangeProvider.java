@@ -1,15 +1,19 @@
 package org.intellij.vcs.mks;
 
 import java.io.File;
+import java.lang.reflect.Proxy;
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
-import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
-import org.intellij.vcs.mks.sicommands.ListChangePackageEntries;
+import java.util.Set;
+import org.intellij.vcs.mks.realtime.MksSandboxInfo;
 import org.intellij.vcs.mks.sicommands.ListChangePackages;
 import org.intellij.vcs.mks.sicommands.ListServers;
+import org.intellij.vcs.mks.sicommands.ViewSandboxChangesCommand;
+import org.intellij.vcs.mks.sicommands.ViewSandboxWithoutChangesCommand;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 import com.intellij.openapi.components.ProjectComponent;
@@ -29,7 +33,7 @@ import com.intellij.openapi.vcs.changes.VcsDirtyScope;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.ui.ColoredTreeCellRenderer;
 import com.intellij.ui.SimpleTextAttributes;
-import com.intellij.util.Processor;
+import com.intellij.vcsUtil.VcsUtil;
 import mks.integrations.common.TriclopsSiMember;
 import mks.integrations.common.TriclopsSiSandbox;
 
@@ -57,10 +61,42 @@ class MKSChangeProvider implements ChangeProvider, ProjectComponent, ChangeListD
 //			System.out.println("getDirtyFiles " + dirtyScope.getDirtyFiles());
 //			System.out.println("getAffectedContentRoots " + dirtyScope.getAffectedContentRoots());
             System.out.println("getRecursivelyDirtyDirectories " + dirtyScope.getRecursivelyDirtyDirectories());
-            final List<MksChangePackage> changePackages = getChangePackages(progress, errors);
-            final Map<String, List<MksChangePackageEntry>> changePackageEntriesByMksProject = new HashMap<String, List<MksChangePackageEntry>>();
-            final Map<MksChangePackageEntry, MksChangePackage> changePackagesByChangePackageEntry = new HashMap<MksChangePackageEntry, MksChangePackage>();
-            for (final MksChangePackage changePackage : changePackages) {
+	        ArrayList<ListServers.MksServerInfo> servers = getMksServers(progress, errors);
+	        final Map<ListServers.MksServerInfo, Map<String, MksChangePackage>> changePackagesPerServer = getChangePackages(progress, errors, servers);
+	        // collect affected sandboxes
+	        ChangelistBuilder proxiedBuilder = (ChangelistBuilder) Proxy.newProxyInstance(getClass().getClassLoader(), new Class[]{ChangelistBuilder.class}, new InvocationHandler() {
+		        public Object invoke(final Object o, final Method method, final Object[] objects) throws Throwable {
+			        StringBuffer buf = new StringBuffer("(");
+			        for (int i = 0; i < objects.length; i++) {
+				        Object object = objects[i];
+				        buf.append(object).append(",");
+			        }
+			        buf.setLength(buf.length()-1);
+			        buf.append(")");
+			        System.out.println(method.getName() + buf);
+			        return method.invoke(builder, objects);
+		        }
+	        });
+	        Map <String, ListServers.MksServerInfo> serversByHostAndPort = distributeServersByHostAndPort(servers);
+	        Map<ListServers.MksServerInfo, Map<String, MksMemberState>> states = new HashMap<ListServers.MksServerInfo, Map<String, MksMemberState>>();
+	        for (VirtualFile dir : dirtyScope.getAffectedContentRoots()) {
+		        Set<MksSandboxInfo> sandboxes = mksvcs.getSandboxCache().getSandboxesIntersecting(dir);
+		        for (MksSandboxInfo sandbox : sandboxes) {
+			        ListServers.MksServerInfo sandboxServer = serversByHostAndPort.get(sandbox.hostAndPort);
+			        if (states.get(sandboxServer) ==null) {
+				        states.put(sandboxServer, new HashMap<String, MksMemberState>());
+			        }
+			        states.get(sandboxServer).putAll(getSandboxState(sandbox, errors, sandboxServer));
+		        }
+	        }
+	        for (Map.Entry<ListServers.MksServerInfo, Map<String, MksMemberState>> entry : states.entrySet()) {
+		        ListServers.MksServerInfo sandboxServer = entry.getKey();
+		        processDirtySandbox(proxiedBuilder,changePackagesPerServer.get(sandboxServer),entry.getValue());
+	        }
+//            final Map<String, List<MksChangePackageEntry>> changePackageEntriesByMksProject = new HashMap<String, List<MksChangePackageEntry>>();
+//            final Map<MksChangePackageEntry, MksChangePackage> changePackagesByChangePackageEntry = new HashMap<MksChangePackageEntry, MksChangePackage>();
+/*
+            for (final MksChangePackage changePackage : changePackagesPerServer) {
                 final ListChangePackageEntries listEntries = new ListChangePackageEntries(errors, mksvcs, changePackage);
                 if (progress != null) {
                     progress.setIndeterminate(true);
@@ -135,13 +171,14 @@ class MKSChangeProvider implements ChangeProvider, ProjectComponent, ChangeListD
 
                     final TriclopsSiMember triclopsSiMember = command.triclopsSiMembers.getMember(i);
                     final VirtualFile virtualFile = sandboxFiles.get(i);
-                    processMember(sandbox, triclopsSiMember, virtualFile, builder, changePackages, filePathsByVFile.get(virtualFile), changePackageEntriesByMksProject, changePackagesByChangePackageEntry);
+                    processMember(sandbox, triclopsSiMember, virtualFile, builder, changePackagesPerServer, filePathsByVFile.get(virtualFile), changePackageEntriesByMksProject, changePackagesByChangePackageEntry);
                     if (progress != null) {
                         progress.setFraction(((double) numberOfProcessedFiles++) / numberOfFilesToProcess);
                     }
                 }
             }
             // todo : status unknown for directories with no known children
+*/
         } catch (RuntimeException e) {
             e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
             throw e;
@@ -155,18 +192,72 @@ class MKSChangeProvider implements ChangeProvider, ProjectComponent, ChangeListD
 
     }
 
-    private List<MksChangePackage> getChangePackages(final ProgressIndicator progress, final ArrayList<VcsException> errors) {
-        final ListServers listServersAction = new ListServers(errors, mksvcs);
-        if (progress != null) {
-            progress.setIndeterminate(true);
-            progress.setText("Querying mks servers ...");
-        }
-        listServersAction.execute();
-        if (listServersAction.foundError()) {
-            LOGGER.warn("encountered errors querying servers");
-        }
-        final List<MksChangePackage> changePackages = new ArrayList<MksChangePackage>();
-        for (String server : listServersAction.servers) {
+	private Map<String, ListServers.MksServerInfo> distributeServersByHostAndPort(final ArrayList<ListServers.MksServerInfo> servers) {
+		Map<String, ListServers.MksServerInfo> result = new HashMap<String, ListServers.MksServerInfo>();
+		for (ListServers.MksServerInfo server : servers) {
+			result.put(server.host + ":" + server.port, server);
+		}
+		return result;
+	}
+
+	private void processDirtySandbox(final ChangelistBuilder builder,final Map<String, MksChangePackage> changePackages,
+	                                 final Map<String, MksMemberState> states) {
+		for (Map.Entry<String, MksMemberState> entry : states.entrySet()) {
+			MksMemberState state = entry.getValue();
+			FilePath filePath = VcsUtil.getFilePath(entry.getKey());
+			VirtualFile virtualFile = VcsUtil.getVirtualFile(entry.getKey());
+			if (state.checkedout) {
+				MksChangePackage changePackage = changePackages.get(state.workingChangePackageId);
+				Change change = new Change(
+				    new MksContentRevision(mksvcs, filePath, state.workingRevision),
+				    CurrentContentRevision.create(filePath),
+				    FileStatus.MODIFIED);
+				if (changePackage == null) {
+//					System.out.println("processChange "+virtualFile+", MODIFIED)");
+					builder.processChange(change);
+				} else {
+					ChangeList changeList = mksvcs.getChangeListAdapter().trackMksChangePackage(changePackage);
+//					System.out.println("processChange "+virtualFile+", MODIFIED IN CP "+changePackage.getId());
+					builder.processChangeInList(change, changeList);
+				}
+			} else if (state.modifiedWithoutCheckout) {
+//				System.out.println("modified without checkout "+virtualFile);
+				builder.processModifiedWithoutCheckout(virtualFile);
+			} else {
+//				if (entry.getKey().contains("log4j.properties")) {
+//					System.out.println("NOT MODIFIED :" +virtualFile );
+//				}
+				// not changed
+//				Change change = new Change(
+//				    new MksContentRevision(mksvcs, filePath, state.workingRevision),
+//				    CurrentContentRevision.create(filePath),
+//				    FileStatus.NOT_CHANGED);
+//				builder.processChange(change);
+			}
+		}
+	}
+
+	private Map<String, MksMemberState> getSandboxState(final MksSandboxInfo sandbox, final ArrayList<VcsException> errors, final ListServers.MksServerInfo server) {
+		ViewSandboxWithoutChangesCommand command1 = new ViewSandboxWithoutChangesCommand(errors,mksvcs, server.user, sandbox.sandboxPath);
+		command1.execute();
+		Map<String, MksMemberState> states = new HashMap<String, MksMemberState>();
+		states.putAll(command1.getMemberStates());
+		ViewSandboxChangesCommand command2 = new ViewSandboxChangesCommand(errors,mksvcs, server.user, sandbox.sandboxPath);
+		command2.execute();
+		states.putAll(command2.getMemberStates());
+		return states;
+	}
+
+	/**
+	 *
+	 * @param progress
+	 * @param errors
+	 * @param servers
+	 * @return Map <MksServerInfo, Map<MksChangePackage.id,MksChangePackage>>
+	 */
+	private Map<ListServers.MksServerInfo, Map<String, MksChangePackage>> getChangePackages(final ProgressIndicator progress, final ArrayList<VcsException> errors, final ArrayList<ListServers.MksServerInfo> servers) {
+	    final Map<ListServers.MksServerInfo, Map<String, MksChangePackage>> changePackages = new HashMap<ListServers.MksServerInfo, Map<String, MksChangePackage>>();
+	    for (ListServers.MksServerInfo server : servers) {
             final ListChangePackages listCpsAction = new ListChangePackages(errors, mksvcs, server);
             if (progress != null) {
                 progress.setIndeterminate(true);
@@ -176,12 +267,33 @@ class MKSChangeProvider implements ChangeProvider, ProjectComponent, ChangeListD
             if (listCpsAction.foundError()) {
                 LOGGER.warn("error querying mks cps");
             }
-            changePackages.addAll(listCpsAction.changePackages);
+		    Map<String, MksChangePackage> serverChangePackages = new HashMap<String, MksChangePackage>();
+		    for (MksChangePackage changePackage : listCpsAction.changePackages) {
+			    serverChangePackages.put(changePackage.getId(), changePackage);
+		    }
+            changePackages.put(server, serverChangePackages);
         }
         return changePackages;
     }
 
-    private void processMember(final TriclopsSiSandbox sandbox, final TriclopsSiMember triclopsSiMember, final VirtualFile virtualFile, final ChangelistBuilder builder, final List<MksChangePackage> changePackages, final FilePath filePath, final Map<String, List<MksChangePackageEntry>> cpEntriesByMksProject, final Map<MksChangePackageEntry, MksChangePackage> mksCpsByCPEntry) throws VcsException {
+	private ArrayList<ListServers.MksServerInfo> getMksServers(final ProgressIndicator progress, final ArrayList<VcsException> errors) {
+		final ListServers listServersAction = new ListServers(errors, mksvcs);
+		if (progress != null) {
+		    progress.setIndeterminate(true);
+		    progress.setText("Querying mks servers ...");
+		}
+		listServersAction.execute();
+		if (listServersAction.foundError()) {
+		    LOGGER.warn("encountered errors querying servers");
+		}
+		ArrayList<ListServers.MksServerInfo> servers = listServersAction.servers;
+		return servers;
+	}
+
+	private void processMember(final TriclopsSiSandbox sandbox, final TriclopsSiMember triclopsSiMember, final VirtualFile virtualFile,
+	                           final ChangelistBuilder builder, final List<MksChangePackage> changePackages, final FilePath filePath,
+	                           final Map<String, List<MksChangePackageEntry>> cpEntriesByMksProject,
+	                           final Map<MksChangePackageEntry, MksChangePackage> mksCpsByCPEntry) throws VcsException {
         if (virtualFile.isDirectory()) {
             // todo  status = FileStatus.NOT_CHANGED;
         } else if (mksvcs.getSandboxCache().isSandboxProject(virtualFile)) {
@@ -206,12 +318,9 @@ class MKSChangeProvider implements ChangeProvider, ProjectComponent, ChangeListD
             } else
             if (triclopsSiMember.isStatusDifferent() && triclopsSiMember.isStatusLocked()) {
                 LOGGER.debug("MODIFIED " + virtualFile);
-                MksChangePackage changePackage = findChangePackage(filePath, triclopsSiMember, sandbox, changePackages,
+                MksChangePackage changePackage = findChangePackage(filePath, getRevision(triclopsSiMember).asString(), sandbox, changePackages,
                     cpEntriesByMksProject, mksCpsByCPEntry);
-                Change change = new Change(
-                    new MksContentRevision(mksvcs, filePath, getRevision(triclopsSiMember)),
-                    CurrentContentRevision.create(filePath),
-                    getStatus(sandbox, triclopsSiMember, virtualFile));
+                Change change = createChange(sandbox, triclopsSiMember, virtualFile, filePath);
                 if (changePackage != null) {
                     ChangeList changeList = mksvcs.getChangeListAdapter().trackMksChangePackage(changePackage);
                     builder.processChangeInList(change, changeList);
@@ -227,13 +336,19 @@ class MKSChangeProvider implements ChangeProvider, ProjectComponent, ChangeListD
         }
     }
 
+	private Change createChange(final TriclopsSiSandbox sandbox, final TriclopsSiMember triclopsSiMember, final VirtualFile virtualFile, final FilePath filePath) throws VcsException {
+		return new Change(
+		    new MksContentRevision(mksvcs, filePath, getRevision(triclopsSiMember)),
+		    CurrentContentRevision.create(filePath),
+		    getStatus(sandbox, triclopsSiMember, virtualFile));
+	}
 
-    //  todo optimize this, it is not efficient
-    private MksChangePackage findChangePackage(FilePath filePath, TriclopsSiMember siMember, TriclopsSiSandbox sandbox, List<MksChangePackage> changeLists, Map<String, List<MksChangePackageEntry>> changePackageEntriesByMksProject, Map<MksChangePackageEntry, MksChangePackage> changePackagesByChangePackageEntry) throws VcsException {
+
+	//  todo optimize this, it is not efficient
+    private MksChangePackage findChangePackage(FilePath filePath, final String mksRevision, TriclopsSiSandbox sandbox, List<MksChangePackage> changeLists, Map<String, List<MksChangePackageEntry>> changePackageEntriesByMksProject, Map<MksChangePackageEntry, MksChangePackage> changePackagesByChangePackageEntry) throws VcsException {
         String sandboxProject = sandbox.getSandboxProject();
-        String mksRevision = getRevision(siMember).asString();
 
-        final List<MksChangePackageEntry> candidateEntries = changePackageEntriesByMksProject.get(sandboxProject);
+	    final List<MksChangePackageEntry> candidateEntries = changePackageEntriesByMksProject.get(sandboxProject);
         if (candidateEntries == null) {
             // no changePackageEntries have been found under this project , return null
             return null;

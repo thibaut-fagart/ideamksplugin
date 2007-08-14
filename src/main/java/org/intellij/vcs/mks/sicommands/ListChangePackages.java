@@ -22,9 +22,9 @@ public class ListChangePackages extends SiCLICommand {
     public static final String ARGS = "--fields=id,user,state,summary";
     private final String server;
 
-    public ListChangePackages(List<VcsException> errors, EncodingProvider encodingProvider, final String server) {
-        super(errors, encodingProvider, COMMAND, (server == null) ? new String[]{ARGS} : new String[]{ARGS, "--hostname", server});
-        this.server = server;
+    public ListChangePackages(List<VcsException> errors, EncodingProvider encodingProvider, final ListServers.MksServerInfo server) {
+        super(errors, encodingProvider, COMMAND, (server == null) ? new String[]{ARGS} : new String[]{ARGS, "--hostname", server.host});
+        this.server = server.host;
     }
 
     @Override

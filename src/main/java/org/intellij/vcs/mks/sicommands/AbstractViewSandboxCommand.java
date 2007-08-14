@@ -10,7 +10,7 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.intellij.vcs.mks.EncodingProvider;
-import org.intellij.vcs.mks.MksRevisionNumber;
+import org.intellij.vcs.mks.MksMemberState;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.vcs.VcsException;
 
@@ -23,7 +23,7 @@ public abstract class AbstractViewSandboxCommand extends SiCLICommand {
 	private static final String COMMAND = "viewsandbox";
 	private static final String revisionPattern = "([\\d\\.]+)?";
 	private static final String changePackageIdPattern = "([\\d:]+)?";
-	private static final String typePattern = "((?:sandbox)|(?:subsandbox)|(?:shared-subsandbox)|(?:shared-variant-subsandbox)|(?:shared-build-subsandbox)|(?:member)|(?:archived))";
+	private static final String typePattern = "((?:sandbox)|(?:subsandbox)|(?:shared-subsandbox)|(?:shared-variant-subsandbox)|(?:shared-build-subsandbox)|(?:member)|(?:archived)|(?:variant-subsandbox))";
 	private static final String unusedPattern = "([^\\s]+)?";
 	private static final String namePattern = "(.+)";
 
@@ -37,7 +37,7 @@ public abstract class AbstractViewSandboxCommand extends SiCLICommand {
 		fieldsParam = "--fields=workingrev,memberrev,workingcpid"
 			+ ",deferred,pendingcpid" //unused
 			+ ",type,locker"
-			+ ",name$";
+			+ ",name";
 		wholeLinePatternString = "^" + revisionPattern + " " + revisionPattern + " " + changePackageIdPattern
 			+ " " + unusedPattern + " " + unusedPattern
 			+ " " + typePattern
@@ -52,8 +52,8 @@ public abstract class AbstractViewSandboxCommand extends SiCLICommand {
 	private static final int TYPE_GROUP_IDX = 6;
 	private static final int LOCKER_GROUP_IDX = 7;
 	private static final int NAME_GROUP_IDX = 8;
-	protected final Map<String, MemberState> memberStates = new HashMap<String, MemberState>();
-	private final String mksUsername;
+	protected final Map<String, MksMemberState> memberStates = new HashMap<String, MksMemberState>();
+	protected final String mksUsername;
 
 	protected AbstractViewSandboxCommand(final List<VcsException> errors, final EncodingProvider encodingProvider,
 	                                     String mksUsername, final String filter, final String sandboxPath) {
@@ -83,9 +83,9 @@ public abstract class AbstractViewSandboxCommand extends SiCLICommand {
 						String locker = matcher.group(LOCKER_GROUP_IDX);
 						String name = matcher.group(NAME_GROUP_IDX);
 						if (isMember(type)) {
-							boolean isCheckedOut = mksUsername.equals(locker);
-							MemberState memberState = null;
-							memberState = createState(workingRev, memberRev, workingCpid, isCheckedOut);
+//							boolean isCheckedOut = mksUsername.equals(locker);
+							MksMemberState memberState = null;
+							memberState = createState(workingRev, memberRev, workingCpid, locker);
 							setState(name, memberState);
 						} else if (isSandbox(type)) {
 							LOGGER.debug("ignoring sandbox " + name);
@@ -108,13 +108,13 @@ public abstract class AbstractViewSandboxCommand extends SiCLICommand {
 
 	}
 
-	protected abstract MemberState createState(String workingRev, String memberRev, String workingCpid, final boolean checkedout) throws VcsException;
+	protected abstract MksMemberState createState(String workingRev, String memberRev, String workingCpid, final String locker) throws VcsException;
 
 	private boolean isSandbox(final String type) {
 		return type.contains("sandbox");
 	}
 
-	private void setState(final String name, final MemberState memberState) {
+	private void setState(final String name, final MksMemberState memberState) {
 		memberStates.put(name, memberState);
 	}
 
@@ -122,32 +122,8 @@ public abstract class AbstractViewSandboxCommand extends SiCLICommand {
 		return "member".equals(type) || "archived".equals(type);
 	}
 
-	public Map<String, MemberState> getMemberStates() {
+	public Map<String, MksMemberState> getMemberStates() {
 		return Collections.unmodifiableMap(memberStates);
 	}
 
-	public static final class MemberState {
-
-		final MksRevisionNumber memberRevision;
-		final MksRevisionNumber workingRevision;
-		final boolean modifiedWithoutCheckout;
-		final boolean checkedout;
-		final String workingChangePackageId;
-
-		MemberState(final MksRevisionNumber workingRevision, final MksRevisionNumber memberRevision, final
-		String workingChangePackageId, final boolean checkedout, final boolean modifiedWithoutCheckout) {
-			this.workingRevision = workingRevision;
-			this.memberRevision = memberRevision;
-			this.modifiedWithoutCheckout = modifiedWithoutCheckout;
-			this.workingChangePackageId = workingChangePackageId;
-			this.checkedout = checkedout;
-		}
-
-		@Override
-		public String toString() {
-			return "memberRev " + memberRevision.asString() + ", workingRev " + workingRevision.asString() + ", checkedout " + checkedout
-				+ ", modified without checkout " + modifiedWithoutCheckout
-				+ ", wokingCpid " + workingChangePackageId;
-		}
-	}
 }
