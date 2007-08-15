@@ -10,7 +10,7 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.intellij.vcs.mks.EncodingProvider;
-import org.intellij.vcs.mks.MksMemberState;
+import org.intellij.vcs.mks.model.MksMemberState;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.vcs.VcsException;
 

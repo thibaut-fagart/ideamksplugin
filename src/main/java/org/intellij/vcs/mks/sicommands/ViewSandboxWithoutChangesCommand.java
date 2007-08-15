@@ -3,7 +3,7 @@ package org.intellij.vcs.mks.sicommands;
 import java.util.List;
 import org.intellij.vcs.mks.EncodingProvider;
 import org.intellij.vcs.mks.MksRevisionNumber;
-import org.intellij.vcs.mks.MksMemberState;
+import org.intellij.vcs.mks.model.MksMemberState;
 import com.intellij.openapi.vcs.VcsException;
 
 /**

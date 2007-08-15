@@ -10,10 +10,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.intellij.vcs.mks.realtime.MksSandboxInfo;
-import org.intellij.vcs.mks.sicommands.ListChangePackages;
-import org.intellij.vcs.mks.sicommands.ListServers;
-import org.intellij.vcs.mks.sicommands.ViewSandboxChangesCommand;
-import org.intellij.vcs.mks.sicommands.ViewSandboxWithoutChangesCommand;
+import org.intellij.vcs.mks.sicommands.*;
+import org.intellij.vcs.mks.model.MksChangePackage;
+import org.intellij.vcs.mks.model.MksChangePackageEntry;
+import org.intellij.vcs.mks.model.MksMemberState;
+import org.intellij.vcs.mks.model.MksServerInfo;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 import com.intellij.openapi.components.ProjectComponent;
@@ -61,8 +62,8 @@ class MKSChangeProvider implements ChangeProvider, ProjectComponent, ChangeListD
 //			System.out.println("getDirtyFiles " + dirtyScope.getDirtyFiles());
 //			System.out.println("getAffectedContentRoots " + dirtyScope.getAffectedContentRoots());
             System.out.println("getRecursivelyDirtyDirectories " + dirtyScope.getRecursivelyDirtyDirectories());
-	        ArrayList<ListServers.MksServerInfo> servers = getMksServers(progress, errors);
-	        final Map<ListServers.MksServerInfo, Map<String, MksChangePackage>> changePackagesPerServer = getChangePackages(progress, errors, servers);
+	        ArrayList<MksServerInfo> servers = getMksServers(progress, errors);
+	        final Map<MksServerInfo, Map<String, MksChangePackage>> changePackagesPerServer = getChangePackages(progress, errors, servers);
 	        // collect affected sandboxes
 	        ChangelistBuilder proxiedBuilder = (ChangelistBuilder) Proxy.newProxyInstance(getClass().getClassLoader(), new Class[]{ChangelistBuilder.class}, new InvocationHandler() {
 		        public Object invoke(final Object o, final Method method, final Object[] objects) throws Throwable {
@@ -77,20 +78,20 @@ class MKSChangeProvider implements ChangeProvider, ProjectComponent, ChangeListD
 			        return method.invoke(builder, objects);
 		        }
 	        });
-	        Map <String, ListServers.MksServerInfo> serversByHostAndPort = distributeServersByHostAndPort(servers);
-	        Map<ListServers.MksServerInfo, Map<String, MksMemberState>> states = new HashMap<ListServers.MksServerInfo, Map<String, MksMemberState>>();
+	        Map <String, MksServerInfo> serversByHostAndPort = distributeServersByHostAndPort(servers);
+	        Map<MksServerInfo, Map<String, MksMemberState>> states = new HashMap<MksServerInfo, Map<String, MksMemberState>>();
 	        for (VirtualFile dir : dirtyScope.getAffectedContentRoots()) {
 		        Set<MksSandboxInfo> sandboxes = mksvcs.getSandboxCache().getSandboxesIntersecting(dir);
 		        for (MksSandboxInfo sandbox : sandboxes) {
-			        ListServers.MksServerInfo sandboxServer = serversByHostAndPort.get(sandbox.hostAndPort);
+			        MksServerInfo sandboxServer = serversByHostAndPort.get(sandbox.hostAndPort);
 			        if (states.get(sandboxServer) ==null) {
 				        states.put(sandboxServer, new HashMap<String, MksMemberState>());
 			        }
 			        states.get(sandboxServer).putAll(getSandboxState(sandbox, errors, sandboxServer));
 		        }
 	        }
-	        for (Map.Entry<ListServers.MksServerInfo, Map<String, MksMemberState>> entry : states.entrySet()) {
-		        ListServers.MksServerInfo sandboxServer = entry.getKey();
+	        for (Map.Entry<MksServerInfo, Map<String, MksMemberState>> entry : states.entrySet()) {
+		        MksServerInfo sandboxServer = entry.getKey();
 		        processDirtySandbox(proxiedBuilder,changePackagesPerServer.get(sandboxServer),entry.getValue());
 	        }
 //            final Map<String, List<MksChangePackageEntry>> changePackageEntriesByMksProject = new HashMap<String, List<MksChangePackageEntry>>();
@@ -192,9 +193,9 @@ class MKSChangeProvider implements ChangeProvider, ProjectComponent, ChangeListD
 
     }
 
-	private Map<String, ListServers.MksServerInfo> distributeServersByHostAndPort(final ArrayList<ListServers.MksServerInfo> servers) {
-		Map<String, ListServers.MksServerInfo> result = new HashMap<String, ListServers.MksServerInfo>();
-		for (ListServers.MksServerInfo server : servers) {
+	private Map<String, MksServerInfo> distributeServersByHostAndPort(final ArrayList<MksServerInfo> servers) {
+		Map<String, MksServerInfo> result = new HashMap<String, MksServerInfo>();
+		for (MksServerInfo server : servers) {
 			result.put(server.host + ":" + server.port, server);
 		}
 		return result;
@@ -237,7 +238,7 @@ class MKSChangeProvider implements ChangeProvider, ProjectComponent, ChangeListD
 		}
 	}
 
-	private Map<String, MksMemberState> getSandboxState(final MksSandboxInfo sandbox, final ArrayList<VcsException> errors, final ListServers.MksServerInfo server) {
+	private Map<String, MksMemberState> getSandboxState(final MksSandboxInfo sandbox, final ArrayList<VcsException> errors, final MksServerInfo server) {
 		ViewSandboxWithoutChangesCommand command1 = new ViewSandboxWithoutChangesCommand(errors,mksvcs, server.user, sandbox.sandboxPath);
 		command1.execute();
 		Map<String, MksMemberState> states = new HashMap<String, MksMemberState>();
@@ -255,9 +256,9 @@ class MKSChangeProvider implements ChangeProvider, ProjectComponent, ChangeListD
 	 * @param servers
 	 * @return Map <MksServerInfo, Map<MksChangePackage.id,MksChangePackage>>
 	 */
-	private Map<ListServers.MksServerInfo, Map<String, MksChangePackage>> getChangePackages(final ProgressIndicator progress, final ArrayList<VcsException> errors, final ArrayList<ListServers.MksServerInfo> servers) {
-	    final Map<ListServers.MksServerInfo, Map<String, MksChangePackage>> changePackages = new HashMap<ListServers.MksServerInfo, Map<String, MksChangePackage>>();
-	    for (ListServers.MksServerInfo server : servers) {
+	private Map<MksServerInfo, Map<String, MksChangePackage>> getChangePackages(final ProgressIndicator progress, final ArrayList<VcsException> errors, final ArrayList<MksServerInfo> servers) {
+	    final Map<MksServerInfo, Map<String, MksChangePackage>> changePackages = new HashMap<MksServerInfo, Map<String, MksChangePackage>>();
+	    for (MksServerInfo server : servers) {
             final ListChangePackages listCpsAction = new ListChangePackages(errors, mksvcs, server);
             if (progress != null) {
                 progress.setIndeterminate(true);
@@ -276,7 +277,7 @@ class MKSChangeProvider implements ChangeProvider, ProjectComponent, ChangeListD
         return changePackages;
     }
 
-	private ArrayList<ListServers.MksServerInfo> getMksServers(final ProgressIndicator progress, final ArrayList<VcsException> errors) {
+	private ArrayList<MksServerInfo> getMksServers(final ProgressIndicator progress, final ArrayList<VcsException> errors) {
 		final ListServers listServersAction = new ListServers(errors, mksvcs);
 		if (progress != null) {
 		    progress.setIndeterminate(true);
@@ -286,7 +287,7 @@ class MKSChangeProvider implements ChangeProvider, ProjectComponent, ChangeListD
 		if (listServersAction.foundError()) {
 		    LOGGER.warn("encountered errors querying servers");
 		}
-		ArrayList<ListServers.MksServerInfo> servers = listServersAction.servers;
+		ArrayList<MksServerInfo> servers = listServersAction.servers;
 		return servers;
 	}
 

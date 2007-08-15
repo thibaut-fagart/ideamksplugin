@@ -1,6 +1,6 @@
 package org.intellij.vcs.mks.realtime;
 
-import org.intellij.vcs.mks.MksChangePackage;
+import org.intellij.vcs.mks.model.MksChangePackage;
 
 /**
  * @author Thibaut Fagart

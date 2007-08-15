@@ -1,7 +1,7 @@
 package org.intellij.vcs.mks.realtime;
 
 import org.intellij.vcs.mks.EncodingProvider;
-import org.intellij.vcs.mks.MksChangePackage;
+import org.intellij.vcs.mks.model.MksChangePackage;
 import org.intellij.vcs.mks.sicommands.ListChangePackages;
 
 /**
