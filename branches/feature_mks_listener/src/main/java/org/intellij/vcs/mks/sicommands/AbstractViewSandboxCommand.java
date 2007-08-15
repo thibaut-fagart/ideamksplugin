@@ -65,7 +65,9 @@ public abstract class AbstractViewSandboxCommand extends SiCLICommand {
 		try {
 			executeCommand();
 		} catch (IOException e) {
+			//noinspection ThrowableInstanceNeverThrown
 			errors.add(new VcsException(e));
+			return;
 		}
 //			System.out.println("pattern [" + wholeLinePatternString + "]");
 		Pattern wholeLinePattern = Pattern.compile(wholeLinePatternString);
@@ -93,16 +95,19 @@ public abstract class AbstractViewSandboxCommand extends SiCLICommand {
 							LOGGER.warn("unexpected type " + type + " for " + line);
 						}
 					} else {
+						//noinspection ThrowableInstanceNeverThrown
 						errors.add(new VcsException("unexpected line [" + line + "]"));
 					}
 				} catch (VcsException e) {
 					// should not happen, VcsExceptions on ChangePackageId
+					//noinspection ThrowableInstanceNeverThrown
 					errors.add(new VcsException(e));
 
 				}
 			}
 		} catch (IOException e) {
 			// shouldnt happen :IO exceptions on stringReader.read
+			//noinspection ThrowableInstanceNeverThrown
 			errors.add(new VcsException(e));
 		}
 

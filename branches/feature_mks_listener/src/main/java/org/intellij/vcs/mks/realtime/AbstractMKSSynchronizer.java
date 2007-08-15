@@ -1,25 +1,34 @@
 package org.intellij.vcs.mks.realtime;
 
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.project.ProjectManager;
 import org.intellij.vcs.mks.EncodingProvider;
 
 import java.io.*;
 
 /**
+ * Asbtract clas for commands ran with the --persist flag that keep running until destroyed. <br/>
+ * <p/>
+ * Provides {@link #start()}, {@link #stop()}, {@link #isAlive()}  features.
+ *
  * @author Thibaut Fagart
  */
-public abstract class AbstractMKSSynchronizer {
+public abstract class AbstractMKSSynchronizer implements LongRunningTask {
 	protected final Logger LOGGER = Logger.getInstance(getClass().getName());
 	private final EncodingProvider encodingProvider;
 	private String command;
 	private String[] args;
 	private Process process;
 	private boolean isAlive = false;
-    private volatile boolean stop = false;
-    // todo add support to detect end of updates
-    // all lines for an update come in a close succession, should be possible to detect it using a background thread or wait with timeouts
-
-    public AbstractMKSSynchronizer(String command, EncodingProvider encodingProvider, String... args) {
+	private volatile boolean stop = false;
+	/**
+	 * the thread from which the command is actually launched
+	 */
+	private Thread runnerThread;
+	// todo add support to detect end of updates
+	// all lines for an update come in a close succession, should be possible to detect it using a background thread or wait with timeouts
+	
+	public AbstractMKSSynchronizer(String command, EncodingProvider encodingProvider, String... args) {
 		this.command = command;
 		this.encodingProvider = encodingProvider;
 		if (args.length > 0) {
@@ -32,24 +41,36 @@ public abstract class AbstractMKSSynchronizer {
 
 	}
 
+	/**
+	 * Starts the command in a new thread
+	 */
 	public void start() {
-		new Thread(new Runnable() {
+		runnerThread = new Thread(new Runnable() {
 			public void run() {
-                do {
-                    executeCommand();
-                    if (!stop) {
-                        LOGGER.warn("synchronizer terminated unexpectedly, restarting");
-                    }
-                } while (!stop);
-            }
-		}, "MksSynchronizer("+getClass().getName()+"").start();
+				do {
+					executeCommand();
+					if (!stop) {
+						LOGGER.warn("synchronizer terminated unexpectedly, restarting");
+					}
+				} while (!stop);
+			}
+		}, "MksSynchronizer(" + getClass().getName() + "");
+		runnerThread.start();
+		Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
+			public void run() {
+				stop();
+			}
+		}));
 	}
 
+	/**
+	 * stops the running command if it has been started, does nothing otherwise
+	 */
 	public void stop() {
 		if (process != null) {
 			LOGGER.info("stopping");
-            stop = true;
-            process.destroy();
+			stop = true;
+			process.destroy();
 		}
 	}
 
@@ -71,12 +92,12 @@ public abstract class AbstractMKSSynchronizer {
 			public void run() {
 				try {
 					process.waitFor();
-                    isAlive = false;
-                } catch (InterruptedException e) {
-                    LOGGER.warn("interrupted while waiting for MKS persistent synchronizer process to terminate");
-                }
+					isAlive = false;
+				} catch (InterruptedException e) {
+					LOGGER.warn("interrupted while waiting for MKS persistent synchronizer process to terminate");
+				}
 			}
-		}, "MksSynchronizer ("+getClass().getName()+") death notifier").start();
+		}, "MksSynchronizer (" + getClass().getName() + ") death notifier").start();
 		InputStream is = process.getInputStream();
 		InputStreamReader streamReader;
 		try {
@@ -117,5 +138,20 @@ public abstract class AbstractMKSSynchronizer {
 
 	public boolean isAlive() {
 		return isAlive;
+	}
+
+	public void restart() {
+		if (isAlive()) {
+			stop();
+			try {
+				runnerThread.join(1000);
+				LOGGER.info("command did not stop after 1s");
+			} catch (InterruptedException e) {
+				LOGGER.debug("interrupted");
+			}
+			stop = false;
+			start();
+		}
+
 	}
 }

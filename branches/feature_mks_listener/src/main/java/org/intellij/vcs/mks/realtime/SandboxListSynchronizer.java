@@ -46,4 +46,8 @@ public class SandboxListSynchronizer extends AbstractMKSSynchronizer {
 			LOGGER.error("error parsing mks synchronizer output ["+line+"], skipping that line",e);
 		}
 	}
+
+	public String getDescription() {
+		return "sandbox list listnener";
+	}
 }
