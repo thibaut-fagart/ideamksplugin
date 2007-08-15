@@ -1,4 +1,4 @@
-package org.intellij.vcs.mks;
+package org.intellij.vcs.mks.model;
 
 import java.util.List;
 

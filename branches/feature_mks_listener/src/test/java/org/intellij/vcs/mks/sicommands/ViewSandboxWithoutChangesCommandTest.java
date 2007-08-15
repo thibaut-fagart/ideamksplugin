@@ -12,7 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import org.intellij.vcs.mks.EncodingProvider;
-import org.intellij.vcs.mks.MksMemberState;
+import org.intellij.vcs.mks.model.MksMemberState;
 import com.intellij.openapi.vcs.VcsException;
 import junit.framework.TestCase;
 

@@ -4,7 +4,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import org.intellij.vcs.mks.EncodingProvider;
-import org.intellij.vcs.mks.MksChangePackage;
+import org.intellij.vcs.mks.model.MksChangePackage;
+import org.intellij.vcs.mks.model.MksServerInfo;
 import org.jetbrains.annotations.NonNls;
 import com.intellij.openapi.vcs.VcsException;
 
@@ -22,7 +23,7 @@ public class ListChangePackages extends SiCLICommand {
     public static final String ARGS = "--fields=id,user,state,summary";
     private final String server;
 
-    public ListChangePackages(List<VcsException> errors, EncodingProvider encodingProvider, final ListServers.MksServerInfo server) {
+    public ListChangePackages(List<VcsException> errors, EncodingProvider encodingProvider, final MksServerInfo server) {
         super(errors, encodingProvider, COMMAND, (server == null) ? new String[]{ARGS} : new String[]{ARGS, "--hostname", server.host});
         this.server = server.host;
     }

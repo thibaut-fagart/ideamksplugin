@@ -1,4 +1,4 @@
-package org.intellij.vcs.mks;
+package org.intellij.vcs.mks.model;
 
 /**
  * the 'member' attribute specifies a path relative to the 'project' owning directory
