@@ -1,20 +1,30 @@
 package org.intellij.vcs.mks.model;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.util.List;
 
 /**
+ * Embodies a Mks change package, we try to tie it to an IDEA changelist when possible. <br/>
+ * Two changePackages are considered equal it they are from the same server and have the same id.
+ *
+ * @see org.intellij.vcs.mks.MksChangeListAdapter
  * @author Thibaut Fagart
  */
 public class MksChangePackage {
-    private String id;
+	@NotNull
+	private String id;
+	@NotNull
     private String owner;
     private String state;
+	@NotNull
     private String summary;
+	@NotNull
+	public final String server;
+	private List<MksChangePackageEntry> entries;
 
-    private List<MksChangePackageEntry> entries;
-    public final String server;
-
-    public MksChangePackage(final String server, String id, String owner, String state, String summary) {
+	public MksChangePackage(@NotNull final String server, @NotNull String id, @NotNull String owner,
+							@NotNull String state, String summary) {
         this.server = server;
         this.summary = summary;
         this.id = id;
@@ -22,39 +32,26 @@ public class MksChangePackage {
         this.state = state;
     }
 
-    public String getSummary() {
+    @NotNull
+	public String getSummary() {
         return summary;
     }
 
-    public void setSummary(String summary) {
-        this.summary = summary;
-    }
-
-    public String getId() {
+	@NotNull
+	public String getId() {
         return id;
     }
 
-    public void setId(String id) {
-        this.id = id;
-    }
-
-    public String getOwner() {
+	@NotNull
+	public String getOwner() {
         return owner;
     }
 
-    public void setOwner(String owner) {
-        this.owner = owner;
-    }
-
-    public String getState() {
+	public String getState() {
         return state;
     }
 
-    public void setState(String state) {
-        this.state = state;
-    }
-
-    public void setEntries(List<MksChangePackageEntry> entries) {
+	public void setEntries(List<MksChangePackageEntry> entries) {
         this.entries = entries;
     }
 
@@ -66,4 +63,25 @@ public class MksChangePackage {
     public String toString() {
         return "MksChangePackage{id='" + id + "\'}";
     }
+
+	public boolean equals(Object o) {
+		if (this == o) {
+			return true;
+		}
+		if (o == null || getClass() != o.getClass()) {
+			return false;
+		}
+
+		MksChangePackage that = (MksChangePackage) o;
+
+		return id.equals(that.id) && server.equals(that.server);
+
+	}
+
+	public int hashCode() {
+		int result;
+		result = id.hashCode();
+		result = 31 * result + server.hashCode();
+		return result;
+	}
 }

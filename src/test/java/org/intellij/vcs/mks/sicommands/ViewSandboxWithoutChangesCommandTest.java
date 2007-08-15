@@ -37,7 +37,8 @@ public class ViewSandboxWithoutChangesCommandTest extends TestCase {
         }
         assertTrue("errors found", errors.isEmpty());
         String checkedOutFile = "c:\\Documents and Settings\\A6253567.HBEU\\sandboxes\\J2EE\\HJF-Core\\unittestsrc\\com\\hsbc\\hbfr\\ccf\\at\\util\\PerfLogUtilsTestCase.java";
-        assertTrue(states.get(checkedOutFile).checkedout);
+		// this command is not supposed to detect changes
+		assertFalse(states.get(checkedOutFile).checkedout);
         assertNotNull(states.get(checkedOutFile).workingChangePackageId);
         assertEquals("2875:1", states.get(checkedOutFile).workingChangePackageId);
     }

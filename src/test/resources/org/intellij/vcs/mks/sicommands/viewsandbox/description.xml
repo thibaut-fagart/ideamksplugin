@@ -21,5 +21,9 @@
                 c:\Documents and Settings\A6253567.HBEU\sandboxes\J2EE\HJF-Core\unittestsrc\config\persistence.properties
         </description>
     </sample>
+	<todo>
+		what if a file is locked by current user but in another sandbox
+		what if a file has been locally deleted (should be ok with --filter=changed:missing)
+	</todo>
 </samples>
 

@@ -38,4 +38,8 @@ public class ChangePackageSynchronizer extends AbstractMKSSynchronizer {
 			LOGGER.error("error parsing mks synchronizer output [" + line + "], skipping that line", e);
 		}
 	}
+
+	public String getDescription() {
+		return "change package list listener for " + this.server;
+	}
 }

@@ -38,6 +38,11 @@
             <implementation-class>org.intellij.vcs.mks.MksVcs
             </implementation-class>
         </component>
+		<component>
+			<interface-class>org.intellij.vcs.mks.realtime.LongRunningTaskRepository</interface-class>
+			<implementation-class>org.intellij.vcs.mks.realtime.LongRunningTaskRepositoryImpl
+			</implementation-class>
+		</component>
         <component>
             <implementation-class>org.intellij.vcs.mks.MKSChangeProvider
             </implementation-class>

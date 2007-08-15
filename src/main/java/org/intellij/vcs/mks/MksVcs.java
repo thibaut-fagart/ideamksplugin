@@ -1,27 +1,5 @@
 package org.intellij.vcs.mks;
 
-import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import javax.swing.*;
-import javax.swing.text.StyleConstants;
-import javax.swing.text.StyleContext;
-import org.intellij.vcs.mks.realtime.SandboxCache;
-import org.intellij.vcs.mks.realtime.SandboxCacheImpl;
-import org.intellij.vcs.mks.realtime.SandboxListSynchronizer;
-import org.intellij.vcs.mks.sicommands.GetContentRevision;
-import org.intellij.vcs.mks.sicommands.ListChangePackageEntries;
-import org.intellij.vcs.mks.sicommands.ListChangePackages;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import com.intellij.ProjectTopics;
 import com.intellij.openapi.components.ProjectComponent;
 import com.intellij.openapi.components.ServiceManager;
@@ -52,6 +30,30 @@ import com.intellij.util.messages.MessageBusConnection;
 import mks.integrations.common.TriclopsException;
 import mks.integrations.common.TriclopsSiMembers;
 import mks.integrations.common.TriclopsSiSandbox;
+import org.intellij.vcs.mks.realtime.LongRunningTaskRepository;
+import org.intellij.vcs.mks.realtime.SandboxCache;
+import org.intellij.vcs.mks.realtime.SandboxCacheImpl;
+import org.intellij.vcs.mks.realtime.SandboxListSynchronizer;
+import org.intellij.vcs.mks.sicommands.GetContentRevision;
+import org.intellij.vcs.mks.sicommands.ListChangePackageEntries;
+import org.intellij.vcs.mks.sicommands.ListChangePackages;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import javax.swing.*;
+import javax.swing.text.StyleConstants;
+import javax.swing.text.StyleContext;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
 public class MksVcs extends AbstractVcs implements ProjectComponent, EncodingProvider {
 	static final Logger LOGGER = Logger.getInstance(MksVcs.class.getName());
@@ -161,26 +163,16 @@ public class MksVcs extends AbstractVcs implements ProjectComponent, EncodingPro
         JPanel mksPanel = new JPanel(new BorderLayout());
         mksPanel.add(toolbar, BorderLayout.NORTH);
         JTabbedPane tabbedPane = new JTabbedPane();
-        //new JPanel(new java.awt.BorderLayout());
-        mksTextArea = new JTextPane();
-        mksTextArea.setEditable(false);
-        javax.swing.text.Style def = StyleContext.getDefaultStyleContext().getStyle("default");
-        javax.swing.text.Style regular = mksTextArea.addStyle("REGULAR", def);
-        StyleConstants.setFontFamily(def, "SansSerif");
-        javax.swing.text.Style s = mksTextArea.addStyle("ITALIC", regular);
-        StyleConstants.setItalic(s, true);
-        s = mksTextArea.addStyle("BOLD", regular);
-        StyleConstants.setBold(s, true);
 
-        JPanel panelDebug = new JPanel(new BorderLayout());
+		this.mksTextArea = createMksLogTextPane();
+		JPanel panelDebug = new JPanel(new BorderLayout());
         panelDebug.add(new JScrollPane(mksTextArea), BorderLayout.CENTER);
         tabbedPane.add(panelDebug, "Log", 0);
 
-        mksPanel.add(tabbedPane, BorderLayout.CENTER);
+
+		tabbedPane.add(createTasksPanel(), "Daemon processes");
+		mksPanel.add(tabbedPane, BorderLayout.CENTER);
         mksToolWindow = registerToolWindow(toolWindowManager, mksPanel);
-        java.net.URL iconUrl = getClass().getResource("/icons/mks.gif");
-        javax.swing.Icon icn = new ImageIcon(iconUrl);
-        mksToolWindow.setIcon(icn);
         final JPopupMenu menu = new JPopupMenu();
         JMenuItem item = new JMenuItem("Clear");
         item.addActionListener(new ActionListener() {
@@ -202,11 +194,34 @@ public class MksVcs extends AbstractVcs implements ProjectComponent, EncodingPro
         });
     }
 
+	private Component createTasksPanel() {
+		// todo create the panel : a table with (description, stop button, restart button)
+		JTable tasksTable = new JTable();
+
+		return new JPanel();
+
+	}
+
+	private JTextPane createMksLogTextPane() {
+		JTextPane mksTextArea = new JTextPane();
+		mksTextArea.setEditable(false);
+		javax.swing.text.Style def = StyleContext.getDefaultStyleContext().getStyle("default");
+		javax.swing.text.Style regular = mksTextArea.addStyle("REGULAR", def);
+		StyleConstants.setFontFamily(def, "SansSerif");
+		javax.swing.text.Style s = mksTextArea.addStyle("ITALIC", regular);
+		StyleConstants.setItalic(s, true);
+		s = mksTextArea.addStyle("BOLD", regular);
+		StyleConstants.setBold(s, true);
+		return mksTextArea;
+	}
+
 	private ToolWindow registerToolWindow(final ToolWindowManager toolWindowManager, final JPanel mksPanel) {
 		ToolWindow toolWindow = toolWindowManager.registerToolWindow("MKS", true, ToolWindowAnchor.BOTTOM);
 		PeerFactory pf = com.intellij.peer.PeerFactory.getInstance();
 		Content content = pf.getContentFactory().createContent(mksPanel, "", false); // first arg is a JPanel
 		toolWindow.getContentManager().addContent(content);
+
+		toolWindow.setIcon(IconLoader.getIcon("/icons/mks.gif", getClass())); 
 		return toolWindow;
 	}
 
@@ -450,7 +465,8 @@ public class MksVcs extends AbstractVcs implements ProjectComponent, EncodingPro
 		sandboxListSynchronizer = new SandboxListSynchronizer(this, sandboxCache);
         StartupManager.getInstance(myProject).registerPostStartupActivity(new Runnable() {
             public void run() {
-                sandboxListSynchronizer.start();
+				myProject.getComponent(LongRunningTaskRepository.class).add(sandboxListSynchronizer);
+				sandboxListSynchronizer.start();
             }
         });
         myMessageBusConnection = getProject().getMessageBus().connect();
