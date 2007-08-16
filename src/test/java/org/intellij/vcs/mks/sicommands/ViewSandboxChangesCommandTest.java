@@ -21,7 +21,7 @@ import junit.framework.TestCase;
  */
 public class ViewSandboxChangesCommandTest extends TestCase {
 	private static final String ENCODING = "IBM437";
-	private ViewSandboxChangesCommand command;
+	private ViewSandboxLocalChangesCommand command;
 
 	protected void setUp() throws Exception {
 		super.setUp();
@@ -75,7 +75,7 @@ public class ViewSandboxChangesCommandTest extends TestCase {
 //        List < VcsException > errors = new ArrayList<VcsException>();
 //
 //        String sandboxPath = "c:\\Documents and Settings\\A6253567.HBEU\\sandboxes\\J2EE\\HJF-Core\\project.pj";
-//        ViewSandboxChangesCommand command = createCommand(errors, sandboxPath);
+//        ViewSandboxLocalChangesCommand command = createCommand(errors, sandboxPath);
 //        command.execute();
 
 		Map<String, MksMemberState> states = command.getMemberStates();
@@ -87,13 +87,13 @@ public class ViewSandboxChangesCommandTest extends TestCase {
 		assertFalse("errors found", command.foundError());
 	}
 
-	private ViewSandboxChangesCommand createCommand(final List<VcsException> errors, final String sandboxPath) {
+	private ViewSandboxLocalChangesCommand createCommand(final List<VcsException> errors, final String sandboxPath) {
 		EncodingProvider encodingProvider = new EncodingProvider() {
 			public String getMksSiEncoding(final String command) {
 				return ENCODING;
 			}
 		};
-		return new ViewSandboxChangesCommand(errors, encodingProvider, "e9310750", sandboxPath) {
+		return new ViewSandboxLocalChangesCommand(errors, encodingProvider, "e9310750", sandboxPath) {
 			@Override
 			protected String executeCommand() throws IOException {
 				commandOutput = loadResourceWithEncoding("viewsandbox/changedOrLocked.txt", ENCODING);

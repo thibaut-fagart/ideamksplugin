@@ -14,7 +14,7 @@ import com.intellij.openapi.vcs.VcsException;
  *
  * @author Thibaut Fagart
  */
-public class ViewSandboxChangesCommand extends AbstractViewSandboxCommand {
+public class ViewSandboxLocalChangesCommand extends AbstractViewSandboxCommand {
 
 	/**
 	 * username is available in si viewservers
@@ -26,9 +26,9 @@ public class ViewSandboxChangesCommand extends AbstractViewSandboxCommand {
 	 * @param username         username of the current user : allows detecting
 	 *                         which locks are checkouts of the IDEA user
 	 */
-	public ViewSandboxChangesCommand(final List<VcsException> errors, final EncodingProvider encodingProvider,
+	public ViewSandboxLocalChangesCommand(final List<VcsException> errors, final EncodingProvider encodingProvider,
 	                                 final String username, final String sandboxPath) {
-		super(errors, encodingProvider, username, sandboxPath,/* "--filter=changed",*/"--filter=changed,locked:"+username);
+		super(errors, encodingProvider, username, sandboxPath,/* "--filter=changed",*/"--filter=changed:working,locked:"+username);
 	}
 
 	@Override
@@ -37,13 +37,15 @@ public class ViewSandboxChangesCommand extends AbstractViewSandboxCommand {
 		// we confuse missing files and locally modified without checkout here
 		boolean isLocked = locker != null;
 		if (isLocked) {
-			MksMemberState.Status status ;
-			if (isLockedByMe(locker) && isMySandbox(lockedSandbox)) {
-				status = MksMemberState.Status.CHECKED_OUT ;
-			} else if (!isLockedByMe(locker)) {
-				status = MksMemberState.Status.MODIFIED_WITHOUT_CHECKOUT;
+			MksMemberState.Status status;
+			if (isLockedByMe(locker)) {
+				if (isMySandbox(lockedSandbox)) {
+					status = MksMemberState.Status.CHECKED_OUT ;
+				} else {
+					status = MksMemberState.Status.NOT_CHANGED;
+				}
 			} else {
-				status = MksMemberState.Status.NOT_CHANGED;
+				status = MksMemberState.Status.MODIFIED_WITHOUT_CHECKOUT;
 			}
 			return new MksMemberState(new MksRevisionNumber(workingRev), new MksRevisionNumber(memberRev), workingCpid,
 				status);

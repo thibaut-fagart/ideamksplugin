@@ -12,7 +12,7 @@
     </sample>
 
     <sample name="changedOrLocked.txt" encoding="IBM437">
-        <command>si viewsandbox --batch --recurse --filter=changed,locked:e9310750 --fields=workingrev,workingcpid,deferred,pendingcpid,type,locker,name,memberrev,locksandbox --sandbox="c:\Documents and Settings\A6253567.HBEU\sandboxes\J2EE\project.pj"</command>
+        <command>si viewsandbox --batch --recurse --filter=changed:working,locked:e9310750 --fields=workingrev,workingcpid,deferred,pendingcpid,type,locker,name,memberrev,locksandbox --sandbox="c:\Documents and Settings\A6253567.HBEU\sandboxes\J2EE\project.pj"</command>
         <description>
             sandbox path : c:\Documents and Settings\A6253567.HBEU\sandboxes\J2EE\HJF-Core\project.pj
             locally modified without checkout : c:\Documents and Settings\A6253567.HBEU\sandboxes\J2EE\HJF-Core\src\com\hsbc\hbfr\ccf\at\persistence\PoolConnectionMgr.java

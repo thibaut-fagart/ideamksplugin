@@ -54,7 +54,7 @@ class MKSChangeProvider implements ChangeProvider, ProjectComponent, ChangeListD
     }
 
 
-    public void getChanges(final VcsDirtyScope dirtyScope, final ChangelistBuilder builder, final ProgressIndicator progress) throws VcsException {
+    public void getChanges(final VcsDirtyScope dirtyScope, ChangelistBuilder builder, final ProgressIndicator progress) throws VcsException {
         ArrayList<VcsException> errors = new ArrayList<VcsException>();
         LOGGER.info("start getChanges");
         try {
@@ -65,19 +65,10 @@ class MKSChangeProvider implements ChangeProvider, ProjectComponent, ChangeListD
 	        ArrayList<MksServerInfo> servers = getMksServers(progress, errors);
 	        final Map<MksServerInfo, Map<String, MksChangePackage>> changePackagesPerServer = getChangePackages(progress, errors, servers);
 	        // collect affected sandboxes
-	        ChangelistBuilder proxiedBuilder = (ChangelistBuilder) Proxy.newProxyInstance(getClass().getClassLoader(), new Class[]{ChangelistBuilder.class}, new InvocationHandler() {
-		        public Object invoke(final Object o, final Method method, final Object[] objects) throws Throwable {
-			        StringBuffer buf = new StringBuffer("(");
-			        for (int i = 0; i < objects.length; i++) {
-				        Object object = objects[i];
-				        buf.append(object).append(",");
-			        }
-			        buf.setLength(buf.length()-1);
-			        buf.append(")");
-			        System.out.println(method.getName() + buf);
-			        return method.invoke(builder, objects);
-		        }
-	        });
+	        final ChangelistBuilder myBuilder = builder;
+	        if (MksVcs.DEBUG) {
+		        builder = createBuilderLoggingProxy(myBuilder);
+	        }
 	        Map <String, MksServerInfo> serversByHostAndPort = distributeServersByHostAndPort(servers);
 	        Map<MksServerInfo, Map<String, MksMemberState>> states = new HashMap<MksServerInfo, Map<String, MksMemberState>>();
 	        for (VirtualFile dir : dirtyScope.getAffectedContentRoots()) {
@@ -92,94 +83,8 @@ class MKSChangeProvider implements ChangeProvider, ProjectComponent, ChangeListD
 	        }
 	        for (Map.Entry<MksServerInfo, Map<String, MksMemberState>> entry : states.entrySet()) {
 		        MksServerInfo sandboxServer = entry.getKey();
-		        processDirtySandbox(proxiedBuilder,changePackagesPerServer.get(sandboxServer),entry.getValue());
+		        processDirtySandbox(builder,changePackagesPerServer.get(sandboxServer),entry.getValue());
 	        }
-//            final Map<String, List<MksChangePackageEntry>> changePackageEntriesByMksProject = new HashMap<String, List<MksChangePackageEntry>>();
-//            final Map<MksChangePackageEntry, MksChangePackage> changePackagesByChangePackageEntry = new HashMap<MksChangePackageEntry, MksChangePackage>();
-/*
-            for (final MksChangePackage changePackage : changePackagesPerServer) {
-                final ListChangePackageEntries listEntries = new ListChangePackageEntries(errors, mksvcs, changePackage);
-                if (progress != null) {
-                    progress.setIndeterminate(true);
-                    progress.setText("Querying change package entries [" + changePackage.getId() + "] ...");
-                }
-                listEntries.execute();
-                if (listEntries.foundError()) {
-                    LOGGER.error("failed querying mks cp entries for " + changePackage);
-                } else {
-                    changePackage.setEntries(listEntries.changePackageEntries);
-                    for (MksChangePackageEntry changePackageEntry : listEntries.changePackageEntries) {
-                        List<MksChangePackageEntry> list = changePackageEntriesByMksProject.get(changePackageEntry.getProject());
-                        if (list == null) {
-                            list = new ArrayList<MksChangePackageEntry>();
-                            changePackageEntriesByMksProject.put(changePackageEntry.getProject(), list);
-                        }
-                        list.add(changePackageEntry);
-                        changePackagesByChangePackageEntry.put(changePackageEntry, changePackage);
-                    }
-                }
-            }
-            if (progress != null) {
-                progress.setIndeterminate(true);
-                progress.setText("Collecting files to query ...");
-            }
-            final Collection<VirtualFile> filesTocheckVFiles = new ArrayList<VirtualFile>();
-            final Map<VirtualFile, FilePath> filePathsByVFile = new IdentityHashMap<VirtualFile, FilePath>();
-            dirtyScope.iterate(new Processor<FilePath>() {
-                public boolean process(FilePath filePath) {
-//                    assert VcsUtil.isFileUnderVcs(mksvcs.getProject(), filePath) : "file not under vcs : " + filePath;
-//					if (VcsUtil.isFileUnderVcs(mksvcs.getProject(), filePath)) {
-                    VirtualFile virtualFile = filePath.getVirtualFile();
-                    if (virtualFile == null) {
-                        LOGGER.warn("null virtual file for path : "+filePath);
-                    } else {
-                        filesTocheckVFiles.add(virtualFile);
-                        filePathsByVFile.put(virtualFile, filePath);
-                    }
-//					} else {
-//						LOGGER.warn("file not under vcs : " + filePath);
-//					}
-
-                    return true;
-                }
-            });
-            if (progress != null) {
-                progress.setText("Dispatching files by sandbox");
-            }
-            DispatchBySandboxCommand dispatchCommand = new DispatchBySandboxCommand(mksvcs, errors, filesTocheckVFiles.toArray(new VirtualFile[filesTocheckVFiles.size()]));
-            dispatchCommand.execute();
-            final Map<TriclopsSiSandbox, ArrayList<VirtualFile>> filesBySandbox = dispatchCommand.filesBySandbox;
-            ArrayList<VirtualFile> unversionedFiles = dispatchCommand.getNotInSandboxFiles();
-            for (VirtualFile file : unversionedFiles) {
-                builder.processUnversionedFile(file);
-            }
-            int numberOfProcessedFiles = 0;
-            int numberOfFilesToProcess = 0;
-            if (progress != null) {
-                numberOfFilesToProcess = getNumberOfFiles(filesBySandbox);
-                progress.setFraction(0);
-                progress.setText("Querying status");
-            }
-            for (Map.Entry<TriclopsSiSandbox, ArrayList<VirtualFile>> entry : filesBySandbox.entrySet()) {
-                final TriclopsSiSandbox sandbox = entry.getKey();
-                final ArrayList<VirtualFile> sandboxFiles = entry.getValue();
-                final MksQueryMemberStatusCommand command = new MksQueryMemberStatusCommand(errors, sandbox, sandboxFiles);
-                command.execute();
-                if (command.foundError()) {
-                    break;
-                }
-                for (int i = 0, max = command.triclopsSiMembers.getNumMembers(); i < max; i++) {
-
-                    final TriclopsSiMember triclopsSiMember = command.triclopsSiMembers.getMember(i);
-                    final VirtualFile virtualFile = sandboxFiles.get(i);
-                    processMember(sandbox, triclopsSiMember, virtualFile, builder, changePackagesPerServer, filePathsByVFile.get(virtualFile), changePackageEntriesByMksProject, changePackagesByChangePackageEntry);
-                    if (progress != null) {
-                        progress.setFraction(((double) numberOfProcessedFiles++) / numberOfFilesToProcess);
-                    }
-                }
-            }
-            // todo : status unknown for directories with no known children
-*/
         } catch (RuntimeException e) {
             e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
             throw e;
@@ -192,6 +97,22 @@ class MKSChangeProvider implements ChangeProvider, ProjectComponent, ChangeListD
 
 
     }
+
+	private ChangelistBuilder createBuilderLoggingProxy(final ChangelistBuilder myBuilder) {
+		return (ChangelistBuilder) Proxy.newProxyInstance(getClass().getClassLoader(), new Class[]{ChangelistBuilder.class}, new InvocationHandler() {
+			public Object invoke(final Object o, final Method method, final Object[] objects) throws Throwable {
+				StringBuffer buf = new StringBuffer("(");
+				for (int i = 0; i < objects.length; i++) {
+					Object object = objects[i];
+					buf.append(object).append(",");
+				}
+				buf.setLength(buf.length()-1);
+				buf.append(")");
+				System.out.println(method.getName() + buf);
+				return method.invoke(myBuilder, objects);
+			}
+		});
+	}
 
 	private Map<String, MksServerInfo> distributeServersByHostAndPort(final ArrayList<MksServerInfo> servers) {
 		Map<String, MksServerInfo> result = new HashMap<String, MksServerInfo>();
@@ -226,31 +147,35 @@ class MKSChangeProvider implements ChangeProvider, ProjectComponent, ChangeListD
 				builder.processModifiedWithoutCheckout(virtualFile);
 			} else if (state.status == MksMemberState.Status.MISSISNG) {
 				builder.processLocallyDeletedFile(filePath);
-
-//				if (entry.getKey().contains("log4j.properties")) {
-//					System.out.println("NOT MODIFIED :" +virtualFile );
-//				}
-				// not changed
-//				Change change = new Change(
-//				    new MksContentRevision(mksvcs, filePath, state.workingRevision),
-//				    CurrentContentRevision.create(filePath),
-//				    FileStatus.NOT_CHANGED);
-//				builder.processChange(change);
+			} else if (state.status == MksMemberState.Status.SYNC) {
+				// out of sync member, how to handle it ?
+				builder.processChange(new Change(
+				    new MksContentRevision(mksvcs, filePath, state.workingRevision),
+				   new MksContentRevision(mksvcs, filePath, state.memberRevision),
+				    FileStatus.OBSOLETE));
 			}
 		}
 	}
 
 	private Map<String, MksMemberState> getSandboxState(final MksSandboxInfo sandbox, final ArrayList<VcsException> errors, final MksServerInfo server) {
-		ViewSandboxWithoutChangesCommand command1 = new ViewSandboxWithoutChangesCommand(errors,mksvcs, server.user, sandbox.sandboxPath);
-		command1.execute();
 		Map<String, MksMemberState> states = new HashMap<String, MksMemberState>();
-		states.putAll(command1.getMemberStates());
-		ViewSandboxChangesCommand command2 = new ViewSandboxChangesCommand(errors,mksvcs, server.user, sandbox.sandboxPath);
-		command2.execute();
-		states.putAll(command2.getMemberStates());
-		ViewSandboxMissingCommand command3 = new ViewSandboxMissingCommand(errors,mksvcs, server.user, sandbox.sandboxPath);
-		command3.execute();
-		states.putAll(command3.getMemberStates());
+
+		ViewSandboxWithoutChangesCommand fullSandboxCommand = new ViewSandboxWithoutChangesCommand(errors,mksvcs, server.user, sandbox.sandboxPath);
+		fullSandboxCommand.execute();
+		states.putAll(fullSandboxCommand.getMemberStates());
+
+		ViewSandboxOutOfSyncCommand outOfSyncCommand = new ViewSandboxOutOfSyncCommand(errors,mksvcs, server.user, sandbox.sandboxPath);
+		outOfSyncCommand.execute();
+		states.putAll(outOfSyncCommand.getMemberStates());
+
+		ViewSandboxLocalChangesCommand localChangesCommand = new ViewSandboxLocalChangesCommand(errors,mksvcs, server.user, sandbox.sandboxPath);
+		localChangesCommand.execute();
+		states.putAll(localChangesCommand.getMemberStates());
+
+		ViewSandboxMissingCommand missingCommand = new ViewSandboxMissingCommand(errors,mksvcs, server.user, sandbox.sandboxPath);
+		missingCommand.execute();
+		states.putAll(missingCommand.getMemberStates());
+
 		return states;
 	}
 
