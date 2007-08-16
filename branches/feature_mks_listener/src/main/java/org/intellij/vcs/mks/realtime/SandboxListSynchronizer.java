@@ -10,9 +10,13 @@ import org.intellij.vcs.mks.sicommands.ListSandboxes;
  */
 public class SandboxListSynchronizer extends AbstractMKSSynchronizer {
 	private static final String LINE_SEPARATOR = " -> ";
-	private static final String patternString = "(.+) -> (.+) \\((.+)\\)";
+	// $project$[$sandboxtype$:$projectVersionOrDevPath$] ($server$:$port$)
+	private static final String patternString = "(.+) -> (.+)(\\[[^:]+:[^:]+\\])? \\((.+)\\)";
 	private final SandboxCache sandboxCache;
 	private final Pattern pattern;
+	private static final int SANDBOX_PATH_GROUP_IDX = 1;
+	private static final int PROJECT_PATH_GROUP_IDX = 2;
+	private static final int SERVER_GROUP_IDX = 4;
 
 	public SandboxListSynchronizer(EncodingProvider encodingProvider, SandboxCache sandboxCache) {
 		super(ListSandboxes.COMMAND, encodingProvider, "--displaySubs");
@@ -32,12 +36,12 @@ public class SandboxListSynchronizer extends AbstractMKSSynchronizer {
 				Matcher matcher = pattern.matcher(line);
 //				String[] parts = line.split(LINE_SEPARATOR);
 				if (!matcher.matches()) {
-					LOGGER.error("unexpected command output {" + line + "}, expected 2 parts separated by [" + LINE_SEPARATOR + "]", "");
+					LOGGER.error("unexpected command output {" + line + "}, expected something matching "+ patternString, "");
 					// ignoring line
 				} else {
-					String sandboxPath = matcher.group(1);
-					String projectPath = matcher.group(2);
-					String serverHostAndPort = matcher.group(3);
+					String sandboxPath = matcher.group(SANDBOX_PATH_GROUP_IDX);
+					String projectPath = matcher.group(PROJECT_PATH_GROUP_IDX);
+					String serverHostAndPort = matcher.group(SERVER_GROUP_IDX);
 //					System.out.println("adding ["+filePath+"]");
 					sandboxCache.addSandboxPath(sandboxPath, serverHostAndPort);
 				}
