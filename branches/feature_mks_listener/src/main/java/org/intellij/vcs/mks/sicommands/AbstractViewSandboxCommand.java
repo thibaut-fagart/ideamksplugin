@@ -26,41 +26,52 @@ public abstract class AbstractViewSandboxCommand extends SiCLICommand {
 	private static final String typePattern = "((?:sandbox)|(?:subsandbox)|(?:shared-subsandbox)|(?:shared-variant-subsandbox)|(?:shared-build-subsandbox)|(?:member)|(?:archived)|(?:variant-subsandbox))";
 	private static final String unusedPattern = "([^\\s]+)?";
 	private static final String namePattern = "(.+)";
+	private static final String sandboxPattern =namePattern+"?";
+	private static final String userPattern = "([^\\s]+)?";
 
 	private static final String fieldsParam;
 	protected static final String wholeLinePatternString;
 
-	private static final String userPattern = "([^\\s]+)?";
-
 	static {
 		// --fields=workingrev,memberrev,workingcpid,deferred,pendingcpid,revsyncdelta,type,wfdelta,name
-		fieldsParam = "--fields=workingrev,memberrev,workingcpid"
-			+ ",deferred,pendingcpid" //unused
-			+ ",type,locker"
-			+ ",name";
-		wholeLinePatternString = "^" + revisionPattern + " " + revisionPattern + " " + changePackageIdPattern
+		fieldsParam = "--fields=workingrev,workingcpid,deferred,pendingcpid,type,locker,name,memberrev,locksandbox";
+		wholeLinePatternString = "^" + revisionPattern + " " + changePackageIdPattern
 			+ " " + unusedPattern + " " + unusedPattern
 			+ " " + typePattern
 			+ " " + userPattern
-			+ " " + namePattern + "$";
-
+			+ " " + namePattern
+			+ " " + revisionPattern + " " + sandboxPattern + "?$"; // locked sandbox is null when member is not locked
 	}
 
 	private static final int WORKING_REV_GROUP_IDX = 1;
-	private static final int MEMBER_REV_GROUP_IDX = 2;
-	private static final int WORKING_CPID_GROUP_IDX = 3;
-	private static final int TYPE_GROUP_IDX = 6;
-	private static final int LOCKER_GROUP_IDX = 7;
-	private static final int NAME_GROUP_IDX = 8;
+	private static final int WORKING_CPID_GROUP_IDX = 2;
+	private static final int TYPE_GROUP_IDX = 5;
+	private static final int LOCKER_GROUP_IDX = 6;
+	private static final int NAME_GROUP_IDX = 7;
+	private static final int MEMBER_REV_GROUP_IDX = 8;
+	private static final int LOCKED_SANDBOX_GROUP_IDX = 9;
+
 	protected final Map<String, MksMemberState> memberStates = new HashMap<String, MksMemberState>();
 	protected final String mksUsername;
+	protected final String sandboxPath;
 
 	protected AbstractViewSandboxCommand(final List<VcsException> errors, final EncodingProvider encodingProvider,
-	                                     String mksUsername, final String filter, final String sandboxPath) {
-		super(errors, encodingProvider, COMMAND, fieldsParam, "--recurse", filter, sandboxPath);
+	                                     String mksUsername, final String sandboxPath, final String... filters) {
+		super(errors, encodingProvider, COMMAND, createParams(fieldsParam, "--recurse", "--sandbox="+sandboxPath , filters));
 		this.mksUsername = mksUsername;
+		this.sandboxPath = sandboxPath;
 	}
 
+	private static String[] createParams(final String fieldsParam, final String s, final String s1, final String[] filters) {
+		String [] params = new String[3+filters.length];
+		params[0] = fieldsParam;
+		params[1] = s;
+		params[2] = s1;
+		System.arraycopy(filters, 0, params, 3,filters.length);
+		return params;
+	}
+
+	@Override
 	public void execute() {
 		try {
 			executeCommand();
@@ -84,10 +95,9 @@ public abstract class AbstractViewSandboxCommand extends SiCLICommand {
 						String type = matcher.group(TYPE_GROUP_IDX);
 						String locker = matcher.group(LOCKER_GROUP_IDX);
 						String name = matcher.group(NAME_GROUP_IDX);
+						String lockedSandbox = matcher.group(LOCKED_SANDBOX_GROUP_IDX);
 						if (isMember(type)) {
-//							boolean isCheckedOut = mksUsername.equals(locker);
-							MksMemberState memberState = null;
-							memberState = createState(workingRev, memberRev, workingCpid, locker);
+							MksMemberState memberState = createState(workingRev, memberRev, workingCpid, locker, lockedSandbox);
 							setState(name, memberState);
 						} else if (isSandbox(type)) {
 							LOGGER.debug("ignoring sandbox " + name);
@@ -113,7 +123,7 @@ public abstract class AbstractViewSandboxCommand extends SiCLICommand {
 
 	}
 
-	protected abstract MksMemberState createState(String workingRev, String memberRev, String workingCpid, final String locker) throws VcsException;
+	protected abstract MksMemberState createState(String workingRev, String memberRev, String workingCpid, final String locker, final String lockedSandbox) throws VcsException;
 
 	private boolean isSandbox(final String type) {
 		return type.contains("sandbox");
