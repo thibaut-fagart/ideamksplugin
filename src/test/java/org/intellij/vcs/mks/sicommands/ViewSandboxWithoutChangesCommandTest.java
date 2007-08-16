@@ -25,7 +25,7 @@ public class ViewSandboxWithoutChangesCommandTest extends TestCase {
     public void testSimple() {
         List < VcsException > errors = new ArrayList<VcsException>();
 
-        String sandboxPath = null;
+        String sandboxPath = "c:\\Documents and Settings\\A6253567.HBEU\\sandboxes\\J2EE\\HJF-Core\\project.pj";
         ViewSandboxWithoutChangesCommand command = createCommand(errors, sandboxPath);
         command.execute();
         Map<String, MksMemberState> states = command.getMemberStates();
@@ -36,11 +36,12 @@ public class ViewSandboxWithoutChangesCommandTest extends TestCase {
             assertNotNull("no working revision", state.workingRevision);
         }
         assertTrue("errors found", errors.isEmpty());
-        String checkedOutFile = "c:\\Documents and Settings\\A6253567.HBEU\\sandboxes\\J2EE\\HJF-Core\\unittestsrc\\com\\hsbc\\hbfr\\ccf\\at\\util\\PerfLogUtilsTestCase.java";
+        String modifiedWithoutCheckoutFile =
+	        "c:\\Documents and Settings\\A6253567.HBEU\\sandboxes\\J2EE\\HJF-Core\\unittestsrc\\com\\hsbc\\hbfr\\ccf\\at\\util\\PerfLogUtilsTestCase.java";
 		// this command is not supposed to detect changes
-		assertFalse(states.get(checkedOutFile).checkedout);
-        assertNotNull(states.get(checkedOutFile).workingChangePackageId);
-        assertEquals("2875:1", states.get(checkedOutFile).workingChangePackageId);
+		assertFalse(states.get(modifiedWithoutCheckoutFile).checkedout);
+        assertNotNull(states.get(modifiedWithoutCheckoutFile).workingChangePackageId);
+        assertEquals("2875:1", states.get(modifiedWithoutCheckoutFile).workingChangePackageId);
     }
 
     private ViewSandboxWithoutChangesCommand createCommand(final List<VcsException> errors, final String sandboxPath) {

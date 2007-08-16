@@ -16,11 +16,11 @@ public class ViewSandboxWithoutChangesCommand extends AbstractViewSandboxCommand
 
 
 	public ViewSandboxWithoutChangesCommand(final List<VcsException> errors, final EncodingProvider encodingProvider, final String mksUsername, final String sandboxPath) {
-		super(errors, encodingProvider, mksUsername, "--filter=", "--sandbox="+sandboxPath);
+		super(errors, encodingProvider, mksUsername, sandboxPath);
 	}
 
 	@Override
-	protected MksMemberState createState(final String workingRev, final String memberRev, final String workingCpid, final String locker) throws VcsException {
+	protected MksMemberState createState(final String workingRev, final String memberRev, final String workingCpid, final String locker, final String lockedSandbox) throws VcsException {
 		return new MksMemberState(new MksRevisionNumber(workingRev), new MksRevisionNumber(memberRev), workingCpid, false, false);
 	}
 
