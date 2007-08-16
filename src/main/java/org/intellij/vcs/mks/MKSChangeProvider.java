@@ -207,7 +207,7 @@ class MKSChangeProvider implements ChangeProvider, ProjectComponent, ChangeListD
 			MksMemberState state = entry.getValue();
 			FilePath filePath = VcsUtil.getFilePath(entry.getKey());
 			VirtualFile virtualFile = VcsUtil.getVirtualFile(entry.getKey());
-			if (state.checkedout) {
+			if (state.status== MksMemberState.Status.CHECKED_OUT) {
 				MksChangePackage changePackage = changePackages.get(state.workingChangePackageId);
 				Change change = new Change(
 				    new MksContentRevision(mksvcs, filePath, state.workingRevision),
@@ -221,10 +221,12 @@ class MKSChangeProvider implements ChangeProvider, ProjectComponent, ChangeListD
 //					System.out.println("processChange "+virtualFile+", MODIFIED IN CP "+changePackage.getId());
 					builder.processChangeInList(change, changeList);
 				}
-			} else if (state.modifiedWithoutCheckout) {
+			} else if (state.status== MksMemberState.Status.MODIFIED_WITHOUT_CHECKOUT) {
 //				System.out.println("modified without checkout "+virtualFile);
 				builder.processModifiedWithoutCheckout(virtualFile);
-			} else {
+			} else if (state.status == MksMemberState.Status.MISSISNG) {
+				builder.processLocallyDeletedFile(filePath);
+
 //				if (entry.getKey().contains("log4j.properties")) {
 //					System.out.println("NOT MODIFIED :" +virtualFile );
 //				}
@@ -246,6 +248,9 @@ class MKSChangeProvider implements ChangeProvider, ProjectComponent, ChangeListD
 		ViewSandboxChangesCommand command2 = new ViewSandboxChangesCommand(errors,mksvcs, server.user, sandbox.sandboxPath);
 		command2.execute();
 		states.putAll(command2.getMemberStates());
+		ViewSandboxMissingCommand command3 = new ViewSandboxMissingCommand(errors,mksvcs, server.user, sandbox.sandboxPath);
+		command3.execute();
+		states.putAll(command3.getMemberStates());
 		return states;
 	}
 

@@ -14,6 +14,7 @@ import java.util.Map;
 import org.intellij.vcs.mks.EncodingProvider;
 import org.intellij.vcs.mks.model.MksMemberState;
 import com.intellij.openapi.vcs.VcsException;
+import com.sun.corba.se.impl.encoding.CachedCodeBase;
 import junit.framework.TestCase;
 
 /**
@@ -31,7 +32,7 @@ public class ViewSandboxWithoutChangesCommandTest extends TestCase {
         Map<String, MksMemberState> states = command.getMemberStates();
         for (Map.Entry<String, MksMemberState> entry : states.entrySet()) {
             MksMemberState state = entry.getValue();
-            assertFalse("there is no modifiedWithoutCheckout files", state.modifiedWithoutCheckout);
+            assertFalse("there is no modifiedWithoutCheckout files", state.status== MksMemberState.Status.MODIFIED_WITHOUT_CHECKOUT);
             assertNotNull("no member revision", state.memberRevision);
             assertNotNull("no working revision", state.workingRevision);
         }
@@ -39,7 +40,8 @@ public class ViewSandboxWithoutChangesCommandTest extends TestCase {
         String modifiedWithoutCheckoutFile =
 	        "c:\\Documents and Settings\\A6253567.HBEU\\sandboxes\\J2EE\\HJF-Core\\unittestsrc\\com\\hsbc\\hbfr\\ccf\\at\\util\\PerfLogUtilsTestCase.java";
 		// this command is not supposed to detect changes
-		assertFalse(states.get(modifiedWithoutCheckoutFile).checkedout);
+	    MksMemberState memberState = states.get(modifiedWithoutCheckoutFile);
+	    assertFalse(memberState.status == MksMemberState.Status.CHECKED_OUT);
         assertNotNull(states.get(modifiedWithoutCheckoutFile).workingChangePackageId);
         assertEquals("2875:1", states.get(modifiedWithoutCheckoutFile).workingChangePackageId);
     }

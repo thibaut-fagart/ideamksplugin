@@ -37,16 +37,20 @@ public class ViewSandboxChangesCommand extends AbstractViewSandboxCommand {
 		// we confuse missing files and locally modified without checkout here
 		boolean isLocked = locker != null;
 		if (isLocked) {
-			boolean isCheckedOut = isLockedByMe(locker) && isMySandbox(lockedSandbox);
-			boolean isModifiedWithoutCheckout = !isLockedByMe(locker) ;
-			
+			MksMemberState.Status status ;
+			if (isLockedByMe(locker) && isMySandbox(lockedSandbox)) {
+				status = MksMemberState.Status.CHECKED_OUT ;
+			} else if (!isLockedByMe(locker)) {
+				status = MksMemberState.Status.MODIFIED_WITHOUT_CHECKOUT;
+			} else {
+				status = MksMemberState.Status.NOT_CHANGED;
+			}
 			return new MksMemberState(new MksRevisionNumber(workingRev), new MksRevisionNumber(memberRev), workingCpid,
-				isCheckedOut,
-				isModifiedWithoutCheckout );
+				status);
 
 		} else {
 			return new MksMemberState(new MksRevisionNumber(workingRev), new MksRevisionNumber(memberRev), workingCpid,
-				false, true);
+				MksMemberState.Status.MODIFIED_WITHOUT_CHECKOUT);
 
 		}
 
