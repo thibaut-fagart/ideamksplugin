@@ -11,7 +11,7 @@
         </description>
     </sample>
 
-    <sample name="sample2.txt" encoding="IBM437">
+    <sample name="changedOrLocked" encoding="IBM437">
         <command>si viewsandbox --batch --recurse --filter=changed,locked --fields workingrev,memberrev,workingcpid,deferred,pendingcpid,type,locker,name</command>
         <description>
             sandbox path : c:\Documents and Settings\A6253567.HBEU\sandboxes\J2EE\HJF-Core\project.pj
@@ -21,9 +21,18 @@
                 c:\Documents and Settings\A6253567.HBEU\sandboxes\J2EE\HJF-Core\unittestsrc\config\persistence.properties
         </description>
     </sample>
-	<todo>
-		what if a file is locked by current user but in another sandbox
-		what if a file has been locally deleted (should be ok with --filter=changed:missing)
-	</todo>
+	<sample name="missing.txt" encoding="IBM437">
+		<command>si viewsandbox --batch --recurse --filter=changed:missing --fields workingrev,memberrev,workingcpid,deferred,pendingcpid,type,locker,name</command>
+		<description>a sandbox with a single missing file : c:\Documents and Settings\A6253567.HBEU\sandboxes\J2EE\HJF-Core\.project</description>
+	</sample>
+	<sample name="lockedfiles.txt" encoding="IBM437">
+		<command>si viewsandbox --recurse --filter=locked:e9310750 --fields=workingrev,workingcpid,deferred,pendingcpid,type,locker,name,memberrev,locksandbox
+			"([\\d\\.]+)? ([\\d:]+)? ([^\\s]+)? ([^\\s]+)? ((?:sandbox)|(?:subsandbox)|(?:shared-subsandbox)|(?:shared-variant-subsandbox)|(?:shared-build-subsandbox)|(?:member)|(?:archived)|(?:variant-subsandbox)) ([^\\s]+) (.*) ([\\d\\.]+)? (.*)$"
+			seems to be parsing this ok		
+		</command>
+		<description>a sandbox (C:\TEMP\ideamks\sandbox\project.pj) containing files both locked in the current sandbox (c:\TEMP\ideamks\sandbox\HJF-Core\pom.xml)
+			and some locked in another sandbox (c:\TEMP\ideamks\sandbox\HJF-Core\unittestsrc\config\persistence.properties).
+			To know if the file is checked out in the current sandbox it is necessary to use the locksandbox field</description>
+	</sample>
 </samples>
 
