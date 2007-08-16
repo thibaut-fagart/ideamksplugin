@@ -36,8 +36,8 @@ public class ViewSandboxChangesCommandTest extends TestCase {
 		String modifiedWithoutCheckOutFile = "c:\\Documents and Settings\\A6253567.HBEU\\sandboxes\\J2EE\\HJF-Core\\unittestsrc\\log4j.properties";
 		MksMemberState memberState = command.getMemberStates().get(modifiedWithoutCheckOutFile);
 		assertNotNull("missing state", memberState);
-		assertTrue("bad modifiedWithoutCheckout status", memberState.modifiedWithoutCheckout);
-		assertFalse("bad checkout status", memberState.checkedout);
+		assertTrue("bad modifiedWithoutCheckout status", memberState.status== MksMemberState.Status.MODIFIED_WITHOUT_CHECKOUT);
+		assertFalse("bad checkout status", memberState.status == MksMemberState.Status.CHECKED_OUT);
 
 	}
 
@@ -48,8 +48,8 @@ public class ViewSandboxChangesCommandTest extends TestCase {
 		assertNotNull("missing state", memberState);
 		assertNotNull("missing CP id", memberState.workingChangePackageId);
 		assertEquals("bad CP id","2875:1", memberState.workingChangePackageId);
-		assertTrue("bad checkedout status", memberState.checkedout);
-		assertFalse("bad modifiedWithoutCheckout status", memberState.modifiedWithoutCheckout);
+		assertTrue("bad checkedout status", memberState.status== MksMemberState.Status.CHECKED_OUT);
+		assertFalse("bad modifiedWithoutCheckout status", memberState.status== MksMemberState.Status.MODIFIED_WITHOUT_CHECKOUT);
 
 	}
 
@@ -58,8 +58,8 @@ public class ViewSandboxChangesCommandTest extends TestCase {
 
 		MksMemberState memberState = command.getMemberStates().get(checkedOutInAnotherSandboxFile);
 		assertNotNull("missing state", memberState);
-		assertFalse("bad checkedout status", memberState.checkedout);
-		assertFalse("bad modifiedWithoutCheckout status", memberState.modifiedWithoutCheckout);
+		assertFalse("bad checkedout status", memberState.status== MksMemberState.Status.CHECKED_OUT);
+		assertFalse("bad modifiedWithoutCheckout status", memberState.status== MksMemberState.Status.MODIFIED_WITHOUT_CHECKOUT);
 	}
 
 	public void testLocallyDeleted() {
@@ -67,8 +67,8 @@ public class ViewSandboxChangesCommandTest extends TestCase {
 
 		MksMemberState memberState = command.getMemberStates().get(locallyDeletedFile);
 		assertNotNull("missing state", memberState);
-		assertFalse("bad checkedout status", memberState.checkedout);
-		assertTrue("bad modifiedWithoutCheckout status", memberState.modifiedWithoutCheckout);
+		assertFalse("bad checkedout status", memberState.status== MksMemberState.Status.CHECKED_OUT);
+		assertTrue("bad modifiedWithoutCheckout status", memberState.status== MksMemberState.Status.MODIFIED_WITHOUT_CHECKOUT);
 
 	}
 	public void testLocallyModifiedAndCheckedOut() {

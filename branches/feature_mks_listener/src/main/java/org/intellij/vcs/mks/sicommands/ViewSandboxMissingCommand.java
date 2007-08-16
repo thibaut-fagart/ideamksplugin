@@ -12,16 +12,17 @@ import com.intellij.openapi.vcs.VcsException;
  *
  * @author Thibaut Fagart
  */
-public class ViewSandboxWithoutChangesCommand extends AbstractViewSandboxCommand {
+public class ViewSandboxMissingCommand extends AbstractViewSandboxCommand {
 
 
-	public ViewSandboxWithoutChangesCommand(final List<VcsException> errors, final EncodingProvider encodingProvider, final String mksUsername, final String sandboxPath) {
-		super(errors, encodingProvider, mksUsername, sandboxPath);
+	public ViewSandboxMissingCommand(final List<VcsException> errors, final EncodingProvider encodingProvider,
+	                                 final String username, final String sandboxPath) {
+		super(errors, encodingProvider, username, sandboxPath,/* "--filter=changed",*/"--filter=changed:missing");
 	}
 
 	@Override
 	protected MksMemberState createState(final String workingRev, final String memberRev, final String workingCpid, final String locker, final String lockedSandbox) throws VcsException {
-		return new MksMemberState(new MksRevisionNumber(workingRev), new MksRevisionNumber(memberRev), workingCpid, MksMemberState.Status.NOT_CHANGED);
+		return new MksMemberState(new MksRevisionNumber(workingRev), new MksRevisionNumber(memberRev), workingCpid, MksMemberState.Status.MISSISNG);
 	}
 
 }
