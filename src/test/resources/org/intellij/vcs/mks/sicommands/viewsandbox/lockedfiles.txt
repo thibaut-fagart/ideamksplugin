@@ -1,0 +1,15 @@
+    shared-build-subsandbox  c:\TEMP\ideamks\sandbox\BucomNG\project.pj (1.3)  
+    shared-subsandbox  c:\TEMP\ideamks\sandbox\ExternalResources\project.pj  
+    shared-build-subsandbox  c:\TEMP\ideamks\sandbox\ExternalResources\antclasspath\project.pj (1.6)  
+    subsandbox  c:\TEMP\ideamks\sandbox\HJE-Castor\project.pj  
+    subsandbox  c:\TEMP\ideamks\sandbox\HJE-JSTL\project.pj  
+    subsandbox  c:\TEMP\ideamks\sandbox\HJE-Struts\project.pj  
+    subsandbox  c:\TEMP\ideamks\sandbox\HJF-Core\project.pj  
+1.4.1.1 2875:1   archived e9310750 c:\TEMP\ideamks\sandbox\HJF-Core\pom.xml 1.4.1.1 c:/TEMP/ideamks/sandbox/HJF-Core/project.pj
+1.2    archived e9310750 c:\TEMP\ideamks\sandbox\HJF-Core\unittestsrc\com\hsbc\hbfr\ccf\at\util\PerfLogUtilsTestCase.java 1.2 c:/Documents and Settings/A6253567.HBEU/sandboxes/J2EE/HJF-Core/project.pj
+1.2.1.3    archived e9310750 c:\TEMP\ideamks\sandbox\HJF-Core\unittestsrc\config\persistence.properties 1.2.1.3 c:/Documents and Settings/A6253567.HBEU/sandboxes/J2EE/HJF-Core/project.pj
+    subsandbox  c:\TEMP\ideamks\sandbox\HJF-MPCobol\project.pj  
+    subsandbox  c:\TEMP\ideamks\sandbox\HJF-MPCore\project.pj  
+    subsandbox  c:\TEMP\ideamks\sandbox\HJF-MPEJB\project.pj  
+    subsandbox  c:\TEMP\ideamks\sandbox\HJF-MPJ2J\project.pj  
+    subsandbox  c:\TEMP\ideamks\sandbox\HJF-MPTXT\project.pj  
