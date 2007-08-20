@@ -59,7 +59,7 @@ public class SandboxCacheImpl implements SandboxCache {
 					pendingUpdates.clear();
 				}
 				for (MksSandboxInfo sandbox : tempList) {
-					LOGGER.info("re-adding" + sandbox);
+					LOGGER.debug("re-adding" + sandbox);
 					addSandboxPath(sandbox.sandboxPath, sandbox.hostAndPort);
 				}
 			}
@@ -108,7 +108,7 @@ public class SandboxCacheImpl implements SandboxCache {
 						sandboxInfo.siSandbox = sandbox;
 						sandboxByFolder.put(sandboxFolder, sandboxInfo);
 						sandboxVFiles.add(sandboxVFile);
-						LOGGER.info("updated sandbox in cache : " + sandboxVFile);
+						LOGGER.debug("updated sandbox in cache : " + sandboxVFile);
 					} catch (TriclopsException e) {
 						LOGGER.error("invalid sandbox ? (" + sandboxPath + ")", e);
 						addRejected(sandboxInfo);
