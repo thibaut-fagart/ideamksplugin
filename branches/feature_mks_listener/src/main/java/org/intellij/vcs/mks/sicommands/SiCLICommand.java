@@ -49,7 +49,7 @@ public abstract class SiCLICommand extends AbstractMKSCommand implements Runnabl
             buf.append(" ");
         }
         long start = System.currentTimeMillis();
-        LOGGER.info("executing " + buf.toString());
+        LOGGER.debug("executing " + buf.toString());
         builder.redirectErrorStream(true);
         Process process = builder.start();
         InputStream is = process.getInputStream();
@@ -69,7 +69,7 @@ public abstract class SiCLICommand extends AbstractMKSCommand implements Runnabl
             } catch (IllegalThreadStateException e) {
                 process.destroy();
             }
-            LOGGER.info(toString()+" finished in "+(System.currentTimeMillis()-start+" ms"));
+            LOGGER.debug(toString()+" finished in "+(System.currentTimeMillis()-start+" ms"));
         }
         commandOutput = sw.toString();
         return buf.toString();

@@ -56,12 +56,12 @@ class MKSChangeProvider implements ChangeProvider, ProjectComponent, ChangeListD
 
     public void getChanges(final VcsDirtyScope dirtyScope, ChangelistBuilder builder, final ProgressIndicator progress) throws VcsException {
         ArrayList<VcsException> errors = new ArrayList<VcsException>();
-        LOGGER.info("start getChanges");
+        LOGGER.debug("start getChanges");
         try {
-            System.out.println("dirtyScope " + dirtyScope);
+//            System.out.println("dirtyScope " + dirtyScope);
 //			System.out.println("getDirtyFiles " + dirtyScope.getDirtyFiles());
 //			System.out.println("getAffectedContentRoots " + dirtyScope.getAffectedContentRoots());
-            System.out.println("getRecursivelyDirtyDirectories " + dirtyScope.getRecursivelyDirtyDirectories());
+//            System.out.println("getRecursivelyDirtyDirectories " + dirtyScope.getRecursivelyDirtyDirectories());
 	        ArrayList<MksServerInfo> servers = getMksServers(progress, errors);
 	        final Map<MksServerInfo, Map<String, MksChangePackage>> changePackagesPerServer = getChangePackages(progress, errors, servers);
 	        // collect affected sandboxes
@@ -89,7 +89,7 @@ class MKSChangeProvider implements ChangeProvider, ProjectComponent, ChangeListD
             e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
             throw e;
         } finally {
-            LOGGER.info("end getChanges");
+            LOGGER.debug("end getChanges");
         }
         if (!errors.isEmpty()) {
             mksvcs.showErrors(errors, "ChangeProvider");

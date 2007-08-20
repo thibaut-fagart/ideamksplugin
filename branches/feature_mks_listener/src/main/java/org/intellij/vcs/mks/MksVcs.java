@@ -15,6 +15,11 @@ import com.intellij.openapi.vcs.AbstractVcs;
 import com.intellij.openapi.vcs.EditFileProvider;
 import com.intellij.openapi.vcs.FilePath;
 import com.intellij.openapi.vcs.VcsException;
+import com.intellij.openapi.vcs.CommittedChangesProvider;
+import com.intellij.openapi.vcs.RepositoryLocation;
+import com.intellij.openapi.vcs.ChangeListColumn;
+import com.intellij.openapi.vcs.versionBrowser.ChangeBrowserSettings;
+import com.intellij.openapi.vcs.versionBrowser.ChangesBrowserSettingsEditor;
 import com.intellij.openapi.vcs.changes.ChangeListManager;
 import com.intellij.openapi.vcs.changes.ChangeProvider;
 import com.intellij.openapi.vcs.checkin.CheckinEnvironment;
@@ -278,13 +283,13 @@ public class MksVcs extends AbstractVcs implements ProjectComponent, EncodingPro
         StringBuffer oldText = new StringBuffer((mksTextArea == null) ? "" : mksTextArea.getText());
         oldText.append("\n").append(s);
         if (e != null) {
-            LOGGER.info(s, e);
+            LOGGER.debug(s, e);
             StringWriter sw = new StringWriter();
             PrintWriter pw = new PrintWriter(sw);
             e.printStackTrace(pw);
             oldText.append(sw.toString());
         } else {
-            LOGGER.info(s);
+            LOGGER.debug(s);
         }
         if (mksTextArea != null) {
             mksTextArea.setText(oldText.toString());
@@ -483,4 +488,29 @@ public class MksVcs extends AbstractVcs implements ProjectComponent, EncodingPro
         }
         super.deactivate();
 	}
+
+/*	@Nullable
+	public CommittedChangesProvider getCommittedChangesProvider() {
+		return new CommittedChangesProvider() {
+			public ChangeBrowserSettings createDefaultSettings() {
+				return null;
+			}
+
+			public ChangesBrowserSettingsEditor createFilterUI(final boolean b) {
+				return null;
+			}
+
+			public RepositoryLocation getLocationFor(final FilePath filePath) {
+				return null;
+			}
+
+			public List getCommittedChanges(final ChangeBrowserSettings changeBrowserSettings, final RepositoryLocation repositoryLocation, final int i) throws VcsException {
+				return null;
+			}
+
+			public ChangeListColumn[] getColumns() {
+				return new ChangeListColumn[0];
+			}
+		};
+	}*/
 }

@@ -30,7 +30,7 @@ public class SandboxListSynchronizer extends AbstractMKSSynchronizer {
 			if (shoudIgnore(line)) return;
 			if (line.startsWith("-----")) {
 				// detection of a new update
-				LOGGER.info("update notification : "+line);
+				LOGGER.debug("update notification : "+line);
                 sandboxCache.clear();
 			} else {
 				Matcher matcher = pattern.matcher(line);

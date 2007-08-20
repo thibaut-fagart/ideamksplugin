@@ -23,7 +23,7 @@ public class ChangePackageSynchronizer extends AbstractMKSSynchronizer {
 			if (shoudIgnore(line)) return;
 			if (line.startsWith("-----")) {
 				// detection of a new update
-				LOGGER.info("update notification : " + line);
+				LOGGER.debug("update notification : " + line);
 				changePackageCache.clear();
 			} else {
 
