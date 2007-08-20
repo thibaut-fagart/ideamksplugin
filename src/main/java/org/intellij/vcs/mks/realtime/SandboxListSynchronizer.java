@@ -10,13 +10,15 @@ import org.intellij.vcs.mks.sicommands.ListSandboxes;
  */
 public class SandboxListSynchronizer extends AbstractMKSSynchronizer {
 	private static final String LINE_SEPARATOR = " -> ";
-	// $project$[$sandboxtype$:$projectVersionOrDevPath$] ($server$:$port$)
-	private static final String patternString = "(.+) -> (.+)(\\[[^:]+:[^:]+\\])? \\((.+)\\)";
+	// $sandbox$ -> $project$[$sandboxtype$:$projectVersionOrDevPath$] ($server$:$port$)
+	private static final String patternString = "(.+) -> ([^\\[]+)(?:\\[([^:]+):([^:]+)\\])? \\((.+)\\)";
 	private final SandboxCache sandboxCache;
 	private final Pattern pattern;
 	private static final int SANDBOX_PATH_GROUP_IDX = 1;
 	private static final int PROJECT_PATH_GROUP_IDX = 2;
-	private static final int SERVER_GROUP_IDX = 4;
+	private static final int PROJECT_TYPE_GROUP_IDX = 3;
+	private static final int PROJECT_VERSION_GROUP_IDX = 4;
+	private static final int SERVER_GROUP_IDX = 5;
 
 	public SandboxListSynchronizer(EncodingProvider encodingProvider, SandboxCache sandboxCache) {
 		super(ListSandboxes.COMMAND, encodingProvider, "--displaySubs");
@@ -41,9 +43,11 @@ public class SandboxListSynchronizer extends AbstractMKSSynchronizer {
 				} else {
 					String sandboxPath = matcher.group(SANDBOX_PATH_GROUP_IDX);
 					String projectPath = matcher.group(PROJECT_PATH_GROUP_IDX);
+					String projectType = matcher.group(PROJECT_TYPE_GROUP_IDX);
+					String projectVersion = matcher.group(PROJECT_VERSION_GROUP_IDX);
 					String serverHostAndPort = matcher.group(SERVER_GROUP_IDX);
 //					System.out.println("adding ["+filePath+"]");
-					sandboxCache.addSandboxPath(sandboxPath, serverHostAndPort);
+					sandboxCache.addSandboxPath(sandboxPath, serverHostAndPort, projectPath, projectVersion);
 				}
 			}
 		} catch (Exception e) {
