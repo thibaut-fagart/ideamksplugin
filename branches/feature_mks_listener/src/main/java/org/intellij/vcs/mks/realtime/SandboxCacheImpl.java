@@ -60,7 +60,7 @@ public class SandboxCacheImpl implements SandboxCache {
 				}
 				for (MksSandboxInfo sandbox : tempList) {
 					LOGGER.debug("re-adding" + sandbox);
-					addSandboxPath(sandbox.sandboxPath, sandbox.hostAndPort);
+					addSandbox(sandbox);
 				}
 			}
 		}
@@ -85,10 +85,19 @@ public class SandboxCacheImpl implements SandboxCache {
 		return (sandboxInfo==null)?null:sandboxInfo.siSandbox;
 	}
 
-	public void addSandboxPath(@NotNull String sandboxPath, final String mksHostAndPort) {
+	public void addSandboxPath(@NotNull String sandboxPath, final String mksHostAndPort, String mksProject, String devPath) {
 
 		VirtualFile sandboxVFile = VcsUtil.getVirtualFile(sandboxPath);
-		MksSandboxInfo sandboxInfo = new MksSandboxInfo(sandboxPath, mksHostAndPort, sandboxVFile);
+		MksSandboxInfo sandboxInfo = new MksSandboxInfo(sandboxPath, mksHostAndPort, mksProject, devPath, sandboxVFile);
+		addSandbox(sandboxInfo);
+
+	}
+
+	private void addSandbox(MksSandboxInfo sandboxInfo) {
+		String sandboxPath;
+		VirtualFile sandboxVFile;
+		sandboxPath = sandboxInfo.sandboxPath;
+		sandboxVFile = sandboxInfo.sandboxPjFile;
 		VirtualFile sandboxFolder;
 		if (sandboxVFile != null) {
 			sandboxFolder = (sandboxVFile.isDirectory()) ? sandboxVFile : sandboxVFile.getParent();
@@ -122,7 +131,6 @@ public class SandboxCacheImpl implements SandboxCache {
 			LOGGER.error("unable to find the virtualFile for " + sandboxPath);
 			addRejected(sandboxInfo);
 		}
-
 	}
 
 	private void addRejected(final MksSandboxInfo sandbox) {
@@ -181,7 +189,7 @@ public class SandboxCacheImpl implements SandboxCache {
 			allSandboxes.addAll(outOfScopeSandboxes);
 			clear();
 			for (MksSandboxInfo sandbox : allSandboxes) {
-				addSandboxPath(sandbox.sandboxPath, sandbox.hostAndPort);
+				addSandbox(sandbox);
 			}
 		}
 	}
