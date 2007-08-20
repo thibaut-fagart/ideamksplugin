@@ -10,7 +10,9 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.intellij.vcs.mks.EncodingProvider;
+import org.intellij.vcs.mks.MksRevisionNumber;
 import org.intellij.vcs.mks.model.MksMemberState;
+import org.jetbrains.annotations.Nullable;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.vcs.VcsException;
 
@@ -23,11 +25,12 @@ public abstract class AbstractViewSandboxCommand extends SiCLICommand {
 	private static final String COMMAND = "viewsandbox";
 	private static final String revisionPattern = "([\\d\\.]+)?";
 	private static final String changePackageIdPattern = "([\\d:]+)?";
-	private static final String typePattern = "((?:sandbox)|(?:subsandbox)|(?:shared-subsandbox)|(?:shared-variant-subsandbox)|(?:shared-build-subsandbox)|(?:member)|(?:archived)|(?:variant-subsandbox))";
+	private static final String typePattern = "((?:sandbox)|(?:subsandbox)|(?:shared-subsandbox)|(?:shared-variant-subsandbox)|(?:shared-build-subsandbox)|(?:member)|(?:archived)|(?:dropped)|(?:variant-subsandbox))";
 	private static final String unusedPattern = "([^\\s]+)?";
 	private static final String namePattern = "(.+)";
 	private static final String sandboxPattern =namePattern+"?";
 	private static final String userPattern = "([^\\s]+)?";
+	protected static final String DROPPED_TYPE = "dropped";
 
 	private static final String fieldsParam;
 	protected static final String wholeLinePatternString;
@@ -97,7 +100,7 @@ public abstract class AbstractViewSandboxCommand extends SiCLICommand {
 						String name = matcher.group(NAME_GROUP_IDX);
 						String lockedSandbox = matcher.group(LOCKED_SANDBOX_GROUP_IDX);
 						if (isMember(type)) {
-							MksMemberState memberState = createState(workingRev, memberRev, workingCpid, locker, lockedSandbox);
+							MksMemberState memberState = createState(workingRev, memberRev, workingCpid, locker, lockedSandbox, type);
 							setState(name, memberState);
 						} else if (isSandbox(type)) {
 							LOGGER.debug("ignoring sandbox " + name);
@@ -123,7 +126,7 @@ public abstract class AbstractViewSandboxCommand extends SiCLICommand {
 
 	}
 
-	protected abstract MksMemberState createState(String workingRev, String memberRev, String workingCpid, final String locker, final String lockedSandbox) throws VcsException;
+	protected abstract MksMemberState createState(String workingRev, String memberRev, String workingCpid, final String locker, final String lockedSandbox, final String type) throws VcsException;
 
 	private boolean isSandbox(final String type) {
 		return type.contains("sandbox");
@@ -134,11 +137,22 @@ public abstract class AbstractViewSandboxCommand extends SiCLICommand {
 	}
 
 	private boolean isMember(final String type) {
-		return "member".equals(type) || "archived".equals(type);
+		return !isSandbox(type);
 	}
 
 	public Map<String, MksMemberState> getMemberStates() {
 		return Collections.unmodifiableMap(memberStates);
 	}
 
+	/**
+	 * returns null if type is DROPPED (means there is no member rev)
+	 * @param memberRev
+	 * @param type
+	 * @return null or a valid MksRevisionNumber
+	 * @throws VcsException
+	 */
+	@Nullable
+	protected MksRevisionNumber createMemberRev(final String memberRev, final String type) throws VcsException {
+		return DROPPED_TYPE.equals(type) ? null : new MksRevisionNumber(memberRev);
+	}
 }

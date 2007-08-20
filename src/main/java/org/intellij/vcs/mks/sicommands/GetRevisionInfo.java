@@ -44,6 +44,8 @@ public class GetRevisionInfo extends SiCLICommand {
                 branchTip = new MksRevisionNumber(matcher.group(1));
                 memberRev = new MksRevisionNumber(matcher.group(2));
                 workingRev = new MksRevisionNumber(matcher.group(3));
+            } else if (line.contains("is not a current or destined or pending member")) {
+	            LOGGER.warn(memberPath + " is not a mks member (any more?)");
             } else {
                 LOGGER.error("unexpected command output {" + line + "}, expected (" + patternString + ")");
             }

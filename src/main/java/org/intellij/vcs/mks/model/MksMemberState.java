@@ -16,7 +16,10 @@ public final class MksMemberState {
 	public static enum Status {
 		CHECKED_OUT("checked out"),
 		MODIFIED_WITHOUT_CHECKOUT("modified without checkout"),
-		MISSISNG("missing"), NOT_CHANGED("not changed"), SYNC("sync");
+		MISSISNG("missing"),
+		NOT_CHANGED("not changed"),
+		SYNC("sync"),
+		DROPPED("dropped");
 		private final String description;
 
 		private Status(String description) {
