@@ -10,7 +10,7 @@ import java.util.*;
  * Stops all tasks when project is closed
  * 
  */
-public class LongRunningTaskRepositoryImpl extends AbstractProjectComponent implements LongRunningTaskRepository, Collection<LongRunningTask> {
+public class LongRunningTaskRepositoryImpl extends AbstractProjectComponent implements LongRunningTaskRepository, List<LongRunningTask> {
 	private final List<LongRunningTask> tasks = new ArrayList<LongRunningTask>();
 	public LongRunningTaskRepositoryImpl(Project project) {
 		super(project);
@@ -64,15 +64,7 @@ public class LongRunningTaskRepositoryImpl extends AbstractProjectComponent impl
 	}
 
 	public boolean remove(Object o) {
-		synchronized (tasks) {
-			int i = tasks.indexOf(o);
-			if (i>=0) {
-				LongRunningTask task = tasks.get(i);
-				task.stop();
-				return tasks.remove(task);
-			}
-			return false;
-		}
+		return remove(indexOf(o)) != null;
 	}
 
 	public boolean removeAll(Collection<?> objects) {
@@ -106,5 +98,52 @@ public class LongRunningTaskRepositoryImpl extends AbstractProjectComponent impl
 
 	public <T> T[] toArray(T[] ts) {
 		return tasks.toArray(ts);
+	}
+
+	public void add(final int i, final LongRunningTask longRunningTask) {
+		tasks.add(i,longRunningTask);
+	}
+
+	public boolean addAll(final int i, final Collection<? extends LongRunningTask> longRunningTasks) {
+		return tasks.addAll(i, longRunningTasks);
+	}
+
+	public LongRunningTask get(final int i) {
+		return tasks.get(i);
+	}
+
+	public int indexOf(final Object o) {
+		return tasks.indexOf(o);
+	}
+
+	public int lastIndexOf(final Object o) {
+		return tasks.lastIndexOf(o);
+	}
+
+	public ListIterator<LongRunningTask> listIterator() {
+		throw new UnsupportedOperationException();
+	}
+
+	public ListIterator<LongRunningTask> listIterator(final int i) {
+		throw new UnsupportedOperationException();
+	}
+
+	public LongRunningTask remove(final int i) {
+		synchronized (tasks) {
+			if (i>=0) {
+				LongRunningTask task = tasks.remove(i);
+				task.stop();
+				return task;
+			}
+			return null;
+		}
+	}
+
+	public LongRunningTask set(final int i, final LongRunningTask longRunningTask) {
+		return tasks.set(i,longRunningTask);
+	}
+
+	public List<LongRunningTask> subList(final int i, final int i1) {
+		throw new UnsupportedOperationException();
 	}
 }

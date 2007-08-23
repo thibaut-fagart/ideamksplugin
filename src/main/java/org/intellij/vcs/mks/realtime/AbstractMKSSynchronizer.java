@@ -48,6 +48,7 @@ public abstract class AbstractMKSSynchronizer implements LongRunningTask {
 		runnerThread = new Thread(new Runnable() {
 			public void run() {
 				do {
+					LOGGER.info("started");
 					executeCommand();
 					if (!stop) {
 						LOGGER.warn("synchronizer terminated unexpectedly, restarting");
@@ -145,7 +146,9 @@ public abstract class AbstractMKSSynchronizer implements LongRunningTask {
 			stop();
 			try {
 				runnerThread.join(1000);
-				LOGGER.info("command did not stop after 1s");
+				if (runnerThread.isAlive()) {
+					LOGGER.info("command did not stop after 1s");
+				}
 			} catch (InterruptedException e) {
 				LOGGER.debug("interrupted");
 			}

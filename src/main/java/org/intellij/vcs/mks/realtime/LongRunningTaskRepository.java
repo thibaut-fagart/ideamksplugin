@@ -1,6 +1,6 @@
 package org.intellij.vcs.mks.realtime;
 
-import java.util.Collection;
+import java.util.List;
 
 /**
  * Created by IntelliJ IDEA.
@@ -9,5 +9,5 @@ import java.util.Collection;
  * Time: 14:39:03
  * To change this template use File | Settings | File Templates.
  */
-public interface LongRunningTaskRepository extends Collection<LongRunningTask> {
+public interface LongRunningTaskRepository extends List<LongRunningTask> {
 }
