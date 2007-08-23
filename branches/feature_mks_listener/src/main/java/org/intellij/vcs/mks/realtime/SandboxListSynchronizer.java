@@ -56,6 +56,6 @@ public class SandboxListSynchronizer extends AbstractMKSSynchronizer {
 	}
 
 	public String getDescription() {
-		return "sandbox list listnener";
+		return "sandbox list listener";
 	}
 }

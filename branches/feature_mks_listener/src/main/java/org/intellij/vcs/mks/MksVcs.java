@@ -12,8 +12,11 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import javax.swing.*;
+import javax.swing.table.AbstractTableModel;
+import javax.swing.table.TableCellRenderer;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.StyleContext;
+import org.intellij.vcs.mks.realtime.LongRunningTask;
 import org.intellij.vcs.mks.realtime.LongRunningTaskRepository;
 import org.intellij.vcs.mks.realtime.SandboxCache;
 import org.intellij.vcs.mks.realtime.SandboxCacheImpl;
@@ -50,6 +53,7 @@ import com.intellij.openapi.wm.ToolWindowManager;
 import com.intellij.peer.PeerFactory;
 import com.intellij.ui.content.Content;
 import com.intellij.util.messages.MessageBusConnection;
+import com.intellij.util.ui.AbstractTableCellEditor;
 import mks.integrations.common.TriclopsException;
 import mks.integrations.common.TriclopsSiMembers;
 import mks.integrations.common.TriclopsSiSandbox;
@@ -73,12 +77,12 @@ public class MksVcs extends AbstractVcs implements ProjectComponent, EncodingPro
 	private final SandboxCache sandboxCache;
 	private SandboxListSynchronizer sandboxListSynchronizer;
 	private MessageBusConnection myMessageBusConnection;
+	private MksVcs.TasksModel tasksModel;
 
 
 	public MksVcs(Project project) {
 		super(project);
 		sandboxCache = new SandboxCacheImpl(project);
-
 	}
 
 	@NotNull
@@ -195,11 +199,105 @@ public class MksVcs extends AbstractVcs implements ProjectComponent, EncodingPro
 		});
 	}
 
+	class TasksModel extends AbstractTableModel {
+		private final String[] COLUMNS = {"Name", "Running", "Restart"};
+		final int NAME = 0;
+		final int STATE = 1;
+		final int RESTART = 2;
+
+
+		public int getColumnCount() {
+			return COLUMNS.length;
+		}
+
+		public int getRowCount() {
+			return myProject.getComponent(LongRunningTaskRepository.class).size();
+		}
+
+		public Object getValueAt(final int row, final int column) {
+			LongRunningTask task = myProject.getComponent(LongRunningTaskRepository.class).get(row);
+			if (task == null) {
+				return null;
+			}
+			switch (column) {
+				case NAME:
+					return task.getDescription();
+				case STATE:
+					return task.isAlive();
+				case RESTART:
+					return false;
+				default:
+					return null;
+			}
+		}
+
+		public boolean isCellEditable(final int row, final int column) {
+			return RESTART == column;
+		}
+
+		public Class<?> getColumnClass(final int column) {
+			switch (column) {
+				case NAME:
+					return String.class;
+				case STATE:
+					return Boolean.class;
+				case RESTART:
+					return Boolean.class;
+				default:
+					return Object.class;
+			}
+		}
+
+		public String getColumnName(final int column) {
+			return COLUMNS[column];
+		}
+
+		public void refresh() {
+			fireTableDataChanged();
+		}
+
+	}
+
 	private Component createTasksPanel() {
 		// todo create the panel : a table with (description, stop button, restart button)
 		JTable tasksTable = new JTable();
 
-		return new JPanel();
+		JPanel jPanel = new JPanel();
+		jPanel.setLayout(new BorderLayout());
+		JPanel buttonsPanel = new JPanel();
+		buttonsPanel.add(new JButton(new AbstractAction("Refresh") {
+			public void actionPerformed(final ActionEvent event) {
+				tasksModel.refresh();
+			}
+		}));
+		tasksModel = new TasksModel();
+		jPanel.add(buttonsPanel, BorderLayout.NORTH);
+		jPanel.add(new JScrollPane(tasksTable), BorderLayout.CENTER);
+		tasksTable.setModel(tasksModel);
+		tasksTable.getColumnModel().
+			getColumn(tasksModel.RESTART).setCellRenderer(new TableCellRenderer() {
+			public Component getTableCellRendererComponent(final JTable jTable, final Object o, final boolean b, final boolean b1, final int i, final int i1) {
+				return new JButton("restart");
+			}
+		});
+		tasksTable.getColumnModel().getColumn(tasksModel.RESTART). setCellEditor(new AbstractTableCellEditor() {
+			public Object getCellEditorValue() {
+				return true;
+			}
+
+			public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, final int row, int column) {
+				JButton button = new JButton("restart");
+				button.addActionListener(new ActionListener() {
+					public void actionPerformed(final ActionEvent event) {
+						LongRunningTask task = myProject.getComponent(LongRunningTaskRepository.class).get(row);
+						System.out.println("restarting task "+task);
+						task.restart();
+					}
+				});
+				return button;
+			}
+		});
+		return jPanel;
 
 	}
 
