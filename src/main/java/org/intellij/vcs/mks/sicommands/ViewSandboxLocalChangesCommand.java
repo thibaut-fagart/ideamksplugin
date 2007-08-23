@@ -47,11 +47,11 @@ public class ViewSandboxLocalChangesCommand extends AbstractViewSandboxCommand {
 			} else {
 				status = MksMemberState.Status.MODIFIED_WITHOUT_CHECKOUT;
 			}
-			return new MksMemberState(new MksRevisionNumber(workingRev), new MksRevisionNumber(memberRev), workingCpid,
+			return new MksMemberState(createRevision(workingRev), new MksRevisionNumber(memberRev), workingCpid,
 				status);
 
 		} else {
-			return new MksMemberState(new MksRevisionNumber(workingRev), createMemberRev(memberRev, type), workingCpid,
+			return new MksMemberState(createRevision(workingRev), createRevision(memberRev), workingCpid,
 				MksMemberState.Status.MODIFIED_WITHOUT_CHECKOUT);
 
 		}

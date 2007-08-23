@@ -55,8 +55,8 @@ public final class MksMemberState {
 
 	@Override
 	public String toString() {
-		return "memberRev " + memberRevision.asString() + ", workingRev " + workingRevision.asString() + ", status " + status/*
-				+", checkedout " + checkedout+ ", modified without checkout " + modifiedWithoutCheckout*/
+		return "memberRev " + ((memberRevision == null) ? "null": memberRevision.asString()) + ", workingRev " + ((workingRevision ==null) ? "null" : workingRevision.asString())
+			+ ", status " + status/* +", checkedout " + checkedout+ ", modified without checkout " + modifiedWithoutCheckout*/
 			+ ", wokingCpid " + workingChangePackageId;
 	}
 }

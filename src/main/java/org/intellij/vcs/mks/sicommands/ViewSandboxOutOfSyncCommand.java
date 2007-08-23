@@ -23,7 +23,7 @@ public class ViewSandboxOutOfSyncCommand extends AbstractViewSandboxCommand {
 	@Override
 	protected MksMemberState createState(final String workingRev, final String memberRev, final String workingCpid,
 	                                  final String locker, final String lockedSandbox, final String type) throws VcsException {
-		return new MksMemberState(new MksRevisionNumber(workingRev), createMemberRev(memberRev, type), workingCpid,
+		return new MksMemberState(createRevision(workingRev), createRevision(memberRev), workingCpid,
 			(DROPPED_TYPE.equals(type)?MksMemberState.Status.DROPPED:MksMemberState.Status.SYNC));
 	}
 

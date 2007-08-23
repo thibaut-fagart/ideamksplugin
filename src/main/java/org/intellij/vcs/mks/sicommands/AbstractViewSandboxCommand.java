@@ -146,13 +146,17 @@ public abstract class AbstractViewSandboxCommand extends SiCLICommand {
 
 	/**
 	 * returns null if type is DROPPED (means there is no member rev)
-	 * @param memberRev
-	 * @param type
+	 * @param revision
 	 * @return null or a valid MksRevisionNumber
 	 * @throws VcsException
 	 */
 	@Nullable
-	protected MksRevisionNumber createMemberRev(final String memberRev, final String type) throws VcsException {
-		return DROPPED_TYPE.equals(type) ? null : new MksRevisionNumber(memberRev);
+	protected MksRevisionNumber createRevision(final String revision) throws VcsException {
+//		if (revision == null) {
+//			System.err.println("creating null revision");
+//		}
+		return (revision == null) ?
+			null :
+			new MksRevisionNumber(revision);
 	}
 }
