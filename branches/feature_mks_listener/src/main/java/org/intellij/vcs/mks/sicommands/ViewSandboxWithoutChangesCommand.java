@@ -22,8 +22,15 @@ public class ViewSandboxWithoutChangesCommand extends AbstractViewSandboxCommand
 	@Override
 	protected MksMemberState createState(final String workingRev, final String memberRev, final String workingCpid,
 	                                     final String locker, final String lockedSandbox, final String type) throws VcsException {
-		return new MksMemberState(new MksRevisionNumber(workingRev), createMemberRev(memberRev, type), workingCpid,
-			(DROPPED_TYPE.equals(type) ? MksMemberState.Status.DROPPED : MksMemberState.Status.NOT_CHANGED));
+		MksRevisionNumber workingRevision = createRevision(workingRev);
+		MksRevisionNumber memberRevision = createRevision(memberRev);
+		if (memberRevision != null && workingRevision == null) {
+			return new MksMemberState(workingRevision, memberRevision, workingCpid,
+				(DROPPED_TYPE.equals(type) ? MksMemberState.Status.DROPPED : MksMemberState.Status.MISSISNG));
+		} else {
+			return new MksMemberState(workingRevision, memberRevision, workingCpid,
+				(DROPPED_TYPE.equals(type) ? MksMemberState.Status.DROPPED : MksMemberState.Status.NOT_CHANGED));
+		}
 	}
 
 }
