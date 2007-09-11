@@ -128,7 +128,12 @@ public class SandboxCacheImpl implements SandboxCache {
 				}
 			}
 		} else {
-			LOGGER.error("unable to find the virtualFile for " + sandboxPath);
+			LOGGER.info("unable to find the virtualFile for " + sandboxPath);
+			VirtualFile sandboxPjFile = VcsUtil.getVirtualFile(sandboxPath);
+			if (sandboxPjFile != null) {
+				sandboxInfo = new MksSandboxInfo(sandboxInfo.sandboxPath, sandboxInfo.hostAndPort, sandboxInfo.mksProject,
+					sandboxInfo.devPath, sandboxPjFile);
+			}
 			addRejected(sandboxInfo);
 		}
 	}
