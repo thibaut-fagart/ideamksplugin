@@ -19,7 +19,8 @@ public final class MksMemberState {
 		MISSISNG("missing"),
 		NOT_CHANGED("not changed"),
 		SYNC("sync"),
-		DROPPED("dropped");
+		DROPPED("dropped"),
+		ADDED ("added");
 		private final String description;
 
 		private Status(String description) {

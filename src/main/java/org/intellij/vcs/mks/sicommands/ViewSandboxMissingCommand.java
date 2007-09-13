@@ -21,7 +21,7 @@ public class ViewSandboxMissingCommand extends AbstractViewSandboxCommand {
 	}
 
 	@Override
-	protected MksMemberState createState(final String workingRev, final String memberRev, final String workingCpid, final String locker, final String lockedSandbox, final String type) throws VcsException {
+	protected MksMemberState createState(final String workingRev, final String memberRev, final String workingCpid, final String locker, final String lockedSandbox, final String type, final String deferred) throws VcsException {
 		return new MksMemberState(createRevision(workingRev), new MksRevisionNumber(memberRev), workingCpid, MksMemberState.Status.MISSISNG);
 	}
 

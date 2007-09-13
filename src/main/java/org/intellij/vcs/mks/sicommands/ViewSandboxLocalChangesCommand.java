@@ -33,10 +33,13 @@ public class ViewSandboxLocalChangesCommand extends AbstractViewSandboxCommand {
 
 	@Override
 	protected MksMemberState createState(final String workingRev, final String memberRev, final String workingCpid,
-	                                  final String locker, final String lockedSandbox, final String type) throws VcsException {
+	                                  final String locker, final String lockedSandbox, final String type, final String deferred) throws VcsException {
 		// we confuse missing files and locally modified without checkout here
 		boolean isLocked = locker != null;
-		if (isLocked) {
+		if (DEFERRED_ADD.equals(type)) {
+			return new MksMemberState(createRevision(workingRev), createRevision(memberRev), workingCpid,
+				MksMemberState.Status.ADDED);
+		} else  if (isLocked) {
 			MksMemberState.Status status;
 			if (isLockedByMe(locker)) {
 				if (isMySandbox(lockedSandbox)) {
@@ -47,7 +50,7 @@ public class ViewSandboxLocalChangesCommand extends AbstractViewSandboxCommand {
 			} else {
 				status = MksMemberState.Status.MODIFIED_WITHOUT_CHECKOUT;
 			}
-			return new MksMemberState(createRevision(workingRev), new MksRevisionNumber(memberRev), workingCpid,
+			return new MksMemberState(createRevision(workingRev), createRevision(memberRev), workingCpid,
 				status);
 
 		} else {
