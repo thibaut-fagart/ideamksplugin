@@ -21,7 +21,7 @@ public class SandboxListSynchronizer extends AbstractMKSSynchronizer {
 	private static final int SERVER_GROUP_IDX = 5;
 
 	public SandboxListSynchronizer(EncodingProvider encodingProvider, SandboxCache sandboxCache) {
-		super(ListSandboxes.COMMAND, encodingProvider, "--displaySubs");
+		super(ListSandboxes.COMMAND, encodingProvider/*, "--displaySubs"*/);
 		this.sandboxCache = sandboxCache;
 		pattern = Pattern.compile(patternString);
 	}
