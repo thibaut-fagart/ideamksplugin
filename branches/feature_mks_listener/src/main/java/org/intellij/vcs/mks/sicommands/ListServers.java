@@ -46,7 +46,7 @@ public class ListServers extends SiCLICommand {
                 } else {
                     LOGGER.error("unexpected command output {" + line + "}, expected [user@host:port]");
                     //noinspection ThrowableInstanceNeverThrown
-                    errors.add(new VcsException("unexpected line structure " + line));
+                    errors.add(new VcsException("ListServers : unexpected line structure " + line));
                 }
             }
             servers = tempServers;

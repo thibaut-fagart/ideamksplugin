@@ -35,7 +35,7 @@ public class ListSandboxes extends SiCLICommand {
                 if (parts.length < 2) {
                     LOGGER.error("unexpected command output {" + line + "}, expected 2 parts separated by [" + LINE_SEPARATOR + "]", "");
                     //noinspection ThrowableInstanceNeverThrown
-                    errors.add(new VcsException("unexpected line structure " + line));
+                    errors.add(new VcsException("ListSandboxes : unexpected line structure " + line));
                 } else {
                     tempSandboxes.add(parts[0]);
                 }
