@@ -21,7 +21,7 @@ public class ViewSandboxWithoutChangesCommand extends AbstractViewSandboxCommand
 
 	@Override
 	protected MksMemberState createState(final String workingRev, final String memberRev, final String workingCpid,
-	                                     final String locker, final String lockedSandbox, final String type) throws VcsException {
+	                                  final String locker, final String lockedSandbox, final String type, final String deferred) throws VcsException {
 		MksRevisionNumber workingRevision = createRevision(workingRev);
 		MksRevisionNumber memberRevision = createRevision(memberRev);
 		if (memberRevision != null && workingRevision == null) {

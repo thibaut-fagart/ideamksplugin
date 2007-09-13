@@ -59,10 +59,6 @@ class MKSChangeProvider implements ChangeProvider, ProjectComponent, ChangeListD
 		ArrayList<VcsException> errors = new ArrayList<VcsException>();
 		LOGGER.debug("start getChanges");
 		try {
-//            System.out.println("dirtyScope " + dirtyScope);
-//			System.out.println("getDirtyFiles " + dirtyScope.getDirtyFiles());
-//			System.out.println("getAffectedContentRoots " + dirtyScope.getAffectedContentRoots());
-//            System.out.println("getRecursivelyDirtyDirectories " + dirtyScope.getRecursivelyDirtyDirectories());
 			ArrayList<MksServerInfo> servers = getMksServers(progress, errors);
 			final Map<MksServerInfo, Map<String, MksChangePackage>> changePackagesPerServer = getChangePackages(progress, errors, servers);
 			// collect affected sandboxes
@@ -130,8 +126,22 @@ class MKSChangeProvider implements ChangeProvider, ProjectComponent, ChangeListD
 			FilePath filePath = VcsUtil.getFilePath(entry.getKey());
 			VirtualFile virtualFile = VcsUtil.getVirtualFile(entry.getKey());
 			switch (state.status) {
+				case ADDED : {
+					MksChangePackage changePackage = getChangePackage(changePackages, state);
+					Change change = new Change(
+						new MksContentRevision(mksvcs, filePath, state.workingRevision),
+						CurrentContentRevision.create(filePath),
+						FileStatus.ADDED);
+					if (changePackage == null) {
+						builder.processChange(change);
+					} else {
+						ChangeList changeList = mksvcs.getChangeListAdapter().trackMksChangePackage(changePackage);
+						builder.processChangeInList(change, changeList);
+					}
+					break;
+				}
 				case CHECKED_OUT: {
-					MksChangePackage changePackage = changePackages.get(state.workingChangePackageId);
+					MksChangePackage changePackage = getChangePackage(changePackages, state);
 					Change change = new Change(
 						new MksContentRevision(mksvcs, filePath, state.workingRevision),
 						CurrentContentRevision.create(filePath),
@@ -169,7 +179,11 @@ class MKSChangeProvider implements ChangeProvider, ProjectComponent, ChangeListD
 		}
 	}
 
-	private Map<String, MksMemberState> getSandboxState(final MksSandboxInfo sandbox, final ArrayList<VcsException> errors, final MksServerInfo server) {
+	private MksChangePackage getChangePackage(final Map<String, MksChangePackage> changePackages, final MksMemberState state) {
+		return state.workingChangePackageId == null ? null : changePackages.get(state.workingChangePackageId);
+	}
+
+	private Map<String, MksMemberState> getSandboxState(@NotNull final MksSandboxInfo sandbox, final ArrayList<VcsException> errors, final MksServerInfo server) {
 		Map<String, MksMemberState> states = new HashMap<String, MksMemberState>();
 
 		ViewSandboxWithoutChangesCommand fullSandboxCommand = new ViewSandboxWithoutChangesCommand(errors, mksvcs, server.user, sandbox.sandboxPath);

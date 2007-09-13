@@ -22,10 +22,11 @@ import com.intellij.openapi.vcs.VcsException;
 public abstract class AbstractViewSandboxCommand extends SiCLICommand {
 	private final Logger LOGGER = Logger.getInstance(getClass().getName());
 
+	protected static final String DEFERRED_ADD = "deferred-add";
 	private static final String COMMAND = "viewsandbox";
 	private static final String revisionPattern = "([\\d\\.]+)?";
 	private static final String changePackageIdPattern = "([\\d:]+)?";
-	private static final String typePattern = "((?:sandbox)|(?:subsandbox)|(?:shared-subsandbox)|(?:shared-variant-subsandbox)|(?:shared-build-subsandbox)|(?:member)|(?:archived)|(?:dropped)|(?:variant-subsandbox))";
+	private static final String typePattern = "((?:sandbox)|(?:subsandbox)|(?:shared-subsandbox)|(?:shared-variant-subsandbox)|(?:shared-build-subsandbox)|(?:member)|(?:archived)|(?:dropped)|(?:variant-subsandbox)|(?:deferred-add))";
 	private static final String unusedPattern = "([^\\s]+)?";
 	private static final String namePattern = "(.+)";
 	private static final String sandboxPattern =namePattern+"?";
@@ -48,6 +49,7 @@ public abstract class AbstractViewSandboxCommand extends SiCLICommand {
 
 	private static final int WORKING_REV_GROUP_IDX = 1;
 	private static final int WORKING_CPID_GROUP_IDX = 2;
+	private static final int DEFERRED_GROUP_IDX = 3;
 	private static final int TYPE_GROUP_IDX = 5;
 	private static final int LOCKER_GROUP_IDX = 6;
 	private static final int NAME_GROUP_IDX = 7;
@@ -95,12 +97,13 @@ public abstract class AbstractViewSandboxCommand extends SiCLICommand {
 						String workingRev = matcher.group(WORKING_REV_GROUP_IDX);
 						String memberRev = matcher.group(MEMBER_REV_GROUP_IDX);
 						String workingCpid = matcher.group(WORKING_CPID_GROUP_IDX);
+						String deferred = matcher.group(DEFERRED_GROUP_IDX);
 						String type = matcher.group(TYPE_GROUP_IDX);
 						String locker = matcher.group(LOCKER_GROUP_IDX);
 						String name = matcher.group(NAME_GROUP_IDX);
 						String lockedSandbox = matcher.group(LOCKED_SANDBOX_GROUP_IDX);
 						if (isMember(type)) {
-							MksMemberState memberState = createState(workingRev, memberRev, workingCpid, locker, lockedSandbox, type);
+							MksMemberState memberState = createState(workingRev, memberRev, workingCpid, locker, lockedSandbox, type, deferred);
 							setState(name, memberState);
 						} else if (isSandbox(type)) {
 							LOGGER.debug("ignoring sandbox " + name);
@@ -109,7 +112,7 @@ public abstract class AbstractViewSandboxCommand extends SiCLICommand {
 						}
 					} else {
 						//noinspection ThrowableInstanceNeverThrown
-						errors.add(new VcsException("unexpected line [" + line + "]"));
+						errors.add(new VcsException("ViewSandbox : unexpected line [" + line + "]"));
 					}
 				} catch (VcsException e) {
 					// should not happen, VcsExceptions on ChangePackageId
@@ -126,7 +129,7 @@ public abstract class AbstractViewSandboxCommand extends SiCLICommand {
 
 	}
 
-	protected abstract MksMemberState createState(String workingRev, String memberRev, String workingCpid, final String locker, final String lockedSandbox, final String type) throws VcsException;
+	protected abstract MksMemberState createState(String workingRev, String memberRev, String workingCpid, final String locker, final String lockedSandbox, final String type, final String deferred) throws VcsException;
 
 	private boolean isSandbox(final String type) {
 		return type.contains("sandbox");

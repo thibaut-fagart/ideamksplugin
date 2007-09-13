@@ -22,17 +22,18 @@ import junit.framework.TestCase;
 public class ViewSandboxChangesCommandTest extends TestCase {
 	private static final String ENCODING = "IBM437";
 	private ViewSandboxLocalChangesCommand command;
+	private List<VcsException> errors;
 
 	protected void setUp() throws Exception {
 		super.setUp();
-		List<VcsException> errors = new ArrayList<VcsException>();
+		errors = new ArrayList<VcsException>();
 
-		String sandboxPath = "c:\\Documents and Settings\\A6253567.HBEU\\sandboxes\\J2EE\\HJF-Core\\project.pj";
-		command = createCommand(errors, sandboxPath);
-		command.execute();
 	}
 
 	public void testModifiedWithoutCheckout() {
+		String sandboxPath = "c:\\Documents and Settings\\A6253567.HBEU\\sandboxes\\J2EE\\HJF-Core\\project.pj";
+		command = createCommand(errors, sandboxPath, "viewsandbox/changedOrLocked.txt");
+		command.execute();
 		String modifiedWithoutCheckOutFile = "c:\\Documents and Settings\\A6253567.HBEU\\sandboxes\\J2EE\\HJF-Core\\unittestsrc\\log4j.properties";
 		MksMemberState memberState = command.getMemberStates().get(modifiedWithoutCheckOutFile);
 		assertNotNull("missing state", memberState);
@@ -42,6 +43,9 @@ public class ViewSandboxChangesCommandTest extends TestCase {
 	}
 
 	public void testCheckedOutWithChangePackage() {
+		String sandboxPath = "c:\\Documents and Settings\\A6253567.HBEU\\sandboxes\\J2EE\\HJF-Core\\project.pj";
+		command = createCommand(errors, sandboxPath, "viewsandbox/changedOrLocked.txt");
+		command.execute();
 		String checkedOutFile = "c:\\Documents and Settings\\A6253567.HBEU\\sandboxes\\J2EE\\HJF-Core\\unittestsrc\\com\\hsbc\\hbfr\\ccf\\at\\util\\PerfLogUtilsTestCase.java";
 
 		MksMemberState memberState = command.getMemberStates().get(checkedOutFile);
@@ -54,6 +58,9 @@ public class ViewSandboxChangesCommandTest extends TestCase {
 	}
 
 	public void testCheckedOutInAnotherSandboxBySameUser() {
+		String sandboxPath = "c:\\Documents and Settings\\A6253567.HBEU\\sandboxes\\J2EE\\HJF-Core\\project.pj";
+		command = createCommand(errors, sandboxPath, "viewsandbox/changedOrLocked.txt");
+		command.execute();
 		String checkedOutInAnotherSandboxFile = "c:\\Documents and Settings\\A6253567.HBEU\\sandboxes\\J2EE\\HJF-Core\\pom.xml";
 
 		MksMemberState memberState = command.getMemberStates().get(checkedOutInAnotherSandboxFile);
@@ -63,6 +70,9 @@ public class ViewSandboxChangesCommandTest extends TestCase {
 	}
 
 	public void testLocallyDeleted() {
+		String sandboxPath = "c:\\Documents and Settings\\A6253567.HBEU\\sandboxes\\J2EE\\HJF-Core\\project.pj";
+		command = createCommand(errors, sandboxPath, "viewsandbox/changedOrLocked.txt");
+		command.execute();
 		String locallyDeletedFile = "c:\\Documents and Settings\\A6253567.HBEU\\sandboxes\\J2EE\\HJF-Core\\build\\HJF-Core-debug.jar";
 
 		MksMemberState memberState = command.getMemberStates().get(locallyDeletedFile);
@@ -72,6 +82,9 @@ public class ViewSandboxChangesCommandTest extends TestCase {
 
 	}
 	public void testLocallyModifiedAndCheckedOut() {
+		String sandboxPath = "c:\\Documents and Settings\\A6253567.HBEU\\sandboxes\\J2EE\\HJF-Core\\project.pj";
+		command = createCommand(errors, sandboxPath, "viewsandbox/changedOrLocked.txt");
+		command.execute();
 //        List < VcsException > errors = new ArrayList<VcsException>();
 //
 //        String sandboxPath = "c:\\Documents and Settings\\A6253567.HBEU\\sandboxes\\J2EE\\HJF-Core\\project.pj";
@@ -81,13 +94,31 @@ public class ViewSandboxChangesCommandTest extends TestCase {
 		Map<String, MksMemberState> states = command.getMemberStates();
 		for (Map.Entry<String, MksMemberState> entry : states.entrySet()) {
 			MksMemberState state = entry.getValue();
+			System.out.println(entry.getKey() + " => "+state);
 			assertNotNull("no member revision", state.memberRevision);
 			assertNotNull("no working revision", state.workingRevision);
 		}
-		assertFalse("errors found", command.foundError());
+		boolean error = command.foundError();
+		if (error) {
+			for (VcsException vcsException : errors) {
+				System.err.println("erreur "+vcsException);
+			}
+		}
+		assertFalse("errors found", error);
 	}
 
-	private ViewSandboxLocalChangesCommand createCommand(final List<VcsException> errors, final String sandboxPath) {
+	public void testDeferredAdd() {
+		List<VcsException> errors = new ArrayList<VcsException>();
+
+		String sandboxPath = "c:\\Documents and Settings\\A6253567.HBEU\\sandboxes\\DS2\\Presentation\\esf-servlet-rp\\project.pj";
+		command = createCommand(errors, sandboxPath, "viewsandbox/deferred-add.txt");
+		command.execute();
+		Map<String, MksMemberState> states = command.getMemberStates();
+		assertEquals(1, states.size());
+		MksMemberState state = states.values().iterator().next();
+		assertEquals(MksMemberState.Status.ADDED, state.status);
+	}
+	private ViewSandboxLocalChangesCommand createCommand(final List<VcsException> errors, final String sandboxPath, final String outputFile) {
 		EncodingProvider encodingProvider = new EncodingProvider() {
 			public String getMksSiEncoding(final String command) {
 				return ENCODING;
@@ -96,12 +127,11 @@ public class ViewSandboxChangesCommandTest extends TestCase {
 		return new ViewSandboxLocalChangesCommand(errors, encodingProvider, "e9310750", sandboxPath) {
 			@Override
 			protected String executeCommand() throws IOException {
-				commandOutput = loadResourceWithEncoding("viewsandbox/changedOrLocked.txt", ENCODING);
-				return "viewsandbox/changedOrLocked.txt";
+				commandOutput = loadResourceWithEncoding(outputFile, ENCODING);
+				return outputFile;
 			}
 		};
 	}
-
 	private String loadResourceWithEncoding(final String path, final String encoding) throws IOException {
 		URL resource = getClass().getResource(path);
 		InputStream inputStream = resource.openStream();
@@ -116,38 +146,4 @@ public class ViewSandboxChangesCommandTest extends TestCase {
 		return sw.toString();
 	}
 
-	public void testEncoding() throws IOException {
-		for (String encoding : Charset.availableCharsets().keySet()) {
-			if (testFileUsing("viewsandbox/sample1.txt", encoding, "Working file 1 082 bytes larger")) {
-				System.out.println("encoding " + encoding + " OK");
-			}
-		}
-
-	}
-
-	private boolean testFileUsing(final String resourceName, final String encoding, final String expected) throws IOException {
-		URL testFile = getClass().getResource(resourceName);
-		InputStream inputStream = testFile.openStream();
-		BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, encoding));
-		try {
-			String line = null;
-			boolean found = false;
-			int i = 1;
-			while (!found && (line = reader.readLine()) != null) {
-				found = line.contains(expected);
-				if (found) {
-					System.out.println("line " + i + " contains [" + expected + "]");
-				}
-				i++;
-			}
-			return found;
-		} finally {
-			try {
-				reader.close();
-			} catch (IOException e) {
-				e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
-			}
-		}
-
-	}
 }
