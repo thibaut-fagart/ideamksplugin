@@ -11,6 +11,7 @@ import org.jetbrains.annotations.NonNls;
 import com.intellij.openapi.vcs.VcsException;
 
 /**
+ * @deprecated
  * @author Thibaut Fagart
  */
 public class ListChangePackageEntries extends SiCLICommand {
