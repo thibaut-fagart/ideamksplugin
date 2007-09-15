@@ -371,14 +371,6 @@ public class MKSHelper {
 
 	}
 
-	public static String[] getProjectMembers(TriclopsSiSandbox sandbox) throws TriclopsException {
-		synchronized (mksLock) {
-			TriclopsSiProject project = new TriclopsSiProject(CLIENT);
-			project.setPath(sandbox.getSandboxProject());
-			return project.getMemberList();
-		}
-	}
-
 	/**
 	 * Ignores the files materializing MKS projects
 	 *
