@@ -14,8 +14,10 @@ import org.jetbrains.annotations.Nullable;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.roots.ModuleRootEvent;
+import com.intellij.openapi.roots.ProjectRootManager;
 import com.intellij.openapi.vfs.VfsUtil;
 import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.vcsUtil.VcsUtil;
 import mks.integrations.common.TriclopsException;
 import mks.integrations.common.TriclopsSiMember;
@@ -82,7 +84,7 @@ public class SandboxCacheImpl implements SandboxCache {
 	@Nullable
 	public TriclopsSiSandbox findSandbox(@NotNull VirtualFile virtualFile) {
 		MksSandboxInfo sandboxInfo = getSandboxInfo(virtualFile);
-		return (sandboxInfo==null)?null:sandboxInfo.siSandbox;
+		return (sandboxInfo == null) ? null : sandboxInfo.siSandbox;
 	}
 
 	public void addSandboxPath(@NotNull String sandboxPath, final String mksHostAndPort, String mksProject, String devPath) {
@@ -101,16 +103,31 @@ public class SandboxCacheImpl implements SandboxCache {
 		VirtualFile sandboxFolder;
 		if (sandboxVFile != null) {
 			sandboxFolder = (sandboxVFile.isDirectory()) ? sandboxVFile : sandboxVFile.getParent();
-//                if (project.getAllScope().contains(sandboxVFile)) {
-			boolean isSandboxInProject = false;
+			boolean isSandboxRelevant = false;
+			if (sandboxFolder == null) {
+				LOGGER.warn("unable to find parent VirtualFile for sandbox [" + sandboxVFile + "]");
+			}
 			try {
-				isSandboxInProject = project.getProjectScope().contains(sandboxVFile);
+				GlobalSearchScope projectScope = project.getProjectScope();
+				isSandboxRelevant = projectScope.contains(sandboxVFile);
+				if (!isSandboxRelevant) {
+					VirtualFile[] projectContentRoots = ProjectRootManager.getInstance(project).getContentRoots();
+					for (int i = 0; i < projectContentRoots.length && !isSandboxRelevant; i++) {
+						VirtualFile projectContentRoot = projectContentRoots[i];
+						if (VfsUtil.isAncestor(sandboxFolder, projectContentRoot, true)) {
+							LOGGER.debug("sandbox [" + sandboxFolder + "] contains contentRoot [" + projectContentRoot + "]");
+							isSandboxRelevant = true;
+						}
+					}
+				}
+
+
 			} catch (Throwable e) {
 				LOGGER.warn("caught exception while checking if [" + sandboxVFile + "] is in project, postponing check");
 				addRejected(sandboxInfo);
 			}
 			synchronized (lock) {
-				if (isSandboxInProject) {
+				if (isSandboxRelevant) {
 					// ok sandbox in project path
 					try {
 						TriclopsSiSandbox sandbox = MKSHelper.createSandbox(sandboxPath);
