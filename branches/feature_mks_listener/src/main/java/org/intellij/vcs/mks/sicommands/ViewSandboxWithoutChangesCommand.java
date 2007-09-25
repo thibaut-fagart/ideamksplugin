@@ -2,9 +2,9 @@ package org.intellij.vcs.mks.sicommands;
 
 import java.util.List;
 import org.intellij.vcs.mks.EncodingProvider;
-import org.intellij.vcs.mks.MksRevisionNumber;
 import org.intellij.vcs.mks.model.MksMemberState;
 import com.intellij.openapi.vcs.VcsException;
+import com.intellij.openapi.vcs.history.VcsRevisionNumber;
 
 /**
  * Obtains member revision, working revision, checkedout state (won't see
@@ -21,9 +21,9 @@ public class ViewSandboxWithoutChangesCommand extends AbstractViewSandboxCommand
 
 	@Override
 	protected MksMemberState createState(final String workingRev, final String memberRev, final String workingCpid,
-	                                  final String locker, final String lockedSandbox, final String type, final String deferred) throws VcsException {
-		MksRevisionNumber workingRevision = createRevision(workingRev);
-		MksRevisionNumber memberRevision = createRevision(memberRev);
+	                                     final String locker, final String lockedSandbox, final String type, final String deferred) throws VcsException {
+		VcsRevisionNumber workingRevision = createRevision(workingRev);
+		VcsRevisionNumber memberRevision = createRevision(memberRev);
 		if (memberRevision != null && workingRevision == null) {
 			return new MksMemberState(workingRevision, memberRevision, workingCpid,
 				(DROPPED_TYPE.equals(type) ? MksMemberState.Status.DROPPED : MksMemberState.Status.MISSISNG));

@@ -1,8 +1,8 @@
 package org.intellij.vcs.mks.model;
 
-import org.intellij.vcs.mks.MksRevisionNumber;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import com.intellij.openapi.vcs.history.VcsRevisionNumber;
 
 /**
  * Used to keep track of the current state of a sandbox. <br/> Is associated
@@ -20,13 +20,15 @@ public final class MksMemberState {
 		NOT_CHANGED("not changed"),
 		SYNC("sync"),
 		DROPPED("dropped"),
-		ADDED ("added");
+		ADDED("added"),
+		UNKNOWN("unknown");
 		private final String description;
 
 		private Status(String description) {
 			this.description = description;
 		}
 
+		@Override
 		public String toString() {
 			return description;
 		}
@@ -36,17 +38,17 @@ public final class MksMemberState {
 	 * member revision of the member in the Project. <br/> If it is different than
 	 * {@link #workingRevision} this means the member should be resynced
 	 */
-	public final MksRevisionNumber memberRevision;
+	public final VcsRevisionNumber memberRevision;
 	/**
 	 * revision currently in the sandbox
 	 */
-	public final MksRevisionNumber workingRevision;
+	public final VcsRevisionNumber workingRevision;
 	@NotNull
 	public final Status status;
 	@Nullable
 	public final String workingChangePackageId;
 
-	public MksMemberState(final MksRevisionNumber workingRevision, final MksRevisionNumber memberRevision, final
+	public MksMemberState(final VcsRevisionNumber workingRevision, final VcsRevisionNumber memberRevision, final
 	String workingChangePackageId, final Status status) {
 		this.workingRevision = workingRevision;
 		this.memberRevision = memberRevision;
@@ -56,8 +58,8 @@ public final class MksMemberState {
 
 	@Override
 	public String toString() {
-		return "memberRev " + ((memberRevision == null) ? "null": memberRevision.asString()) + ", workingRev " + ((workingRevision ==null) ? "null" : workingRevision.asString())
-			+ ", status " + status/* +", checkedout " + checkedout+ ", modified without checkout " + modifiedWithoutCheckout*/
-			+ ", wokingCpid " + workingChangePackageId;
+		return "memberRev " + ((memberRevision == null) ? "null" : memberRevision.asString()) + ", workingRev " + ((workingRevision == null) ? "null" : workingRevision.asString())
+		       + ", status " + status/* +", checkedout " + checkedout+ ", modified without checkout " + modifiedWithoutCheckout*/
+		       + ", wokingCpid " + workingChangePackageId;
 	}
 }

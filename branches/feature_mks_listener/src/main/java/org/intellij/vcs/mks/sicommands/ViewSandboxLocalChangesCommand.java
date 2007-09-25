@@ -3,18 +3,19 @@ package org.intellij.vcs.mks.sicommands;
 import java.io.File;
 import java.util.List;
 import org.intellij.vcs.mks.EncodingProvider;
-import org.intellij.vcs.mks.MksRevisionNumber;
 import org.intellij.vcs.mks.model.MksMemberState;
 import com.intellij.openapi.vcs.VcsException;
 
 /**
  * Command backed by si viewsandbox. Allows fetching sandbox deltas, complete
  * state of the sandbox is given by {@link org.intellij.vcs.mks.sicommands.ViewSandboxWithoutChangesCommand}
- * Locally deleted files aren't distinguished from  modified without checkout ones
+ * Locally deleted files aren't distinguished from  modified without checkout
+ * ones
  *
  * @author Thibaut Fagart
  */
 public class ViewSandboxLocalChangesCommand extends AbstractViewSandboxCommand {
+	private static final String DEFERRED_DROP = "deferred-drop";
 
 	/**
 	 * username is available in si viewservers
@@ -27,23 +28,34 @@ public class ViewSandboxLocalChangesCommand extends AbstractViewSandboxCommand {
 	 *                         which locks are checkouts of the IDEA user
 	 */
 	public ViewSandboxLocalChangesCommand(final List<VcsException> errors, final EncodingProvider encodingProvider,
-	                                 final String username, final String sandboxPath) {
-		super(errors, encodingProvider, username, sandboxPath,/* "--filter=changed",*/"--filter=changed:working,locked:"+username);
+	                                      final String username, final String sandboxPath) {
+		super(errors, encodingProvider, username, sandboxPath,/* "--filter=changed",*/"--filter=changed:working,deferred,locked:" + username);
 	}
 
 	@Override
 	protected MksMemberState createState(final String workingRev, final String memberRev, final String workingCpid,
-	                                  final String locker, final String lockedSandbox, final String type, final String deferred) throws VcsException {
+	                                     final String locker, final String lockedSandbox, final String type, final String deferred) throws VcsException {
 		// we confuse missing files and locally modified without checkout here
 		boolean isLocked = locker != null;
-		if (DEFERRED_ADD.equals(type)) {
+		if (DEFERRED.equals(deferred)) {
+			MksMemberState.Status status;
+
+			if (DEFERRED_ADD.equals(type)) {
+				status = MksMemberState.Status.ADDED;
+			} else if (DEFERRED_DROP.equals(type)) {
+				status = MksMemberState.Status.DROPPED;
+			} else {
+				status = MksMemberState.Status.UNKNOWN;
+			}
+
 			return new MksMemberState(createRevision(workingRev), createRevision(memberRev), workingCpid,
-				MksMemberState.Status.ADDED);
-		} else  if (isLocked) {
+				status);
+		}
+		if (isLocked) {
 			MksMemberState.Status status;
 			if (isLockedByMe(locker)) {
 				if (isMySandbox(lockedSandbox)) {
-					status = MksMemberState.Status.CHECKED_OUT ;
+					status = MksMemberState.Status.CHECKED_OUT;
 				} else {
 					status = MksMemberState.Status.NOT_CHANGED;
 				}
