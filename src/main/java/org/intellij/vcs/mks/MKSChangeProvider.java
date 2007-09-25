@@ -46,7 +46,7 @@ import mks.integrations.common.TriclopsSiMember;
  */
 class MKSChangeProvider implements ChangeProvider, ProjectComponent, ChangeListDecorator {
 	private final Logger LOGGER = Logger.getInstance(getClass().getName());
-	private final Logger BUILDER_PROXY_LOGGER = Logger.getInstance(getClass().getName()+".ChangelistBuilder");
+	private final Logger BUILDER_PROXY_LOGGER = Logger.getInstance(getClass().getName() + ".ChangelistBuilder");
 	@NotNull
 	private final MksVcs mksvcs;
 
@@ -97,16 +97,15 @@ class MKSChangeProvider implements ChangeProvider, ProjectComponent, ChangeListD
 
 	private ChangelistBuilder createBuilderLoggingProxy(final ChangelistBuilder myBuilder) {
 		return (ChangelistBuilder) Proxy.newProxyInstance(getClass().getClassLoader(), new Class[]{ChangelistBuilder.class}, new InvocationHandler() {
-			public Object invoke(final Object o, final Method method, final Object[] objects) throws Throwable {
+			public Object invoke(final Object o, final Method method, final Object[] args) throws Throwable {
 				StringBuffer buf = new StringBuffer("(");
-				for (int i = 0; i < objects.length; i++) {
-					Object object = objects[i];
-					buf.append(object).append(",");
+				for (Object arg : args) {
+					buf.append(arg).append(",");
 				}
 				buf.setLength(buf.length() - 1);
 				buf.append(")");
 				BUILDER_PROXY_LOGGER.debug(method.getName() + buf);
-				return method.invoke(myBuilder, objects);
+				return method.invoke(myBuilder, args);
 			}
 		});
 	}
@@ -126,7 +125,7 @@ class MKSChangeProvider implements ChangeProvider, ProjectComponent, ChangeListD
 			FilePath filePath = VcsUtil.getFilePath(entry.getKey());
 			VirtualFile virtualFile = VcsUtil.getVirtualFile(entry.getKey());
 			switch (state.status) {
-				case ADDED : {
+				case ADDED: {
 					MksChangePackage changePackage = getChangePackage(changePackages, state);
 					Change change = new Change(
 						new MksContentRevision(mksvcs, filePath, state.workingRevision),
@@ -171,7 +170,14 @@ class MKSChangeProvider implements ChangeProvider, ProjectComponent, ChangeListD
 						FileStatus.OBSOLETE));
 					break;
 				}
-				case NOT_CHANGED: break;
+				case NOT_CHANGED:
+					break;
+				case UNKNOWN: {
+					builder.processChange(new Change(
+						new MksContentRevision(mksvcs, filePath, state.workingRevision),
+						new MksContentRevision(mksvcs, filePath, state.memberRevision),
+						FileStatus.UNKNOWN));
+				}
 				default: {
 					LOGGER.info("unhandled MKS status " + state.status);
 				}
@@ -206,7 +212,6 @@ class MKSChangeProvider implements ChangeProvider, ProjectComponent, ChangeListD
 	}
 
 	/**
-	 *
 	 * @param progress
 	 * @param errors
 	 * @param servers
@@ -243,8 +248,7 @@ class MKSChangeProvider implements ChangeProvider, ProjectComponent, ChangeListD
 		if (listServersAction.foundError()) {
 			LOGGER.warn("encountered errors querying servers");
 		}
-		ArrayList<MksServerInfo> servers = listServersAction.servers;
-		return servers;
+		return listServersAction.servers;
 	}
 
 	private void debugMember(TriclopsSiMember newMember) {

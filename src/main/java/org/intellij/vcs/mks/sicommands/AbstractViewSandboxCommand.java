@@ -15,6 +15,7 @@ import org.intellij.vcs.mks.model.MksMemberState;
 import org.jetbrains.annotations.Nullable;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.vcs.VcsException;
+import com.intellij.openapi.vcs.history.VcsRevisionNumber;
 
 /**
  * @author Thibaut Fagart
@@ -23,13 +24,15 @@ public abstract class AbstractViewSandboxCommand extends SiCLICommand {
 	private final Logger LOGGER = Logger.getInstance(getClass().getName());
 
 	protected static final String DEFERRED_ADD = "deferred-add";
+	protected static final String DEFERRED = "deferred";
 	private static final String COMMAND = "viewsandbox";
 	private static final String revisionPattern = "([\\d\\.]+)?";
 	private static final String changePackageIdPattern = "([\\d:]+)?";
 	private static final String typePattern = "((?:sandbox)|(?:subsandbox)|(?:shared-subsandbox)|(?:shared-variant-subsandbox)|(?:shared-build-subsandbox)|(?:member)|(?:archived)|(?:dropped)|(?:variant-subsandbox)|(?:deferred-add))";
+	private static final String deferredPattern = "([^\\s]+)?";
 	private static final String unusedPattern = "([^\\s]+)?";
 	private static final String namePattern = "(.+)";
-	private static final String sandboxPattern =namePattern+"?";
+	private static final String sandboxPattern = namePattern + "?";
 	private static final String userPattern = "([^\\s]+)?";
 	protected static final String DROPPED_TYPE = "dropped";
 
@@ -40,11 +43,11 @@ public abstract class AbstractViewSandboxCommand extends SiCLICommand {
 		// --fields=workingrev,memberrev,workingcpid,deferred,pendingcpid,revsyncdelta,type,wfdelta,name
 		fieldsParam = "--fields=workingrev,workingcpid,deferred,pendingcpid,type,locker,name,memberrev,locksandbox";
 		wholeLinePatternString = "^" + revisionPattern + " " + changePackageIdPattern
-			+ " " + unusedPattern + " " + unusedPattern
-			+ " " + typePattern
-			+ " " + userPattern
-			+ " " + namePattern
-			+ " " + revisionPattern + " " + sandboxPattern + "?$"; // locked sandbox is null when member is not locked
+		                         + " " + deferredPattern + " " + unusedPattern
+		                         + " " + typePattern
+		                         + " " + userPattern
+		                         + " " + namePattern
+		                         + " " + revisionPattern + " " + sandboxPattern + "?$"; // locked sandbox is null when member is not locked
 	}
 
 	private static final int WORKING_REV_GROUP_IDX = 1;
@@ -62,17 +65,17 @@ public abstract class AbstractViewSandboxCommand extends SiCLICommand {
 
 	protected AbstractViewSandboxCommand(final List<VcsException> errors, final EncodingProvider encodingProvider,
 	                                     String mksUsername, final String sandboxPath, final String... filters) {
-		super(errors, encodingProvider, COMMAND, createParams(fieldsParam, "--recurse", "--sandbox="+sandboxPath , filters));
+		super(errors, encodingProvider, COMMAND, createParams(fieldsParam, "--recurse", "--sandbox=" + sandboxPath, filters));
 		this.mksUsername = mksUsername;
 		this.sandboxPath = sandboxPath;
 	}
 
 	private static String[] createParams(final String fieldsParam, final String s, final String s1, final String[] filters) {
-		String [] params = new String[3+filters.length];
+		String[] params = new String[3 + filters.length];
 		params[0] = fieldsParam;
 		params[1] = s;
 		params[2] = s1;
-		System.arraycopy(filters, 0, params, 3,filters.length);
+		System.arraycopy(filters, 0, params, 3, filters.length);
 		return params;
 	}
 
@@ -148,18 +151,18 @@ public abstract class AbstractViewSandboxCommand extends SiCLICommand {
 	}
 
 	/**
-	 * returns null if type is DROPPED (means there is no member rev)
 	 * @param revision
-	 * @return null or a valid MksRevisionNumber
+	 * @return VcsRevisionNumber.NULL if no revision is applicable or a valid
+	 *         MksRevisionNumber
 	 * @throws VcsException
 	 */
 	@Nullable
-	protected MksRevisionNumber createRevision(final String revision) throws VcsException {
+	protected VcsRevisionNumber createRevision(final String revision) throws VcsException {
 //		if (revision == null) {
 //			System.err.println("creating null revision");
 //		}
 		return (revision == null) ?
-			null :
+			VcsRevisionNumber.NULL :
 			new MksRevisionNumber(revision);
 	}
 }
