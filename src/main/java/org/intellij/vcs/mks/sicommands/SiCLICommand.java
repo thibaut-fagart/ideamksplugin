@@ -1,16 +1,11 @@
 package org.intellij.vcs.mks.sicommands;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.Reader;
-import java.io.StringWriter;
-import java.util.List;
+import com.intellij.openapi.vcs.VcsException;
 import org.intellij.vcs.mks.AbstractMKSCommand;
 import org.intellij.vcs.mks.EncodingProvider;
-import com.intellij.openapi.vcs.VcsException;
+
+import java.io.*;
+import java.util.List;
 
 /**
  * @author Thibaut Fagart
@@ -69,7 +64,7 @@ public abstract class SiCLICommand extends AbstractMKSCommand implements Runnabl
             } catch (IllegalThreadStateException e) {
                 process.destroy();
             }
-            LOGGER.debug(toString()+" finished in "+(System.currentTimeMillis()-start+" ms"));
+            LOGGER.debug(toString() + " finished in " + (System.currentTimeMillis() - start + " ms"));
         }
         commandOutput = sw.toString();
         return buf.toString();
