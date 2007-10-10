@@ -5,10 +5,10 @@
 
 = Details =
 
-==si viewsandbox --filter=changed:working==
+== si viewsandbox --filter=changed:working ==
 selects all members locally modified
 
-==si viewsandbox --filter=changed:sync==
+== si viewsandbox --filter=changed:sync ==
 selects all members which are out of sync (member-revision and working revision are different)
 => candidates for incoming changes
 
