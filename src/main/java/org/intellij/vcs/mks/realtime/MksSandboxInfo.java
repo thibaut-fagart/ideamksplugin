@@ -1,11 +1,11 @@
 package org.intellij.vcs.mks.realtime;
 
-import mks.integrations.common.TriclopsSiSandbox;
 import com.intellij.openapi.vfs.VirtualFile;
+import mks.integrations.common.TriclopsSiSandbox;
 
 /**
  * @author Thibaut Fagart
-*/
+ */
 public final class MksSandboxInfo implements Comparable<MksSandboxInfo> {
 	public final String sandboxPath;
 	public final String hostAndPort;
@@ -22,6 +22,7 @@ public final class MksSandboxInfo implements Comparable<MksSandboxInfo> {
 		this.sandboxPath = sandboxPath;
 	}
 
+	@Override
 	public boolean equals(Object o) {
 		if (this == o) {
 			return true;
@@ -38,6 +39,7 @@ public final class MksSandboxInfo implements Comparable<MksSandboxInfo> {
 				&& sandboxPath.equals(that.sandboxPath);
 	}
 
+	@Override
 	public int hashCode() {
 		int result;
 		result = sandboxPath.hashCode();
@@ -53,6 +55,6 @@ public final class MksSandboxInfo implements Comparable<MksSandboxInfo> {
 
 	@Override
 	public String toString() {
-		return "MksSandbox["+sandboxPath+","+hostAndPort+"]";
+		return "MksSandbox[" + sandboxPath + "," + hostAndPort + "]";
 	}
 }
