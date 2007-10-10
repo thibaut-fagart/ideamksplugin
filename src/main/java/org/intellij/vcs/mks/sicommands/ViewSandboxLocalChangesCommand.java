@@ -1,10 +1,11 @@
 package org.intellij.vcs.mks.sicommands;
 
-import java.io.File;
-import java.util.List;
+import com.intellij.openapi.vcs.VcsException;
 import org.intellij.vcs.mks.EncodingProvider;
 import org.intellij.vcs.mks.model.MksMemberState;
-import com.intellij.openapi.vcs.VcsException;
+
+import java.io.File;
+import java.util.List;
 
 /**
  * Command backed by si viewsandbox. Allows fetching sandbox deltas, complete
@@ -15,26 +16,25 @@ import com.intellij.openapi.vcs.VcsException;
  * @author Thibaut Fagart
  */
 public class ViewSandboxLocalChangesCommand extends AbstractViewSandboxCommand {
-	private static final String DEFERRED_DROP = "deferred-drop";
 
 	/**
 	 * username is available in si viewservers
 	 *
-	 * @param errors           collects all errors encountered
+	 * @param errors		   collects all errors encountered
 	 * @param encodingProvider provides encoding configuration for the command
-	 * @param sandboxPath      filepath of the sandbox project file (usually
+	 * @param sandboxPath	  filepath of the sandbox project file (usually
 	 *                         project.pj)
-	 * @param username         username of the current user : allows detecting
+	 * @param username		 username of the current user : allows detecting
 	 *                         which locks are checkouts of the IDEA user
 	 */
 	public ViewSandboxLocalChangesCommand(final List<VcsException> errors, final EncodingProvider encodingProvider,
-	                                      final String username, final String sandboxPath) {
+										  final String username, final String sandboxPath) {
 		super(errors, encodingProvider, username, sandboxPath,/* "--filter=changed",*/"--filter=changed:working,deferred,locked:" + username);
 	}
 
 	@Override
 	protected MksMemberState createState(final String workingRev, final String memberRev, final String workingCpid,
-	                                     final String locker, final String lockedSandbox, final String type, final String deferred) throws VcsException {
+										 final String locker, final String lockedSandbox, final String type, final String deferred) throws VcsException {
 		// we confuse missing files and locally modified without checkout here
 		boolean isLocked = locker != null;
 		if (DEFERRED.equals(deferred)) {
@@ -49,7 +49,7 @@ public class ViewSandboxLocalChangesCommand extends AbstractViewSandboxCommand {
 			}
 
 			return new MksMemberState(createRevision(workingRev), createRevision(memberRev), workingCpid,
-				status);
+					status);
 		}
 		if (isLocked) {
 			MksMemberState.Status status;
@@ -63,11 +63,11 @@ public class ViewSandboxLocalChangesCommand extends AbstractViewSandboxCommand {
 				status = MksMemberState.Status.MODIFIED_WITHOUT_CHECKOUT;
 			}
 			return new MksMemberState(createRevision(workingRev), createRevision(memberRev), workingCpid,
-				status);
+					status);
 
 		} else {
 			return new MksMemberState(createRevision(workingRev), createRevision(memberRev), workingCpid,
-				MksMemberState.Status.MODIFIED_WITHOUT_CHECKOUT);
+					MksMemberState.Status.MODIFIED_WITHOUT_CHECKOUT);
 
 		}
 

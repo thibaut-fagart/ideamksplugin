@@ -22,8 +22,16 @@ public class ViewSandboxMissingCommand extends AbstractViewSandboxCommand {
 
 	@Override
 	protected MksMemberState createState(final String workingRev, final String memberRev, final String workingCpid, final String locker, final String lockedSandbox, final String type, final String deferred) throws VcsException {
-		return new MksMemberState(createRevision(workingRev), createRevision(memberRev), workingCpid,
-				(DROPPED_TYPE.equals(type) ? MksMemberState.Status.DROPPED : MksMemberState.Status.MISSISNG));
+		if (DROPPED_TYPE.equals(type)) {
+			return new MksMemberState(createRevision(workingRev), createRevision(memberRev), workingCpid,
+					MksMemberState.Status.DROPPED);
+		} else if (DEFERRED_DROP.equals(type)) {
+			return new MksMemberState(createRevision(workingRev), createRevision(memberRev), workingCpid,
+					MksMemberState.Status.DROPPED);
+		} else {
+			return new MksMemberState(createRevision(workingRev), createRevision(memberRev), workingCpid,
+					MksMemberState.Status.MISSISNG);
+		}
 	}
 
 }
