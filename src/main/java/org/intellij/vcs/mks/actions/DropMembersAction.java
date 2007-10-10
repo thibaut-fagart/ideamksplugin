@@ -1,9 +1,9 @@
 package org.intellij.vcs.mks.actions;
 
-import com.intellij.openapi.vcs.AbstractVcs;
-import mks.integrations.common.TriclopsException;
-import mks.integrations.common.TriclopsSiMembers;
-import org.intellij.vcs.mks.MKSHelper;
+import com.intellij.openapi.project.Project;
+import com.intellij.openapi.vfs.VirtualFile;
+import org.intellij.vcs.mks.MksVcs;
+import org.intellij.vcs.mks.actions.triclops.DropTriclopsCommand;
 import org.jetbrains.annotations.NotNull;
 
 // Referenced classes of package org.intellij.vcs.mks.actions:
@@ -12,16 +12,12 @@ import org.jetbrains.annotations.NotNull;
 public class DropMembersAction extends MultipleTargetAction {
 
 	public DropMembersAction() {
+		super(new DropTriclopsCommand());
 	}
 
 	@Override
-	protected void perform(TriclopsSiMembers siMembers) throws TriclopsException {
-		MKSHelper.dropMembers(siMembers, 0);
-	}
-
-	@Override
-	@NotNull
-	protected String getActionName(@NotNull AbstractVcs vcs) {
-		return "Drop Members";
+	protected boolean isEnabled(@NotNull Project project, @NotNull MksVcs mksvcs, @NotNull VirtualFile... vFiles) {
+		// todo may check if file exists in vcs
+		return true;
 	}
 }

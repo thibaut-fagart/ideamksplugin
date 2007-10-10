@@ -12,6 +12,5 @@ public class LaunchSourceIntegrityAction extends AnAction {
 	@Override
 	public void actionPerformed(AnActionEvent anActionEvent) {
 		MKSHelper.launchClient();
-
 	}
 }
