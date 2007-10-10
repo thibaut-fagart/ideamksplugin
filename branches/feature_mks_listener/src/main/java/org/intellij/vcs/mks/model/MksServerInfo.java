@@ -19,6 +19,7 @@ public final class MksServerInfo {
 		this.user = user;
 	}
 
+	@Override
 	public boolean equals(final Object o) {
 		if (this == o) {
 			return true;
@@ -33,10 +34,20 @@ public final class MksServerInfo {
 
 	}
 
+	@Override
 	public int hashCode() {
 		int result;
 		result = host.hashCode();
 		result = 31 * result + port.hashCode();
 		return result;
+	}
+
+	@Override
+	public String toString() {
+		return "MksServerInfo{" +
+				"host='" + host + '\'' +
+				", user='" + user + '\'' +
+				", port='" + port + '\'' +
+				'}';
 	}
 }
