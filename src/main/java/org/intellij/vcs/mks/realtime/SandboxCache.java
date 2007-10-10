@@ -59,4 +59,9 @@ public interface SandboxCache extends ModuleRootListener {
 	 *         This is false if file has only been locally created (eg not added to mks)
 	 */
 	boolean isPartOfSandbox(@NotNull VirtualFile file);
+
+	/**
+	 * called when the project is unloaded, should clean up the cache
+	 */
+	void release();
 }
