@@ -5,12 +5,14 @@
 
 = Details =
 
-== si viewsandbox --filter=changed:working ==
-selects all members locally modified
+== all members locally modified ==
+si viewsandbox --filter=changed:working
 
-== si viewsandbox --filter=changed:sync ==
-selects all members which are out of sync (member-revision and working revision are different)
-=> candidates for incoming changes
 
-== si viewsandbox --filter=changed:working --filter=!locked:$user$ ==
-selects all members that have been modified without checkout (not locked by user)
+== all out of sync members ==
+ si viewsandbox --filter=changed:sync
+ => candidates for incoming changes
+
+== modified without checkout members ==
+si viewsandbox --filter=changed:working --filter=!locked:$user$
+ (locally changed, but not locked by user)
