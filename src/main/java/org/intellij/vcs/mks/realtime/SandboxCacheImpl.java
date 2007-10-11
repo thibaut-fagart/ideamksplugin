@@ -84,7 +84,7 @@ public class SandboxCacheImpl implements SandboxCache {
 		return (sandboxInfo == null) ? null : sandboxInfo.siSandbox;
 	}
 
-	public void addSandboxPath(@NotNull String sandboxPath, @NotNull final String mksHostAndPort, @NotNull String mksProject, @NotNull String devPath) {
+	public void addSandboxPath(@NotNull String sandboxPath, @NotNull final String mksHostAndPort, @NotNull String mksProject, @Nullable String devPath) {
 
 		VirtualFile sandboxVFile = VcsUtil.getVirtualFile(sandboxPath);
 		MksSandboxInfo sandboxInfo = new MksSandboxInfo(sandboxPath, mksHostAndPort, mksProject, devPath, sandboxVFile);
@@ -92,7 +92,7 @@ public class SandboxCacheImpl implements SandboxCache {
 			addSandbox(sandboxInfo);
 		} else {
 			outOfScopeSandboxes.add(sandboxInfo);
-			LOGGER.info("ignoring out of project sandbox [" + sandboxPath + "]");
+			LOGGER.debug("ignoring out of project sandbox [" + sandboxPath + "]");
 		}
 
 	}
@@ -178,31 +178,31 @@ public class SandboxCacheImpl implements SandboxCache {
 	// for mks monitoring
 	public void dumpStateOn(@NotNull PrintWriter pw) {
 		pw.println("in project sandboxes");
-		List<VirtualFile> sortList = new ArrayList<VirtualFile>(sandboxVFiles);
-		Comparator<VirtualFile> comparator = new Comparator<VirtualFile>() {
-			public int compare(final VirtualFile virtualFile, final VirtualFile other) {
-				if (virtualFile == null) {
+		List<MksSandboxInfo> sortList = new ArrayList<MksSandboxInfo>(sandboxByFolder.values());
+		Comparator<MksSandboxInfo> comparator = new Comparator<MksSandboxInfo>() {
+			public int compare(final MksSandboxInfo first, final MksSandboxInfo other) {
+				if (first == null) {
 					return -1;
 				} else if (other == null) {
 					return 1;
 				} else {
-					return virtualFile.toString().compareTo(other.toString());
+					return first.sandboxPath.compareTo(other.sandboxPath);
 				}
 			}
 		};
 		Collections.sort(sortList, comparator);
-		for (VirtualFile virtualFile : sortList) {
-			pw.println(virtualFile);
+		for (MksSandboxInfo sandboxInfo : sortList) {
+			pw.println(sandboxInfo);
 		}
 		sortList.clear();
 		for (MksSandboxInfo sandbox : outOfScopeSandboxes) {
-			sortList.add(sandbox.sandboxPjFile);
+			sortList.add(sandbox);
 		}
 		Collections.sort(sortList, comparator);
 
 		pw.println("OUT OF project sandboxes");
-		for (VirtualFile virtualFile : sortList) {
-			pw.println(virtualFile);
+		for (MksSandboxInfo sandboxInfo : sortList) {
+			pw.println(sandboxInfo + "( " + sandboxInfo.sandboxPjFile + ")");
 		}
 	}
 
@@ -227,6 +227,21 @@ public class SandboxCacheImpl implements SandboxCache {
 		Set<MksSandboxInfo> result = new HashSet<MksSandboxInfo>();
 		for (MksSandboxInfo sandboxInfo : sandboxByFolder.values()) {
 			VirtualFile sandboxFile = sandboxInfo.sandboxPjFile;
+			if (sandboxFile == null) {
+
+				synchronized (lock) {
+					VirtualFile key = null;
+					LOGGER.warn("SandboxInfo with NULL virtualFile !! removing from registered sandboxes");
+					for (Map.Entry<VirtualFile, MksSandboxInfo> entry : sandboxByFolder.entrySet()) {
+						if (entry.getValue().equals(sandboxInfo)) {
+							key = entry.getKey();
+							break;
+						}
+					}
+					sandboxByFolder.remove(key);
+					addRejected(sandboxInfo);
+				}
+			}
 			if (VfsUtil.isAncestor(directory, sandboxFile, false)) {
 				result.add(sandboxInfo);
 			} else {
