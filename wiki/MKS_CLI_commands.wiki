@@ -1,9 +1,6 @@
 #summary Describes the CLI commands used by the plugin
 
-= Introduction =
-
-
-= Details =
+= Viewsandbox commands =
 
 == all members locally modified ==
 si viewsandbox --filter=changed:working
@@ -16,3 +13,8 @@ si viewsandbox --filter=changed:working
 == modified without checkout members ==
 si viewsandbox --filter=changed:working --filter=!locked:$user$
  (locally changed, but not locked by user)
+
+= How to ... =
+== revert a deferred add operation ==
+ si revert "filename"
+this does not delete the file itself
