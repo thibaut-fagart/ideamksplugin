@@ -203,7 +203,12 @@ class MKSChangeProvider extends AbstractProjectComponent implements ChangeProvid
 					break;
 				}
 				case MISSISNG: {
-					builder.processLocallyDeletedFile(filePath);
+					// todo some of those changes belong to the Incoming tab
+					builder.processChange(new Change(
+							new MksContentRevision(mksvcs, filePath, state.workingRevision),
+							new MksContentRevision(mksvcs, filePath, state.memberRevision),
+							FileStatus.DELETED_FROM_FS));
+//					builder.processLocallyDeletedFile(filePath);
 					break;
 				}
 				case SYNC:
