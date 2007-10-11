@@ -2,6 +2,8 @@ package org.intellij.vcs.mks.realtime;
 
 import com.intellij.openapi.vfs.VirtualFile;
 import mks.integrations.common.TriclopsSiSandbox;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Thibaut Fagart
@@ -14,7 +16,14 @@ public final class MksSandboxInfo implements Comparable<MksSandboxInfo> {
 	final VirtualFile sandboxPjFile;
 	TriclopsSiSandbox siSandbox;
 
-	public MksSandboxInfo(final String sandboxPath, final String hostAndPort, String mksProject, String devPath, final VirtualFile sandboxPjFile) {
+	/**
+	 * @param sandboxPath
+	 * @param hostAndPort
+	 * @param mksProject
+	 * @param devPath	   null if the sandbox is on the trunk
+	 * @param sandboxPjFile null if IDEA has no VirtualFile for the sandbox file
+	 */
+	public MksSandboxInfo(@NotNull final String sandboxPath, @NotNull final String hostAndPort, @NotNull String mksProject, @Nullable String devPath, @Nullable final VirtualFile sandboxPjFile) {
 		this.mksProject = mksProject;
 		this.devPath = devPath;
 		this.sandboxPjFile = sandboxPjFile;
