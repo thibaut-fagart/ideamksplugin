@@ -22,3 +22,6 @@ this does not delete the file itself
 == fetch new members of a sandbox ==
  si resync --filter=changed:newmem
 will only syncrhonize new members
+
+== resynchronize only non locally-modified files ==
+si resync --filter=changed:sync --filter=!changed:working
