@@ -1,10 +1,11 @@
 package org.intellij.vcs.mks.sicommands;
 
-import java.util.List;
-import org.intellij.vcs.mks.EncodingProvider;
-import org.intellij.vcs.mks.model.MksMemberState;
 import com.intellij.openapi.vcs.VcsException;
 import com.intellij.openapi.vcs.history.VcsRevisionNumber;
+import org.intellij.vcs.mks.EncodingProvider;
+import org.intellij.vcs.mks.model.MksMemberState;
+
+import java.util.List;
 
 /**
  * Obtains member revision, working revision, checkedout state (won't see
@@ -21,15 +22,15 @@ public class ViewSandboxWithoutChangesCommand extends AbstractViewSandboxCommand
 
 	@Override
 	protected MksMemberState createState(final String workingRev, final String memberRev, final String workingCpid,
-	                                     final String locker, final String lockedSandbox, final String type, final String deferred) throws VcsException {
+										 final String locker, final String lockedSandbox, final String type, final String deferred) throws VcsException {
 		VcsRevisionNumber workingRevision = createRevision(workingRev);
 		VcsRevisionNumber memberRevision = createRevision(memberRev);
-		if (memberRevision != null && workingRevision == null) {
-			return new MksMemberState(workingRevision, memberRevision, workingCpid,
-				(DROPPED_TYPE.equals(type) ? MksMemberState.Status.DROPPED : MksMemberState.Status.MISSISNG));
+		if (isDropped(type)) {
+			return new MksMemberState(workingRevision, memberRevision, workingCpid, MksMemberState.Status.DROPPED);
+		} else if (memberRevision != null && workingRevision == null) {
+			return new MksMemberState(workingRevision, memberRevision, workingCpid, MksMemberState.Status.MISSISNG);
 		} else {
-			return new MksMemberState(workingRevision, memberRevision, workingCpid,
-				(DROPPED_TYPE.equals(type) ? MksMemberState.Status.DROPPED : MksMemberState.Status.NOT_CHANGED));
+			return new MksMemberState(workingRevision, memberRevision, workingCpid, MksMemberState.Status.NOT_CHANGED);
 		}
 	}
 

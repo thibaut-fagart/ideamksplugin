@@ -180,4 +180,8 @@ public abstract class AbstractViewSandboxCommand extends SiCLICommand {
 				VcsRevisionNumber.NULL :
 				new MksRevisionNumber(revision);
 	}
+
+	protected boolean isDropped(String type) {
+		return DROPPED_TYPE.equals(type) || DEFERRED_DROP.equals(type);
+	}
 }
