@@ -1,9 +1,10 @@
 package org.intellij.vcs.mks.realtime;
 
-import java.util.regex.Pattern;
-import java.util.regex.Matcher;
 import org.intellij.vcs.mks.EncodingProvider;
 import org.intellij.vcs.mks.sicommands.ListSandboxes;
+
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * @author Thibaut Fagart
@@ -29,16 +30,18 @@ public class SandboxListSynchronizer extends AbstractMKSSynchronizer {
 	@Override
 	protected void handleLine(String line) {
 		try {
-			if (shoudIgnore(line)) return;
+			if (shoudIgnore(line)) {
+				return;
+			}
 			if (line.startsWith("-----")) {
 				// detection of a new update
-				LOGGER.debug("update notification : "+line);
-                sandboxCache.clear();
+				LOGGER.debug("update notification : " + line);
+				sandboxCache.clear();
 			} else {
 				Matcher matcher = pattern.matcher(line);
 //				String[] parts = line.split(LINE_SEPARATOR);
 				if (!matcher.matches()) {
-					LOGGER.error("unexpected command output {" + line + "}, expected something matching "+ patternString, "");
+					LOGGER.error("unexpected command output {" + line + "}, expected something matching " + patternString, "");
 					// ignoring line
 				} else {
 					String sandboxPath = matcher.group(SANDBOX_PATH_GROUP_IDX);
@@ -51,7 +54,7 @@ public class SandboxListSynchronizer extends AbstractMKSSynchronizer {
 				}
 			}
 		} catch (Exception e) {
-			LOGGER.error("error parsing mks synchronizer output ["+line+"], skipping that line",e);
+			LOGGER.error("error parsing mks synchronizer output [" + line + "], skipping that line", e);
 		}
 	}
 
