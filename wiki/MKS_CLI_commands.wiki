@@ -18,3 +18,7 @@ si viewsandbox --filter=changed:working --filter=!locked:$user$
 == revert a deferred add operation ==
  si revert "filename"
 this does not delete the file itself
+
+== fetch new members of a sandbox ==
+ si resync --filter=changed:newmem
+will only syncrhonize new members
