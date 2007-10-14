@@ -25,20 +25,8 @@ import java.util.regex.Pattern;
 public abstract class AbstractViewSandboxCommand extends SiCLICommand {
 	private final Logger LOGGER = Logger.getInstance(getClass().getName());
 
-	protected static final String DEFERRED_ADD = "deferred-add";
-	protected static final String DEFERRED_DROP = "deferred-drop";
 	protected static final String DEFERRED = "deferred";
 	private static final String COMMAND = "viewsandbox";
-	private static final String revisionPattern = "([\\d\\.]+)?";
-	private static final String changePackageIdPattern = "([\\d:]+)?";
-	private static final String typePattern = "((?:sandbox)|(?:subsandbox)|(?:shared-subsandbox)|(?:shared-variant-subsandbox)" +
-			"|(?:shared-build-subsandbox)|(?:member)|(?:archived)|(?:dropped)|(?:variant-subsandbox)" +
-			"|(?:" + DEFERRED_ADD + ")|(?:" + DEFERRED_DROP + "))";
-	private static final String deferredPattern = "([^\\s]+)?";
-	private static final String unusedPattern = "([^\\s]+)?";
-	private static final String namePattern = "(.+)";
-	private static final String sandboxPattern = namePattern + "?";
-	private static final String userPattern = "([^\\s]+)?";
 	protected static final String DROPPED_TYPE = "dropped";
 
 	private static final String fieldsParam;
