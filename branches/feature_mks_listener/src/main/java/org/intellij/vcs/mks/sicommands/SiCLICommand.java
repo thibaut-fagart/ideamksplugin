@@ -11,70 +11,82 @@ import java.util.List;
  * @author Thibaut Fagart
  */
 public abstract class SiCLICommand extends AbstractMKSCommand implements Runnable {
-    protected final EncodingProvider encodingProvider;
-    private String command;
-    private String[] args;
-    protected String commandOutput;
-    private File workingDir;
+	protected final EncodingProvider encodingProvider;
+	private String command;
+	private String[] args;
+	protected String commandOutput;
+	private File workingDir;
+	protected static final String DEFERRED_ADD = "deferred-add";
+	protected static final String DEFERRED_DROP = "deferred-drop";
+	protected static final String revisionPattern = "([\\d\\.]+)?";
+	protected static final String changePackageIdPattern = "([\\d:]+)?";
+	protected static final String typePattern = "((?:sandbox)|(?:subsandbox)|(?:shared-subsandbox)|(?:shared-variant-subsandbox)" +
+			"|(?:shared-build-subsandbox)|(?:member)|(?:archived)|(?:dropped)|(?:variant-subsandbox)" +
+			"|(?:" + DEFERRED_ADD + ")|(?:" + DEFERRED_DROP + "))";
+	protected static final String deferredPattern = "([^\\s]+)?";
+	protected static final String unusedPattern = "([^\\s]+)?";
+	protected static final String namePattern = "(.+)";
+	protected static final String sandboxPattern = namePattern + "?";
+	protected static final String userPattern = "([^\\s]+)?";
 
-    public SiCLICommand(List<VcsException> errors, EncodingProvider encodingProvider, String command, String... args) {
-        super(errors);
-        this.encodingProvider = encodingProvider;
-        this.command = command;
-        this.args = args;
-    }
+	public SiCLICommand(List<VcsException> errors, EncodingProvider encodingProvider, String command, String... args) {
+		super(errors);
+		this.encodingProvider = encodingProvider;
+		this.command = command;
+		this.args = args;
+	}
 
-    public void setWorkingDir(File aDir) {
-        workingDir = aDir;
-    }
+	public void setWorkingDir(File aDir) {
+		workingDir = aDir;
+	}
 
-    protected String executeCommand() throws IOException {
-        String[] processArgs = new String[args.length + 3];
-        processArgs[0] = "si";
-        processArgs[1] = command;
-        processArgs[2] = "--batch";
-        System.arraycopy(args, 0, processArgs, 3, args.length);
-        ProcessBuilder builder = new ProcessBuilder(processArgs);
-        if (workingDir != null) {
-            builder.directory(workingDir);
-        }
-        StringBuffer buf = new StringBuffer();
-        for (String s : builder.command()) {
-            buf.append(s);
-            buf.append(" ");
-        }
-        long start = System.currentTimeMillis();
-        LOGGER.debug("executing " + buf.toString());
-        builder.redirectErrorStream(true);
-        Process process = builder.start();
-        InputStream is = process.getInputStream();
-        Reader reader = new BufferedReader(new InputStreamReader(is, encodingProvider.getMksSiEncoding(command)));
-        StringWriter sw;
-        try {
-            char[] buffer = new char[512];
-            int readChars;
-            sw = new StringWriter();
-            while ((readChars = reader.read(buffer)) != -1) {
-                sw.write(new String(buffer, 0, readChars));
-            }
-        } finally {
-            reader.close();
-            try {
-                process.exitValue();
-            } catch (IllegalThreadStateException e) {
-                process.destroy();
-            }
-            LOGGER.debug(toString() + " finished in " + (System.currentTimeMillis() - start + " ms"));
-        }
-        commandOutput = sw.toString();
-        return buf.toString();
-    }
+	protected String executeCommand() throws IOException {
+		String[] processArgs = new String[args.length + 3];
+		processArgs[0] = "si";
+		processArgs[1] = command;
+		processArgs[2] = "--batch";
+		System.arraycopy(args, 0, processArgs, 3, args.length);
+		ProcessBuilder builder = new ProcessBuilder(processArgs);
+		if (workingDir != null) {
+			builder.directory(workingDir);
+		}
+		StringBuffer buf = new StringBuffer();
+		for (String s : builder.command()) {
+			buf.append(s);
+			buf.append(" ");
+		}
+		long start = System.currentTimeMillis();
+		LOGGER.debug("executing " + buf.toString());
+		builder.redirectErrorStream(true);
+		Process process = builder.start();
+		InputStream is = process.getInputStream();
+		Reader reader = new BufferedReader(new InputStreamReader(is, encodingProvider.getMksSiEncoding(command)));
+		StringWriter sw;
+		try {
+			char[] buffer = new char[512];
+			int readChars;
+			sw = new StringWriter();
+			while ((readChars = reader.read(buffer)) != -1) {
+				sw.write(new String(buffer, 0, readChars));
+			}
+		} finally {
+			reader.close();
+			try {
+				process.exitValue();
+			} catch (IllegalThreadStateException e) {
+				process.destroy();
+			}
+			LOGGER.debug(toString() + " finished in " + (System.currentTimeMillis() - start + " ms"));
+		}
+		commandOutput = sw.toString();
+		return buf.toString();
+	}
 
-    protected boolean shoudIgnore(String line) {
-        return line.startsWith("Reconnecting") || line.startsWith("Connecting");
-    }
+	protected boolean shoudIgnore(String line) {
+		return line.startsWith("Reconnecting") || line.startsWith("Connecting");
+	}
 
-    public void run() {
-        execute();
-    }
+	public void run() {
+		execute();
+	}
 }

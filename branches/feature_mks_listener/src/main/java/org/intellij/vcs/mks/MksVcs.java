@@ -21,6 +21,8 @@ import com.intellij.openapi.vcs.changes.ChangeListManager;
 import com.intellij.openapi.vcs.changes.ChangeProvider;
 import com.intellij.openapi.vcs.checkin.CheckinEnvironment;
 import com.intellij.openapi.vcs.diff.DiffProvider;
+import com.intellij.openapi.vcs.diff.RevisionSelector;
+import com.intellij.openapi.vcs.history.VcsHistoryProvider;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileManager;
 import com.intellij.openapi.wm.ToolWindow;
@@ -33,6 +35,7 @@ import com.intellij.util.ui.AbstractTableCellEditor;
 import mks.integrations.common.TriclopsException;
 import mks.integrations.common.TriclopsSiMembers;
 import mks.integrations.common.TriclopsSiSandbox;
+import org.intellij.vcs.mks.history.MksVcsHistoryProvider;
 import org.intellij.vcs.mks.realtime.*;
 import org.intellij.vcs.mks.sicommands.GetContentRevision;
 import org.intellij.vcs.mks.sicommands.ListChangePackages;
@@ -78,6 +81,7 @@ public class MksVcs extends AbstractVcs implements ProjectComponent, EncodingPro
 	private MessageBusConnection myMessageBusConnection;
 	private MksVcs.TasksModel tasksModel;
 	private static final String MKS_PROJECT_PJ = "project.pj";
+	private final VcsHistoryProvider vcsHistoryProvider = new MksVcsHistoryProvider(this);
 
 
 	public MksVcs(Project project) {
@@ -614,28 +618,26 @@ public class MksVcs extends AbstractVcs implements ProjectComponent, EncodingPro
 			);
 		}
 	}
-/*	@Nullable
-	public CommittedChangesProvider getCommittedChangesProvider() {
-		return new CommittedChangesProvider() {
-			public ChangeBrowserSettings createDefaultSettings() {
-				return null;
-			}
 
-			public ChangesBrowserSettingsEditor createFilterUI(final boolean b) {
-				return null;
-			}
+	@Nullable
+	public RevisionSelector getRevisionSelector() {
+		return super.getRevisionSelector();	//To change body of overridden methods use File | Settings | File Templates.
+	}
 
-			public RepositoryLocation getLocationFor(final FilePath filePath) {
-				return null;
-			}
+	/**
+	 * used for the "Show History for Class/Method/Field/Selection..."
+	 * The action is not available if getVcsBlockHistoryProvider() returns
+	 * null.
+	 *
+	 * @return
+	 */
+	@Nullable
+	public VcsHistoryProvider getVcsBlockHistoryProvider() {
+		return vcsHistoryProvider;
+	}
 
-			public List getCommittedChanges(final ChangeBrowserSettings changeBrowserSettings, final RepositoryLocation repositoryLocation, final int i) throws VcsException {
-				return null;
-			}
-
-			public ChangeListColumn[] getColumns() {
-				return new ChangeListColumn[0];
-			}
-		};
-	}*/
+	@Nullable
+	public VcsHistoryProvider getVcsHistoryProvider() {
+		return super.getVcsHistoryProvider();
+	}
 }
