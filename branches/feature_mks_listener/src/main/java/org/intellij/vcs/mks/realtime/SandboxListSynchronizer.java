@@ -10,7 +10,7 @@ import java.util.regex.Pattern;
  * @author Thibaut Fagart
  */
 public class SandboxListSynchronizer extends AbstractMKSSynchronizer {
-	private static final String LINE_SEPARATOR = " -> ";
+	//	private static final String LINE_SEPARATOR = " -> ";
 	// $sandbox$ -> $project$[$sandboxtype$:$projectVersionOrDevPath$] ($server$:$port$)
 	private static final String patternString = "(.+) -> ([^\\[]+)(?:\\[([^:]+):([^:]+)\\])? \\((.+)\\)";
 	private final SandboxCache sandboxCache;
@@ -22,7 +22,7 @@ public class SandboxListSynchronizer extends AbstractMKSSynchronizer {
 	private static final int SERVER_GROUP_IDX = 5;
 
 	public SandboxListSynchronizer(EncodingProvider encodingProvider, SandboxCache sandboxCache) {
-		super(ListSandboxes.COMMAND, encodingProvider/*, "--displaySubs"*/);
+		super(ListSandboxes.COMMAND, encodingProvider, "--displaySubs");
 		this.sandboxCache = sandboxCache;
 		pattern = Pattern.compile(patternString);
 	}

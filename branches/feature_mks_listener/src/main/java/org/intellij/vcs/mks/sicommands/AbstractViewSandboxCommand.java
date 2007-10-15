@@ -2,12 +2,9 @@ package org.intellij.vcs.mks.sicommands;
 
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.vcs.VcsException;
-import com.intellij.openapi.vcs.history.VcsRevisionNumber;
 import com.intellij.vcsUtil.VcsUtil;
 import org.intellij.vcs.mks.EncodingProvider;
-import org.intellij.vcs.mks.MksRevisionNumber;
 import org.intellij.vcs.mks.model.MksMemberState;
-import org.jetbrains.annotations.Nullable;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -62,7 +59,7 @@ public abstract class AbstractViewSandboxCommand extends SiCLICommand {
 
 	protected AbstractViewSandboxCommand(final List<VcsException> errors, final EncodingProvider encodingProvider,
 										 String mksUsername, final String sandboxPath, final String... filters) {
-		super(errors, encodingProvider, COMMAND, createParams(fieldsParam, "--recurse", "--sandbox=" + sandboxPath, filters));
+		super(errors, encodingProvider, COMMAND, createParams(fieldsParam, "--norecurse", "--sandbox=" + sandboxPath, filters));
 		this.mksUsername = mksUsername;
 		this.sandboxPath = sandboxPath;
 	}
@@ -151,22 +148,6 @@ public abstract class AbstractViewSandboxCommand extends SiCLICommand {
 
 	public Map<String, MksMemberState> getMemberStates() {
 		return Collections.unmodifiableMap(memberStates);
-	}
-
-	/**
-	 * @param revision the revision number as obtained from the MKS CLI
-	 * @return VcsRevisionNumber.NULL if no revision is applicable or a valid
-	 *         MksRevisionNumber
-	 * @throws VcsException if the revision doesn't follow MKS conventions \d+(\.\d+)*
-	 */
-	@Nullable
-	protected VcsRevisionNumber createRevision(final String revision) throws VcsException {
-//		if (revision == null) {
-//			System.err.println("creating null revision");
-//		}
-		return (revision == null) ?
-				VcsRevisionNumber.NULL :
-				new MksRevisionNumber(revision);
 	}
 
 	protected boolean isDropped(String type) {
