@@ -562,13 +562,6 @@ public class MksVcs extends AbstractVcs implements ProjectComponent, EncodingPro
 		return mksCheckinEnvironment;
 	}
 
-//    @Nullable
-//    public RollbackEnvironment getRollbackEnvironment() {
-//        return rollbackEnvironment;
-//    }
-
-	//
-
 	public SandboxCache getSandboxCache() {
 		return sandboxCache;
 	}
@@ -619,6 +612,7 @@ public class MksVcs extends AbstractVcs implements ProjectComponent, EncodingPro
 		}
 	}
 
+	@Override
 	@Nullable
 	public RevisionSelector getRevisionSelector() {
 		return super.getRevisionSelector();	//To change body of overridden methods use File | Settings | File Templates.
@@ -631,13 +625,15 @@ public class MksVcs extends AbstractVcs implements ProjectComponent, EncodingPro
 	 *
 	 * @return
 	 */
+	@Override
 	@Nullable
 	public VcsHistoryProvider getVcsBlockHistoryProvider() {
-		return vcsHistoryProvider;
+		return getVcsHistoryProvider();
 	}
 
+	@Override
 	@Nullable
 	public VcsHistoryProvider getVcsHistoryProvider() {
-		return super.getVcsHistoryProvider();
+		return vcsHistoryProvider;
 	}
 }
