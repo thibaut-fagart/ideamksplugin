@@ -24,7 +24,8 @@ public interface SandboxCache extends ModuleRootListener {
 	/**
 	 * @param virtualFile the file that needs a sandbox
 	 * @return the sandbox this file belongs to, or null if it isn't inside a
-	 *         sandbox
+	 *         sandbox. this is the "closest" sandbox, eg, the first one found while crawling up the
+	 *         file system
 	 */
 	@Nullable
 	MksSandboxInfo getSandboxInfo(@NotNull VirtualFile virtualFile);

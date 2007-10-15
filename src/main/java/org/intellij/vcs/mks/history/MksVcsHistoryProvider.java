@@ -11,9 +11,10 @@ import org.intellij.vcs.mks.MksRevisionNumber;
 import org.intellij.vcs.mks.MksVcs;
 import org.intellij.vcs.mks.model.MksMemberRevisionInfo;
 import org.intellij.vcs.mks.realtime.MksSandboxInfo;
-import org.intellij.vcs.mks.sicommands.ListMemberRevisionsCommand;
 import org.intellij.vcs.mks.sicommands.SiCLICommand;
+import org.intellij.vcs.mks.sicommands.ViewMemberHistoryCommand;
 import org.jetbrains.annotations.NonNls;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.BufferedReader;
@@ -22,6 +23,10 @@ import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Allows fetching the history for a particular file. <br/>
+ * relies on si viewhistory
+ */
 public class MksVcsHistoryProvider implements VcsHistoryProvider {
 	private final MksVcs vcs;
 	private final Logger LOGGER = Logger.getInstance(getClass().getName());
@@ -39,7 +44,12 @@ public class MksVcsHistoryProvider implements VcsHistoryProvider {
 			@Override
 			@Nullable
 			public VcsRevisionNumber calcCurrentRevisionNumber() {
-				return getCurrentRevision(sandbox, filePath);
+				try {
+					return getCurrentRevision(sandbox, filePath);
+				} catch (VcsException e) {
+					LOGGER.warn(e.getMessage(), e);
+					return null;
+				}
 			}
 
 			@Override
@@ -49,54 +59,58 @@ public class MksVcsHistoryProvider implements VcsHistoryProvider {
 		};
 	}
 
-	private VcsRevisionNumber getCurrentRevision(MksSandboxInfo sandbox, final FilePath filePath) {
+	/**
+	 * @param sandbox  the sandbox this file belongs to
+	 * @param filePath the file whose revision we need
+	 * @return the current working revision the sandbox uses
+	 * @throws VcsException if fetching the revision fails
+	 */
+	@NotNull
+	private VcsRevisionNumber getCurrentRevision(@NotNull MksSandboxInfo sandbox, @NotNull final FilePath filePath) throws VcsException {
 		FilePath sandboxPath = VcsUtil.getFilePath(sandbox.sandboxPath);
 		FilePath sandboxFolder = sandboxPath.getParentPath();
-		if (!filePath.getPath().startsWith(sandboxFolder.getPath())) {
-			LOGGER.info("error");
-		} else {
-			final String[] currentRevisionHolder = new String[1];
-			(new SiCLICommand(new ArrayList<VcsException>(), vcs, "viewsandbox", "--sandbox=" + sandbox.sandboxPath,
-					"--filter=file:" + filePath.getPath().substring(sandboxFolder.getPath().length() + 1),
-					"--fields=workingrev"
-			) {
-				@Override
-				public void execute() {
-					try {
-						super.executeCommand();
-						BufferedReader reader = new BufferedReader(new StringReader(commandOutput));
-						currentRevisionHolder[0] = reader.readLine();
-					} catch (IOException e) {
-						LOGGER.error("error obtaining current revision for " + filePath, e);
-					}
-
+		assert sandboxFolder != null : "sandbox parent folder can not be null";
+		assert filePath.getPath().startsWith(sandboxFolder.getPath()) :
+				"" + filePath.getPath() + " should start with " + sandboxFolder.getPath();
+		final String[] currentRevisionHolder = new String[1];
+		(new SiCLICommand(new ArrayList<VcsException>(), vcs, "viewsandbox", "--sandbox=" + sandbox.sandboxPath,
+				"--filter=file:" + filePath.getPath().substring(sandboxFolder.getPath().length() + 1),
+				"--fields=workingrev"
+		) {
+			@Override
+			public void execute() {
+				try {
+					super.executeCommand();
+					BufferedReader reader = new BufferedReader(new StringReader(commandOutput));
+					currentRevisionHolder[0] = reader.readLine();
+				} catch (IOException e) {
+					LOGGER.error("error obtaining current revision for " + filePath, e);
 				}
-			}).execute();
-			if (currentRevisionHolder[0] == null) {
-				LOGGER.error("error obtaining current revision for " + filePath);
+
 			}
-			try {
-				return new MksRevisionNumber(currentRevisionHolder[0]);
-			} catch (VcsException e) {
-				LOGGER.error("bad revision " + currentRevisionHolder[0] + " for " + filePath, e);
-				return null;
-			}
+		}).execute();
+		if (currentRevisionHolder[0] == null) {
+			LOGGER.error("error obtaining current revision for " + filePath);
+			throw new VcsException("error obtaining current revision for " + filePath);
 		}
-		return null;
+		return new MksRevisionNumber(currentRevisionHolder[0]);
 
 	}
 
 	private List<VcsFileRevision> getRevisions(FilePath filePath, MksSandboxInfo sandbox) {
-		final ListMemberRevisionsCommand command = new ListMemberRevisionsCommand(new ArrayList<VcsException>(), vcs, sandbox, filePath.getPath());
+		final ViewMemberHistoryCommand command = new ViewMemberHistoryCommand(new ArrayList<VcsException>(), vcs, filePath.getPath());
 		command.execute();
+		if (command.foundError()) {
+			for (VcsException error : command.errors) {
+				LOGGER.warn(error);
+			}
+		}
 		final List<MksMemberRevisionInfo> revisions = command.getRevisionsInfo();
 		final ArrayList<VcsFileRevision> vcsRevisions = new ArrayList<VcsFileRevision>(revisions.size());
 		for (MksMemberRevisionInfo revision : revisions) {
-			vcsRevisions.add(new MksVcsRevision(vcs, filePath, revision));
+			vcsRevisions.add(new MksVcsFileRevision(vcs, filePath, revision));
 		}
 		return vcsRevisions;
-//		throw new UnsupportedOperationException("todo");
-//		return null;
 	}
 
 	private MksSandboxInfo getSandbox(FilePath filePath) {
@@ -120,7 +134,7 @@ public class MksVcsHistoryProvider implements VcsHistoryProvider {
 	@Nullable
 	public HistoryAsTreeProvider getTreeHistoryProvider() {
 		// todo is this for branching ?
-		return null;
+		return new MksMemberHistoryAsTreeProvider();
 	}
 
 	public boolean isDateOmittable() {

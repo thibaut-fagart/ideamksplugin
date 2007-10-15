@@ -21,7 +21,7 @@ import java.util.List;
 public abstract class AbstractMKSCommand {
 	protected final Logger LOGGER = Logger.getInstance(getClass().getName());
 	//		Logger.getInstance(getClass().getName());
-	protected List<VcsException> errors;
+	public final List<VcsException> errors;
 	protected final int previousErrorCount;
 
 	public boolean foundError() {

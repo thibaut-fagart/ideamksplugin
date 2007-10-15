@@ -4,7 +4,6 @@ import com.intellij.openapi.vcs.VcsException;
 import com.intellij.vcsUtil.VcsUtil;
 import org.intellij.vcs.mks.EncodingProvider;
 import org.intellij.vcs.mks.model.MksMemberRevisionInfo;
-import org.intellij.vcs.mks.realtime.MksSandboxInfo;
 import org.jetbrains.annotations.NonNls;
 
 import java.io.BufferedReader;
@@ -22,8 +21,8 @@ import java.util.regex.Pattern;
 /**
  * This command uses tabs to separate fields ...
  */
-public class ListMemberRevisionsCommand extends SiCLICommand {
-	public static final String COMMAND = "viewhistory";
+public class ViewMemberHistoryCommand extends SiCLICommand {
+	private static final String COMMAND = "viewhistory";
 	private static final String descriptionPattern = "(.*)";
 	private static final int REVISION_IDX = 1;
 	private static final int DATE_IDX = 2;
@@ -44,10 +43,9 @@ public class ListMemberRevisionsCommand extends SiCLICommand {
 	private final DateFormat format = new SimpleDateFormat(DATE_PATTERN);
 	private final String member;
 
-	public ListMemberRevisionsCommand(List<VcsException> errors, EncodingProvider encodingProvider, MksSandboxInfo sandbox, String member) {
+	public ViewMemberHistoryCommand(List<VcsException> errors, EncodingProvider encodingProvider, String member) {
 		super(errors, encodingProvider, COMMAND,
 				"--fields=revision,date,author,cpid,description",
-//				"--sandbox=" + sandbox.sandboxPath,
 				member);
 		this.member = member;
 	}
@@ -61,16 +59,12 @@ public class ListMemberRevisionsCommand extends SiCLICommand {
 			errors.add(new VcsException(e));
 			return;
 		}
-
-//			System.out.println("pattern [" + wholeLinePatternString + "]");
 		Pattern wholeLinePattern = Pattern.compile(wholeLinePatternString);
 		BufferedReader reader = new BufferedReader(new StringReader(commandOutput));
 		try {
 			String firstLine = reader.readLine();
 			if (firstLine == null || !VcsUtil.getFilePath(member).equals(VcsUtil.getFilePath(firstLine))) {
-				LOGGER.info("unexpected command output " + commandOutput + ", first line is expected to be " + member);
-//				throw new VcsException("unexpected command output "+commandOutput+", first line is expected to be "+member);
-
+				LOGGER.warn("unexpected command output " + commandOutput + ", first line is expected to be " + member);
 			} else {
 				String line;
 				while ((line = reader.readLine()) != null) {
@@ -91,7 +85,7 @@ public class ListMemberRevisionsCommand extends SiCLICommand {
 							revisionsInfo.add(info);
 						} else {
 							//noinspection ThrowableInstanceNeverThrown
-							errors.add(new VcsException("ViewSandbox : unexpected line [" + line + "]"));
+							errors.add(new VcsException("ViewMemberHistory: unexpected line [" + line + "]"));
 						}
 					} catch (VcsException e) {
 						errors.add(e);
@@ -99,19 +93,17 @@ public class ListMemberRevisionsCommand extends SiCLICommand {
 				}
 			}
 		} catch (IOException e) {
+			//noinspection ThrowableInstanceNeverThrown
 			errors.add(new VcsException(e));
 		}
 	}
 
 	private Date parseDate(String date) throws VcsException {
-//		String temp = "oct. 11, 2007 - 8:34 PM";
 		try {
 			return format.parse(date);
 		} catch (ParseException e) {
-			throw new VcsException("unknown date format (expected [" + DATE_PATTERN + "]) " + date);
+			throw new VcsException("unknown date forma for " + date + " (expected [" + DATE_PATTERN + "])", e);
 		}
-//		new SimpleDateFormat(MMM dd, yyyy - hh:mm a").format(new Date())
-//		throw new UnsupportedOperationException("Method parseDate not yet implemented");
 	}
 
 	public List<MksMemberRevisionInfo> getRevisionsInfo() {
