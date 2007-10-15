@@ -1,8 +1,11 @@
 package org.intellij.vcs.mks.sicommands;
 
 import com.intellij.openapi.vcs.VcsException;
+import com.intellij.openapi.vcs.history.VcsRevisionNumber;
 import org.intellij.vcs.mks.AbstractMKSCommand;
 import org.intellij.vcs.mks.EncodingProvider;
+import org.intellij.vcs.mks.MksRevisionNumber;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.*;
 import java.util.List;
@@ -57,10 +60,11 @@ public abstract class SiCLICommand extends AbstractMKSCommand implements Runnabl
 		}
 		long start = System.currentTimeMillis();
 		LOGGER.debug("executing " + buf.toString());
-		builder.redirectErrorStream(true);
+		builder.redirectErrorStream(false);
 		Process process = builder.start();
 		InputStream is = process.getInputStream();
 		Reader reader = new BufferedReader(new InputStreamReader(is, encodingProvider.getMksSiEncoding(command)));
+		Reader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream(), encodingProvider.getMksSiEncoding(command)));
 		StringWriter sw;
 		try {
 			char[] buffer = new char[512];
@@ -69,10 +73,13 @@ public abstract class SiCLICommand extends AbstractMKSCommand implements Runnabl
 			while ((readChars = reader.read(buffer)) != -1) {
 				sw.write(new String(buffer, 0, readChars));
 			}
+			// todo get ther error stream ?
 		} finally {
 			reader.close();
 			try {
-				process.exitValue();
+				if (process.exitValue() != 0) {
+					LOGGER.warn("return code " + process.exitValue() + " for command " + this);
+				}
 			} catch (IllegalThreadStateException e) {
 				process.destroy();
 			}
@@ -88,5 +95,22 @@ public abstract class SiCLICommand extends AbstractMKSCommand implements Runnabl
 
 	public void run() {
 		execute();
+	}
+
+	/**
+	 * @param revision the revision number as obtained from the MKS CLI
+	 * @return VcsRevisionNumber.NULL if no revision is applicable or a valid
+	 *         MksRevisionNumber
+	 * @throws com.intellij.openapi.vcs.VcsException
+	 *          if the revision doesn't follow MKS conventions \d+(\.\d+)*
+	 */
+	@Nullable
+	protected VcsRevisionNumber createRevision(final String revision) throws VcsException {
+//		if (revision == null) {
+//			System.err.println("creating null revision");
+//		}
+		return (revision == null) ?
+				VcsRevisionNumber.NULL :
+				new MksRevisionNumber(revision);
 	}
 }

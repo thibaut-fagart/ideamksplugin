@@ -12,9 +12,10 @@ import org.jetbrains.annotations.NotNull;
 import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.ResourceBundle;
 
 public class MksConfiguration
-	implements JDOMExternalizable, ProjectComponent {
+		implements JDOMExternalizable, ProjectComponent {
 	public static final String DEFAULT_ENCODING = Charset.defaultCharset().name();
 
 	public MksConfiguration() {
@@ -25,7 +26,9 @@ public class MksConfiguration
 		SANDBOX = "";
 		PROJECT = "";
 		SI_ENCODINGS = new StringMap();
-		defaultEncoding = Charset.defaultCharset().name();
+		ResourceBundle resourceBundle = ResourceBundle.getBundle("org.intellij.vcs.mks.mksBundle");
+		String defaultEncodingName = resourceBundle.getString("defaultEncoding");
+//		defaultEncoding = Charset.defaultCharset().name();
 	}
 
 	public void projectClosed() {
@@ -46,12 +49,12 @@ public class MksConfiguration
 	}
 
 	public void readExternal(Element element)
-		throws InvalidDataException {
+			throws InvalidDataException {
 		DefaultJDOMExternalizer.readExternal(this, element);
 	}
 
 	public void writeExternal(Element element)
-		throws WriteExternalException {
+			throws WriteExternalException {
 		DefaultJDOMExternalizer.writeExternal(this, element);
 	}
 
@@ -89,7 +92,7 @@ public class MksConfiguration
 			// Read in all elements in the proper order.
 			for (int index = 0; index < size; index++) {
 				this.map.put(element.getAttributeValue('k' + Integer.toString(index)),
-					element.getAttributeValue('v' + Integer.toString(index))
+						element.getAttributeValue('v' + Integer.toString(index))
 				);
 			}
 		}
