@@ -21,7 +21,6 @@ import com.intellij.openapi.vcs.changes.ChangeListManager;
 import com.intellij.openapi.vcs.changes.ChangeProvider;
 import com.intellij.openapi.vcs.checkin.CheckinEnvironment;
 import com.intellij.openapi.vcs.diff.DiffProvider;
-import com.intellij.openapi.vcs.diff.RevisionSelector;
 import com.intellij.openapi.vcs.history.VcsHistoryProvider;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileManager;
@@ -347,6 +346,8 @@ public class MksVcs extends AbstractVcs implements ProjectComponent, EncodingPro
 
 	@Override
 	public synchronized boolean fileExistsInVcs(FilePath filePath) {
+		// todo added to see if this is still called/needed
+		LOGGER.warn("fileExistsInVcs (" + filePath + ")");
 		if (DEBUG) {
 			debug("fileExistsInVcs : " + filePath.getPresentableUrl());
 		}
@@ -610,12 +611,6 @@ public class MksVcs extends AbstractVcs implements ProjectComponent, EncodingPro
 			}
 			);
 		}
-	}
-
-	@Override
-	@Nullable
-	public RevisionSelector getRevisionSelector() {
-		return super.getRevisionSelector();	//To change body of overridden methods use File | Settings | File Templates.
 	}
 
 	/**
