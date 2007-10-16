@@ -5,6 +5,7 @@ import com.intellij.openapi.vcs.history.VcsRevisionNumber;
 import org.intellij.vcs.mks.AbstractMKSCommand;
 import org.intellij.vcs.mks.EncodingProvider;
 import org.intellij.vcs.mks.MksRevisionNumber;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.*;
@@ -32,7 +33,7 @@ public abstract class SiCLICommand extends AbstractMKSCommand implements Runnabl
 	protected static final String sandboxPattern = namePattern + "?";
 	protected static final String userPattern = "([^\\s]+)?";
 
-	public SiCLICommand(List<VcsException> errors, EncodingProvider encodingProvider, String command, String... args) {
+	public SiCLICommand(@NotNull List<VcsException> errors, @NotNull EncodingProvider encodingProvider, @NotNull String command, String... args) {
 		super(errors);
 		this.encodingProvider = encodingProvider;
 		this.command = command;
