@@ -5,6 +5,7 @@ import com.intellij.openapi.vcs.history.VcsRevisionNumber;
 import org.intellij.vcs.mks.AbstractMKSCommand;
 import org.intellij.vcs.mks.EncodingProvider;
 import org.intellij.vcs.mks.MksRevisionNumber;
+import org.intellij.vcs.mks.io.AsyncStreamBuffer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -24,14 +25,12 @@ public abstract class SiCLICommand extends AbstractMKSCommand implements Runnabl
 	protected static final String DEFERRED_DROP = "deferred-drop";
 	protected static final String revisionPattern = "([\\d\\.]+)?";
 	protected static final String changePackageIdPattern = "([\\d:]+)?";
-	protected static final String typePattern = "((?:sandbox)|(?:subsandbox)|(?:shared-subsandbox)|(?:shared-variant-subsandbox)" +
-			"|(?:shared-build-subsandbox)|(?:member)|(?:archived)|(?:dropped)|(?:variant-subsandbox)" +
-			"|(?:" + DEFERRED_ADD + ")|(?:" + DEFERRED_DROP + "))";
 	protected static final String deferredPattern = "([^\\s]+)?";
 	protected static final String unusedPattern = "([^\\s]+)?";
 	protected static final String namePattern = "(.+)";
 	protected static final String sandboxPattern = namePattern + "?";
 	protected static final String userPattern = "([^\\s]+)?";
+	private String commandString;
 
 	public SiCLICommand(@NotNull List<VcsException> errors, @NotNull EncodingProvider encodingProvider, @NotNull String command, String... args) {
 		super(errors);
@@ -60,12 +59,15 @@ public abstract class SiCLICommand extends AbstractMKSCommand implements Runnabl
 			buf.append(" ");
 		}
 		long start = System.currentTimeMillis();
+		commandString = buf.toString();
 		LOGGER.debug("executing " + buf.toString());
 		builder.redirectErrorStream(false);
 		Process process = builder.start();
+		AsyncStreamBuffer stderr =
+				new AsyncStreamBuffer(process.getErrorStream());
+
 		InputStream is = process.getInputStream();
 		Reader reader = new BufferedReader(new InputStreamReader(is, encodingProvider.getMksSiEncoding(command)));
-		Reader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream(), encodingProvider.getMksSiEncoding(command)));
 		StringWriter sw;
 		try {
 			char[] buffer = new char[512];
@@ -74,12 +76,14 @@ public abstract class SiCLICommand extends AbstractMKSCommand implements Runnabl
 			while ((readChars = reader.read(buffer)) != -1) {
 				sw.write(new String(buffer, 0, readChars));
 			}
-			// todo get ther error stream ?
 		} finally {
 			reader.close();
 			try {
-				if (process.exitValue() != 0) {
-					LOGGER.warn("return code " + process.exitValue() + " for command " + this);
+				final int exitValue = process.exitValue();
+				final String errorOutput = new String(stderr.get(), encodingProvider.getMksSiEncoding(command));
+				if (!"".equals(errorOutput)) {
+					LOGGER.warn("return code " + exitValue + " for command " + this
+							+ ", stdErr=" + errorOutput);
 				}
 			} catch (IllegalThreadStateException e) {
 				process.destroy();
@@ -113,5 +117,10 @@ public abstract class SiCLICommand extends AbstractMKSCommand implements Runnabl
 		return (revision == null) ?
 				VcsRevisionNumber.NULL :
 				new MksRevisionNumber(revision);
+	}
+
+	@Override
+	public String toString() {
+		return getClass().getSimpleName() + "[" + commandString + "]";
 	}
 }
