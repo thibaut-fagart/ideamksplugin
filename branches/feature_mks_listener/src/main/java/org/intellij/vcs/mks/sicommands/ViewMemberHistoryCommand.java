@@ -7,6 +7,7 @@ import org.intellij.vcs.mks.model.MksMemberRevisionInfo;
 import org.jetbrains.annotations.NonNls;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.StringReader;
 import java.text.DateFormat;
@@ -47,6 +48,7 @@ public class ViewMemberHistoryCommand extends SiCLICommand {
 		super(errors, encodingProvider, COMMAND,
 				"--fields=revision,date,author,cpid,description",
 				member);
+		setWorkingDir(new File(member).getParentFile());
 		this.member = member;
 	}
 
@@ -83,6 +85,11 @@ public class ViewMemberHistoryCommand extends SiCLICommand {
 							info.setAuthor(author);
 							info.setDescription(description);
 							revisionsInfo.add(info);
+						} else if (line.startsWith("Member added")) {
+							// ignore this line and any following
+							//noinspection StatementWithEmptyBody
+							while (reader.readLine() != null) {
+							}
 						} else {
 							//noinspection ThrowableInstanceNeverThrown
 							errors.add(new VcsException("ViewMemberHistory: unexpected line [" + line + "]"));
@@ -102,7 +109,7 @@ public class ViewMemberHistoryCommand extends SiCLICommand {
 		try {
 			return format.parse(date);
 		} catch (ParseException e) {
-			throw new VcsException("unknown date forma for " + date + " (expected [" + DATE_PATTERN + "])", e);
+			throw new VcsException("unknown date forma for " + date + " (expected [" + DATE_PATTERN + "])");
 		}
 	}
 

@@ -5,6 +5,7 @@ import com.intellij.openapi.vcs.VcsException;
 import com.intellij.vcsUtil.VcsUtil;
 import org.intellij.vcs.mks.EncodingProvider;
 import org.intellij.vcs.mks.model.MksMemberState;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -28,6 +29,10 @@ public abstract class AbstractViewSandboxCommand extends SiCLICommand {
 
 	private static final String fieldsParam;
 	protected static final String wholeLinePatternString;
+	//	protected static final String typePattern = "((?:sandbox)|(?:subsandbox)|(?:shared-subsandbox)|(?:shared-variant-subsandbox)" +
+	//			"|(?:shared-build-subsandbox)|(?:member)|(?:archived)|(?:dropped)|(?:variant-subsandbox)" +
+	//			"|(?:" + DEFERRED_ADD + ")|(?:" + DEFERRED_DROP + "))";
+	protected static final String typePattern = "([^\\s]+)";
 
 	static {
 		// --fields=workingrev,memberrev,workingcpid,deferred,pendingcpid,revsyncdelta,type,wfdelta,name
@@ -37,7 +42,7 @@ public abstract class AbstractViewSandboxCommand extends SiCLICommand {
 				+ " " + typePattern
 				+ " " + userPattern
 				+ " " + namePattern
-				+ " " + revisionPattern + " " + sandboxPattern + "?$"; // locked sandbox is null when member is not locked
+				+ " " + revisionPattern + " " + sandboxPattern + "$"; // locked sandbox is null when member is not locked
 	}
 
 	private static final int WORKING_REV_GROUP_IDX = 1;
@@ -54,13 +59,11 @@ public abstract class AbstractViewSandboxCommand extends SiCLICommand {
 	 * records the state as far as mks knows it for every file returned by the command
 	 */
 	protected final Map<String, MksMemberState> memberStates = new HashMap<String, MksMemberState>();
-	protected final String mksUsername;
 	protected final String sandboxPath;
 
 	protected AbstractViewSandboxCommand(final List<VcsException> errors, final EncodingProvider encodingProvider,
-										 String mksUsername, final String sandboxPath, final String... filters) {
-		super(errors, encodingProvider, COMMAND, createParams(fieldsParam, "--norecurse", "--sandbox=" + sandboxPath, filters));
-		this.mksUsername = mksUsername;
+										 final String sandboxPath, final String... filters) {
+		super(errors, encodingProvider, COMMAND, createParams(fieldsParam, "--recurse", "--sandbox=" + sandboxPath, filters));
 		this.sandboxPath = sandboxPath;
 	}
 
@@ -109,7 +112,7 @@ public abstract class AbstractViewSandboxCommand extends SiCLICommand {
 						}
 					} else {
 						//noinspection ThrowableInstanceNeverThrown
-						errors.add(new VcsException("ViewSandbox : unexpected line [" + line + "]"));
+						errors.add(new VcsException(toString() + " : unexpected line [" + line + "]"));
 					}
 				} catch (VcsException e) {
 					// should not happen, VcsExceptions on ChangePackageId
@@ -133,12 +136,13 @@ public abstract class AbstractViewSandboxCommand extends SiCLICommand {
 	}
 
 	/**
+	 * Associates a member state with its file name.
 	 * made protected to be overriden for unit tests as VcsUtil is not available at that time
 	 *
-	 * @param name
-	 * @param memberState
+	 * @param name		the absolute file name
+	 * @param memberState the state of the file
 	 */
-	protected void setState(final String name, final MksMemberState memberState) {
+	protected void setState(@NotNull final String name, @NotNull final MksMemberState memberState) {
 		memberStates.put(VcsUtil.getFilePath(name).getPath(), memberState);
 	}
 
