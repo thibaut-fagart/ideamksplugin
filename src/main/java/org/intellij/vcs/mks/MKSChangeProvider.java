@@ -212,6 +212,7 @@ class MKSChangeProvider extends AbstractProjectComponent implements ChangeProvid
 					break;
 				}
 				case SYNC:
+					// todo some of those changes belong to the Incoming tab
 					builder.processChange(new Change(
 							new MksContentRevision(mksvcs, filePath, state.workingRevision),
 							new MksContentRevision(mksvcs, filePath, state.memberRevision),

@@ -13,10 +13,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.startup.StartupManager;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.util.IconLoader;
-import com.intellij.openapi.vcs.AbstractVcs;
-import com.intellij.openapi.vcs.EditFileProvider;
-import com.intellij.openapi.vcs.FilePath;
-import com.intellij.openapi.vcs.VcsException;
+import com.intellij.openapi.vcs.*;
 import com.intellij.openapi.vcs.changes.ChangeListManager;
 import com.intellij.openapi.vcs.changes.ChangeProvider;
 import com.intellij.openapi.vcs.checkin.CheckinEnvironment;
@@ -81,6 +78,7 @@ public class MksVcs extends AbstractVcs implements ProjectComponent, EncodingPro
 	private MksVcs.TasksModel tasksModel;
 	private static final String MKS_PROJECT_PJ = "project.pj";
 	private final VcsHistoryProvider vcsHistoryProvider = new MksVcsHistoryProvider(this);
+	private final MksCommittedChangesProvider committedChangesProvider = new MksCommittedChangesProvider(this);
 
 
 	public MksVcs(Project project) {
@@ -630,5 +628,10 @@ public class MksVcs extends AbstractVcs implements ProjectComponent, EncodingPro
 	@Nullable
 	public VcsHistoryProvider getVcsHistoryProvider() {
 		return vcsHistoryProvider;
+	}
+
+	@Nullable
+	public CommittedChangesProvider getCommittedChangesProvider() {
+		return committedChangesProvider;
 	}
 }
