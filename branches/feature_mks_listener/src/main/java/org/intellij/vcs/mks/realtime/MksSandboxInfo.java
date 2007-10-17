@@ -66,4 +66,10 @@ public final class MksSandboxInfo implements Comparable<MksSandboxInfo> {
 	public String toString() {
 		return "MksSandbox[" + sandboxPath + "," + hostAndPort + "]";
 	}
+
+
+	@Deprecated
+	public TriclopsSiSandbox getSiSandbox() {
+		return siSandbox;
+	}
 }

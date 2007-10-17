@@ -14,7 +14,7 @@ import com.intellij.vcsUtil.VcsUtil;
 import mks.integrations.common.TriclopsException;
 import mks.integrations.common.TriclopsSiMember;
 import mks.integrations.common.TriclopsSiMembers;
-import mks.integrations.common.TriclopsSiSandbox;
+import org.intellij.vcs.mks.realtime.MksSandboxInfo;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.Nullable;
 
@@ -53,8 +53,8 @@ public class MksCheckinEnvironment implements CheckinEnvironment {
 		dispatchAction.execute();
 
 		List<VcsException> exceptions = dispatchAction.errors;
-		Map<TriclopsSiSandbox, ArrayList<VirtualFile>> filesBysandbox = dispatchAction.getFilesBySandbox();
-		for (Map.Entry<TriclopsSiSandbox, ArrayList<VirtualFile>> entry : filesBysandbox.entrySet()) {
+		Map<MksSandboxInfo, ArrayList<VirtualFile>> filesBysandbox = dispatchAction.getFilesBySandbox();
+		for (Map.Entry<MksSandboxInfo, ArrayList<VirtualFile>> entry : filesBysandbox.entrySet()) {
 			TriclopsSiMembers members = MKSHelper.createMembers(entry.getKey());
 			for (VirtualFile virtualFile : entry.getValue()) {
 				members.addMember(new TriclopsSiMember(virtualFile.getPresentableUrl()));

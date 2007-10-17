@@ -8,6 +8,7 @@ import mks.integrations.common.TriclopsException;
 import mks.integrations.common.TriclopsSiClient;
 import mks.integrations.common.TriclopsSiMembers;
 import mks.integrations.common.TriclopsSiSandbox;
+import org.intellij.vcs.mks.realtime.MksSandboxInfo;
 
 import java.io.File;
 
@@ -20,7 +21,6 @@ public class MKSHelper {
 
 	private static boolean isClientLoaded;
 	private static boolean isClientValid;
-	private static final long SECOND = 1000;
 
 	public static void getMembersStatus(TriclopsSiMembers members) throws TriclopsException {
 		synchronized (mksLock) {
@@ -237,4 +237,7 @@ public class MKSHelper {
 		}
 	}
 
+	public static TriclopsSiMembers createMembers(MksSandboxInfo key) {
+		return createMembers(key.getSiSandbox());
+	}
 }

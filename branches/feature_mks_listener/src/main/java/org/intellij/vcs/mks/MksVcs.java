@@ -472,11 +472,11 @@ public class MksVcs extends AbstractVcs implements ProjectComponent, EncodingPro
 				Messages.showErrorDialog("Unable to find the sandbox(es) for the file(s)", "Could Not Start checkout");
 				return;
 			}
-			for (Map.Entry<TriclopsSiSandbox, ArrayList<VirtualFile>> entry : dispatchCommand.filesBySandbox.entrySet()) {
-				TriclopsSiSandbox sandbox = entry.getKey();
+			for (Map.Entry<MksSandboxInfo, ArrayList<VirtualFile>> entry : dispatchCommand.filesBySandbox.entrySet()) {
+				MksSandboxInfo sandbox = entry.getKey();
 				ArrayList<VirtualFile> files = entry.getValue();
 				errors = new ArrayList<VcsException>();
-				CheckoutFilesCommand command = new CheckoutFilesCommand(errors, sandbox, files);
+				CheckoutFilesCommand command = new CheckoutFilesCommand(errors, sandbox.getSiSandbox(), files);
 				synchronized (MksVcs.this) {
 					command.execute();
 				}
@@ -522,7 +522,7 @@ public class MksVcs extends AbstractVcs implements ProjectComponent, EncodingPro
 		return editFileProvider;
 	}
 
-	public Map<TriclopsSiSandbox, ArrayList<VirtualFile>> dispatchBySandbox(VirtualFile[] files) {
+	public Map<MksSandboxInfo, ArrayList<VirtualFile>> dispatchBySandbox(VirtualFile[] files) {
 		ArrayList<VcsException> dispatchErrors = new ArrayList<VcsException>();
 		DispatchBySandboxCommand dispatchCommand = new DispatchBySandboxCommand(this, dispatchErrors, files);
 		dispatchCommand.execute();
