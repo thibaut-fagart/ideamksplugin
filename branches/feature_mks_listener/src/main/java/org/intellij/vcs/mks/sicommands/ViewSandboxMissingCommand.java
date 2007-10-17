@@ -16,8 +16,8 @@ public class ViewSandboxMissingCommand extends AbstractViewSandboxCommand {
 
 
 	public ViewSandboxMissingCommand(final List<VcsException> errors, final EncodingProvider encodingProvider,
-									 final String username, final String sandboxPath) {
-		super(errors, encodingProvider, username, sandboxPath,/* "--filter=changed",*/"--filter=changed:missing");
+									 final String sandboxPath) {
+		super(errors, encodingProvider, sandboxPath,/* "--filter=changed",*/"--filter=changed:missing");
 	}
 
 	@Override

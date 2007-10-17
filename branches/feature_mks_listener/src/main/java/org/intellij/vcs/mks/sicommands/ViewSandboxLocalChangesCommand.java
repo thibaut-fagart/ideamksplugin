@@ -16,6 +16,7 @@ import java.util.List;
  * @author Thibaut Fagart
  */
 public class ViewSandboxLocalChangesCommand extends AbstractViewSandboxCommand {
+	protected final String mksUsername;
 
 	/**
 	 * username is available in si viewservers
@@ -29,7 +30,8 @@ public class ViewSandboxLocalChangesCommand extends AbstractViewSandboxCommand {
 	 */
 	public ViewSandboxLocalChangesCommand(final List<VcsException> errors, final EncodingProvider encodingProvider,
 										  final String username, final String sandboxPath) {
-		super(errors, encodingProvider, username, sandboxPath,/* "--filter=changed",*/"--filter=changed:working,deferred,locked:" + username);
+		super(errors, encodingProvider, sandboxPath,/* "--filter=changed",*/"--filter=changed:working,deferred,locked:" + username);
+		this.mksUsername = username;
 	}
 
 	@Override
