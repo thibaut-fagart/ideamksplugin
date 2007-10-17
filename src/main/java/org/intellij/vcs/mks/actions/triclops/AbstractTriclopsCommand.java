@@ -5,12 +5,12 @@ import com.intellij.openapi.vfs.VirtualFile;
 import mks.integrations.common.TriclopsException;
 import mks.integrations.common.TriclopsSiMember;
 import mks.integrations.common.TriclopsSiMembers;
-import mks.integrations.common.TriclopsSiSandbox;
 import org.intellij.vcs.mks.DispatchBySandboxCommand;
 import org.intellij.vcs.mks.MKSHelper;
 import org.intellij.vcs.mks.MksVcs;
 import org.intellij.vcs.mks.MksVcsException;
 import org.intellij.vcs.mks.actions.MksCommand;
+import org.intellij.vcs.mks.realtime.MksSandboxInfo;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -34,10 +34,10 @@ public abstract class AbstractTriclopsCommand implements MksCommand {
 			DispatchBySandboxCommand dispatchAction = new DispatchBySandboxCommand(vcs, new ArrayList<VcsException>(), files);
 			dispatchAction.execute();
 
-			Map<TriclopsSiSandbox, ArrayList<VirtualFile>> filesBysandbox = dispatchAction.getFilesBySandbox();
+			Map<MksSandboxInfo, ArrayList<VirtualFile>> filesBysandbox = dispatchAction.getFilesBySandbox();
 			TriclopsSiMembers[] result = new TriclopsSiMembers[filesBysandbox.size()];
 			int i = 0;
-			for (Map.Entry<TriclopsSiSandbox, ArrayList<VirtualFile>> entry : filesBysandbox.entrySet()) {
+			for (Map.Entry<MksSandboxInfo, ArrayList<VirtualFile>> entry : filesBysandbox.entrySet()) {
 				TriclopsSiMembers members = MKSHelper.createMembers(entry.getKey());
 				result[i++] = members;
 				for (VirtualFile virtualFile : entry.getValue()) {
