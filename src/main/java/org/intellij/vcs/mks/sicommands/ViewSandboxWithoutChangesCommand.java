@@ -16,8 +16,8 @@ import java.util.List;
 public class ViewSandboxWithoutChangesCommand extends AbstractViewSandboxCommand {
 
 
-	public ViewSandboxWithoutChangesCommand(final List<VcsException> errors, final EncodingProvider encodingProvider, final String mksUsername, final String sandboxPath) {
-		super(errors, encodingProvider, mksUsername, sandboxPath);
+	public ViewSandboxWithoutChangesCommand(final List<VcsException> errors, final EncodingProvider encodingProvider, final String sandboxPath) {
+		super(errors, encodingProvider, sandboxPath);
 	}
 
 	@Override

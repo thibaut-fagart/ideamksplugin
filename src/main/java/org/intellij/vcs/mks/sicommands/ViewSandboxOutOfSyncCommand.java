@@ -16,8 +16,8 @@ public class ViewSandboxOutOfSyncCommand extends AbstractViewSandboxCommand {
 
 
 	public ViewSandboxOutOfSyncCommand(final List<VcsException> errors, final EncodingProvider encodingProvider,
-									   final String username, final String sandboxPath) {
-		super(errors, encodingProvider, username, sandboxPath,/* "--filter=changed",*/"--filter=changed:sync");
+									   final String sandboxPath) {
+		super(errors, encodingProvider, sandboxPath,/* "--filter=changed",*/"--filter=changed:sync");
 	}
 
 	@Override
