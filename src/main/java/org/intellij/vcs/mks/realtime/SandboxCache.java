@@ -2,7 +2,6 @@ package org.intellij.vcs.mks.realtime;
 
 import com.intellij.openapi.roots.ModuleRootListener;
 import com.intellij.openapi.vfs.VirtualFile;
-import mks.integrations.common.TriclopsSiSandbox;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -13,13 +12,6 @@ import java.util.Set;
  * @author Thibaut Fagart
  */
 public interface SandboxCache extends ModuleRootListener {
-	/**
-	 * @param virtualFile the file that needs a sandbox
-	 * @return the sandbox this file belongs to, or null if it isn't inside a sandbox
-	 * @deprecated use {@link #getSandboxInfo}
-	 */
-	@Nullable
-	TriclopsSiSandbox findSandbox(@NotNull VirtualFile virtualFile);
 
 	/**
 	 * @param virtualFile the file that needs a sandbox
