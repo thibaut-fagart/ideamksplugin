@@ -5,12 +5,13 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import org.intellij.vcs.mks.EncodingProvider;
-import org.intellij.vcs.mks.MksChangePackage;
-import org.intellij.vcs.mks.MksChangePackageEntry;
+import org.intellij.vcs.mks.model.MksChangePackage;
+import org.intellij.vcs.mks.model.MksChangePackageEntry;
 import org.jetbrains.annotations.NonNls;
 import com.intellij.openapi.vcs.VcsException;
 
 /**
+ * @deprecated
  * @author Thibaut Fagart
  */
 public class ListChangePackageEntries extends SiCLICommand {

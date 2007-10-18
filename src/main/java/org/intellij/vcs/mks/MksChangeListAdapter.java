@@ -3,6 +3,7 @@ package org.intellij.vcs.mks;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.vcs.VcsException;
 import com.intellij.openapi.vcs.changes.*;
+import org.intellij.vcs.mks.model.MksChangePackage;
 import org.intellij.vcs.mks.sicommands.RenameChangePackage;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -58,7 +59,7 @@ class MksChangeListAdapter extends ChangeListAdapter {
 	private String createChangeListName(MksChangePackage changePackage) {
 		return
 //			"MKS CP " + changePackage.getId() + "," +
-			changePackage.getSummary();
+				changePackage.getSummary();
 	}
 
 	public boolean isChangeListMksControlled(@NotNull String changeListName) {
@@ -87,7 +88,6 @@ class MksChangeListAdapter extends ChangeListAdapter {
 			}
 
 			renameChangePackage(mksChangePackage, list.getName());
-
 		}
 	}
 
@@ -105,7 +105,25 @@ class MksChangeListAdapter extends ChangeListAdapter {
 
 	@Override
 	public void changesMoved(Collection<Change> changes, ChangeList fromList, ChangeList toList) {
-		super.changesMoved(changes, fromList, toList);
+		// need to check the changes are controlled by mks
+		if (isChangeListMksControlled(fromList.getName()) && isChangeListMksControlled(toList.getName()  /* todo changelist*/)) {
+			// unlock then lock the changes
+			// todo dispatch changes by sandbox
+			// todo create and execute unlock command for each sandbox
+			// todo create and execute lock command for each sandbox
+//			new UnlockMemberCommand(new ArrayList<VcsException>(), mksVcs,
+//					getMksChangePackage(fromList.getName()), ChangesUtil.getPaths(changes).to)
+		} else if (isChangeListMksControlled(fromList.getName())) {
+			// unlock the changes
+			// todo dispatch changes by sandbox
+			// todo create and execute unlock command for each sandbox
+		} else if (isChangeListMksControlled(toList.getName())) {
+			// lock the changes
+			// todo dispatch changes by sandbox
+			// todo create and execute lock command for each sandbox
+		} else {
+			super.changesMoved(changes, fromList, toList);
+		}
 		// todo update changePackages
 	}
 

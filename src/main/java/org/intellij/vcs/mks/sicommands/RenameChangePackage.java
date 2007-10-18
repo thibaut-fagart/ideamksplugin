@@ -1,7 +1,7 @@
 package org.intellij.vcs.mks.sicommands;
 
 import com.intellij.openapi.vcs.VcsException;
-import org.intellij.vcs.mks.MksChangePackage;
+import org.intellij.vcs.mks.model.MksChangePackage;
 import org.intellij.vcs.mks.MksVcs;
 
 import java.io.IOException;

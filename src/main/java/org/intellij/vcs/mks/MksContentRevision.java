@@ -1,24 +1,25 @@
 package org.intellij.vcs.mks;
 
-import java.util.ArrayList;
-import org.intellij.vcs.mks.sicommands.GetContentRevision;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import com.intellij.openapi.vcs.FilePath;
 import com.intellij.openapi.vcs.VcsException;
 import com.intellij.openapi.vcs.changes.ContentRevision;
 import com.intellij.openapi.vcs.history.VcsRevisionNumber;
+import org.intellij.vcs.mks.sicommands.GetContentRevision;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.ArrayList;
 
 /**
  * @author Thibaut Fagart
  */
 public class MksContentRevision implements ContentRevision {
 
-    final MksRevisionNumber myRevision;
+    final VcsRevisionNumber myRevision;
     private MksVcs mksvcs;
     final FilePath myFile;
 
-    public MksContentRevision(MksVcs mksvcs, FilePath myFile, MksRevisionNumber myRevision) {
+    public MksContentRevision(MksVcs mksvcs, FilePath myFile, VcsRevisionNumber myRevision) {
         this.mksvcs = mksvcs;
         this.myFile = myFile;
         this.myRevision = myRevision;
@@ -27,7 +28,7 @@ public class MksContentRevision implements ContentRevision {
     @Nullable
     public String getContent() throws VcsException {
         GetContentRevision getRevisionCommand = new GetContentRevision(new ArrayList<VcsException>(), mksvcs,
-            (MksRevisionNumber) this.getRevisionNumber(), this.getFile().getPath());
+                this.getRevisionNumber(), this.getFile().getPath());
         getRevisionCommand.execute();
         return getRevisionCommand.getContent();
     }
@@ -40,5 +41,10 @@ public class MksContentRevision implements ContentRevision {
     @NotNull
     public VcsRevisionNumber getRevisionNumber() {
         return myRevision;
+    }
+
+    @Override
+    public String toString() {
+        return "MksContentRevision[" + getFile() + ":" + getRevisionNumber() + "]";
     }
 }

@@ -7,7 +7,7 @@
 	<name>IDEA MKS Plugin</name>
 	<description>Implementation of an IDEA MKS plugin.</description>
 	<properties>
-		<idea.version>7.0.7041</idea.version>
+		<idea.version>7.0.7123</idea.version>
 	</properties>
 	<scm>
 		<connection>scm:svn:http://ideamksplugin.googlecode.com/svn/trunk</connection>
