@@ -127,7 +127,7 @@ public class SandboxCacheImpl implements SandboxCache {
 					public void run() {
 						ApplicationManager.getApplication().runReadAction(new Runnable() {
 							public void run() {
-								VcsDirtyScopeManager.getInstance(project).dirDirtyRecursively(sandboxParentFolderVFile);
+								VcsDirtyScopeManager.getInstance(project).dirDirtyRecursively(sandboxParentFolderVFile, true);
 							}
 						});
 					}
