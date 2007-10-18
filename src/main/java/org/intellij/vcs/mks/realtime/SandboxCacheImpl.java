@@ -1,18 +1,22 @@
 package org.intellij.vcs.mks.realtime;
 
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.roots.ModuleRootEvent;
 import com.intellij.openapi.roots.ProjectRootManager;
+import com.intellij.openapi.vcs.FilePath;
+import com.intellij.openapi.vcs.VcsException;
+import com.intellij.openapi.vcs.changes.VcsDirtyScopeManager;
 import com.intellij.openapi.vfs.VfsUtil;
 import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.peer.PeerFactory;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.vcsUtil.VcsUtil;
-import mks.integrations.common.TriclopsException;
-import mks.integrations.common.TriclopsSiMember;
-import mks.integrations.common.TriclopsSiMembers;
-import mks.integrations.common.TriclopsSiSandbox;
 import org.intellij.vcs.mks.MKSHelper;
+import org.intellij.vcs.mks.MksVcs;
+import org.intellij.vcs.mks.model.MksMemberState;
+import org.intellij.vcs.mks.sicommands.AbstractViewSandboxCommand;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -21,6 +25,9 @@ import java.io.PrintWriter;
 import java.util.*;
 
 /**
+ * todo we may need to support multiple sandbox files per folder.
+ * todo This would mean modifying
+ *
  * @author Thibaut Fagart
  */
 public class SandboxCacheImpl implements SandboxCache {
@@ -64,6 +71,7 @@ public class SandboxCacheImpl implements SandboxCache {
 		}
 	}, "MKS sandbox synchronizer retrier");
 	private boolean stopBackgroundThread = false;
+	private static final int MAX_RETRY = 5;
 
 	public SandboxCacheImpl(final Project project) {
 		this.project = project;
@@ -75,13 +83,6 @@ public class SandboxCacheImpl implements SandboxCache {
 
 	public boolean isSandboxProject(@NotNull VirtualFile virtualFile) {
 		return sandboxVFiles.contains(virtualFile) || virtualFile.getName().equals("project.pj");
-	}
-
-	// todo semble pas renvoyer la bonne sandbox
-	@Nullable
-	public TriclopsSiSandbox findSandbox(@NotNull VirtualFile virtualFile) {
-		MksSandboxInfo sandboxInfo = getSandboxInfo(virtualFile);
-		return (sandboxInfo == null) ? null : sandboxInfo.siSandbox;
 	}
 
 	public void addSandboxPath(@NotNull String sandboxPath, @NotNull final String mksHostAndPort, @NotNull String mksProject, @Nullable String devPath) {
@@ -113,17 +114,29 @@ public class SandboxCacheImpl implements SandboxCache {
 			if (sandboxFolder == null) {
 				LOGGER.warn("unable to find parent VirtualFile for sandbox [" + sandboxVFile + "]");
 			}
+
 			synchronized (lock) {
 				// ok sandbox in project path
-				try {
-					sandboxInfo.siSandbox = MKSHelper.createSandbox(sandboxPath);
-					sandboxByFolder.put(sandboxFolder, sandboxInfo);
-					sandboxVFiles.add(sandboxVFile);
-					LOGGER.debug("updated sandbox in cache : " + sandboxVFile);
-				} catch (TriclopsException e) {
-					LOGGER.error("invalid sandbox ? (" + sandboxPath + ")", e);
-					addRejected(sandboxInfo);
-				}
+//				try {
+				sandboxByFolder.put(sandboxFolder, sandboxInfo);
+				sandboxVFiles.add(sandboxVFile);
+				LOGGER.debug("updated sandbox in cache : " + sandboxVFile);
+				final VirtualFile sandboxParentFolderVFile = sandboxVFile.getParent();
+				LOGGER.info("marking " + sandboxParentFolderVFile + "as dirty");
+				ApplicationManager.getApplication().invokeLater(new Runnable() {
+					public void run() {
+						ApplicationManager.getApplication().runReadAction(new Runnable() {
+							public void run() {
+								VcsDirtyScopeManager.getInstance(project).dirDirtyRecursively(sandboxParentFolderVFile);
+							}
+						});
+					}
+				});
+
+//				} catch (TriclopsException e) {
+//					LOGGER.error("invalid sandbox ? (" + sandboxPath + ")", e);
+//					addRejected(sandboxInfo);
+//				}
 			}
 		} else {
 			LOGGER.warn("unable to find the virtualFile for " + sandboxPath);
@@ -137,11 +150,9 @@ public class SandboxCacheImpl implements SandboxCache {
 	}
 
 	/**
-	 * determines if the sandbox is either UNDER the project or above it, eg if the files controlled by the sandbox
-	 * should be monitored
-	 *
-	 * @param sandboxFile
-	 * @return
+	 * @param sandboxFile the sandbox file (aka project.pj)
+	 * @return true if the sandbox is either UNDER the current project or above it, eg if at least part of the files controlled by the sandbox
+	 *         should be monitored
 	 */
 	private boolean doesSandboxIntersectProject(@NotNull File sandboxFile) {
 		File sandboxFolder = sandboxFile.getParentFile();
@@ -162,6 +173,10 @@ public class SandboxCacheImpl implements SandboxCache {
 	}
 
 	private void addRejected(final MksSandboxInfo sandbox) {
+		sandbox.retries++;
+		if (sandbox.retries > MAX_RETRY) {
+			LOGGER.warn("giving up sandbox after too many retries " + sandbox.sandboxPath);
+		}
 		synchronized (pendingUpdates) {
 			pendingUpdates.add(sandbox);
 		}
@@ -255,6 +270,8 @@ public class SandboxCacheImpl implements SandboxCache {
 	}
 
 	public boolean isPartOfSandbox(@NotNull final VirtualFile file) {
+		return getSandboxInfo(file) != null;
+/*
 		TriclopsSiSandbox sandbox = findSandbox(file);
 		TriclopsSiMembers members = MKSHelper.createMembers(sandbox);
 		TriclopsSiMember triclopsSiMember = new TriclopsSiMember(file.getPath());
@@ -267,6 +284,7 @@ public class SandboxCacheImpl implements SandboxCache {
 		}
 		TriclopsSiMember returnedMember = members.getMember(0);
 		return returnedMember.isStatusControlled();
+*/
 	}
 
 	@Nullable
@@ -275,8 +293,48 @@ public class SandboxCacheImpl implements SandboxCache {
 		VirtualFile cursorDir = (virtualFile.isDirectory() ? virtualFile : virtualFile.getParent());
 		for (; cursorDir != null && sandbox == null; cursorDir = cursorDir.getParent()) {
 			sandbox = sandboxByFolder.get(cursorDir);
+			/*
+			todo need to take care of the case where multiple sanbdoxes are in the same directory
+			if (sandbox = null 
+			&& !checkSandboxContains(sandbox, virtualFile)) {
+				sandbox = null;
+			}*/
 		}
 		return sandbox;
+	}
+
+	/**
+	 * THis only works when sandbox is the bottom most subsandbox including virtualfile. Thus this is not supported
+	 * when subsandboxes are not monitored
+	 *
+	 * @param sandbox
+	 * @param virtualFile
+	 * @return
+	 */
+	private boolean checkSandboxContains(@NotNull MksSandboxInfo sandbox, @NotNull VirtualFile virtualFile) {
+		final FilePath filePath = PeerFactory.getInstance().getVcsContextFactory().createFilePathOn(virtualFile);
+		if (!filePath.getIOFile().exists() || sandbox.sandboxPjFile == null) {
+			return false;
+		}
+		final FilePath sandboxFolderFilePath = PeerFactory.getInstance().getVcsContextFactory().createFilePathOn(sandbox.sandboxPjFile.getParent());
+
+		AbstractViewSandboxCommand command = new AbstractViewSandboxCommand(new ArrayList<VcsException>(), project.getComponent(MksVcs.class),
+				sandbox.sandboxPath, "--filter=file:" + MKSHelper.getRelativePath(filePath, sandboxFolderFilePath)) {
+			@Override
+			protected MksMemberState createState(String workingRev, String memberRev, String workingCpid, String locker, String lockedSandbox, String type, String deferred) throws VcsException {
+				return new MksMemberState(createRevision(workingRev), createRevision(memberRev), workingCpid, MksMemberState.Status.UNKNOWN);
+			}
+		};
+		command.execute();
+		if (command.foundError()) {
+			LOGGER.error("error while checking if sandbox " + sandbox + " contains " + virtualFile);
+			for (VcsException error : command.errors) {
+				LOGGER.warn(error);
+			}
+
+		}
+		return command.getMemberStates().get(filePath.getPath()) != null;
+
 	}
 
 	public void release() {
