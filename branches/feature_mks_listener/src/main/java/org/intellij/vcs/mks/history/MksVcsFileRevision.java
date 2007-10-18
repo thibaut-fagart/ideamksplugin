@@ -17,8 +17,9 @@ public class MksVcsFileRevision implements VcsFileRevision {
 	private Date revisionDate;
 	private final MksVcs mksvcs;
 	private final FilePath myFile;
-	private VcsRevisionNumber revision;
+	private final VcsRevisionNumber revision;
 	private String myContent;
+	private final String cpid;
 
 	public MksVcsFileRevision(MksVcs mksvcs, FilePath myFile, MksMemberRevisionInfo info) {
 		this.mksvcs = mksvcs;
@@ -28,6 +29,7 @@ public class MksVcsFileRevision implements VcsFileRevision {
 		commitMessage = info.getDescription();
 		revisionDate = info.getDate();
 		revision = info.getRevision();
+		cpid = info.getCpid();
 	}
 
 	public String getAuthor() {
@@ -46,8 +48,11 @@ public class MksVcsFileRevision implements VcsFileRevision {
 		return revisionDate;
 	}
 
-	public void loadContent() throws VcsException {
-		myContent = new MksContentRevision(mksvcs, myFile, revision).getContent();
+	public synchronized void loadContent() throws VcsException {
+
+		if (myContent == null) {
+			myContent = new MksContentRevision(mksvcs, myFile, revision).getContent();
+		}
 	}
 
 	public VcsRevisionNumber getRevisionNumber() {
@@ -62,6 +67,7 @@ public class MksVcsFileRevision implements VcsFileRevision {
 		return myFile;
 	}
 
+	@Override
 	public boolean equals(Object o) {
 		if (this == o) {
 			return true;
@@ -77,10 +83,19 @@ public class MksVcsFileRevision implements VcsFileRevision {
 
 	}
 
+	@Override
 	public int hashCode() {
 		int result;
 		result = myFile.hashCode();
 		result = 31 * result + (revision != null ? revision.hashCode() : 0);
 		return result;
+	}
+
+	public String toString() {
+		return getClass().getSimpleName() + "[" + myFile + "," + revision.asString() + "]";
+	}
+
+	public String getCpid() {
+		return cpid;
 	}
 }

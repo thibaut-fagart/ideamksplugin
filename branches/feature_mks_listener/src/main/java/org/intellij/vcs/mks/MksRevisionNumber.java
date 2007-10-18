@@ -29,6 +29,26 @@ public class MksRevisionNumber implements VcsRevisionNumber {
 		return revision;
 	}
 
+	@Override
+	public boolean equals(Object o) {
+		if (this == o) {
+			return true;
+		}
+		if (o == null || getClass() != o.getClass()) {
+			return false;
+		}
+
+		MksRevisionNumber that = (MksRevisionNumber) o;
+
+		return revision.equals(that.revision);
+
+	}
+
+	@Override
+	public int hashCode() {
+		return revision.hashCode();
+	}
+
 	/**
 	 * @return the parent revision of of this revision
 	 */
