@@ -17,7 +17,7 @@ public class ViewSandboxWithoutChangesCommand extends AbstractViewSandboxCommand
 
 
 	public ViewSandboxWithoutChangesCommand(final List<VcsException> errors, final EncodingProvider encodingProvider, final String sandboxPath) {
-		super(errors, encodingProvider, sandboxPath);
+		super(errors, encodingProvider, sandboxPath, "--filter=!changed", "--filter=!deferred");
 	}
 
 	@Override
@@ -25,10 +25,12 @@ public class ViewSandboxWithoutChangesCommand extends AbstractViewSandboxCommand
 										 final String locker, final String lockedSandbox, final String type, final String deferred) throws VcsException {
 		VcsRevisionNumber workingRevision = createRevision(workingRev);
 		VcsRevisionNumber memberRevision = createRevision(memberRev);
-		if (isDropped(type)) {
-			return new MksMemberState(workingRevision, memberRevision, workingCpid, MksMemberState.Status.DROPPED);
-		} else if (memberRevision != null && workingRevision == null) {
-			return new MksMemberState(workingRevision, memberRevision, workingCpid, MksMemberState.Status.MISSISNG);
+		if (!"archived".equals(type)) {
+			LOGGER.warn("exepecting only non changed members " + type);
+//			return new MksMemberState(workingRevision, memberRevision, workingCpid, MksMemberState.Status.DROPPED);
+//		} else if (memberRevision != null && workingRevision == null) {
+//			return new MksMemberState(workingRevision, memberRevision, workingCpid, MksMemberState.Status.MISSISNG);
+			throw new VcsException("exepecting only non changed members");
 		} else {
 			return new MksMemberState(workingRevision, memberRevision, workingCpid, MksMemberState.Status.NOT_CHANGED);
 		}
