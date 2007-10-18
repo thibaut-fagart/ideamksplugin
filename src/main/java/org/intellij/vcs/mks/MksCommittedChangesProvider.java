@@ -1,7 +1,6 @@
 package org.intellij.vcs.mks;
 
 import com.intellij.openapi.vcs.*;
-import com.intellij.openapi.vcs.versionBrowser.ChangeBrowserSettings;
 import com.intellij.openapi.vcs.versionBrowser.ChangesBrowserSettingsEditor;
 
 import java.util.List;
@@ -13,8 +12,14 @@ import java.util.List;
  * @see http://www.intellij.net/forums/thread.jspa?messageID=5194739&#5194739
  */
 public class MksCommittedChangesProvider implements CommittedChangesProvider<MksCommittedChangeList, MksChangeBrowserSettings> {
-	public ChangeBrowserSettings createDefaultSettings() {
-		return null;  //To change body of implemented methods use File | Settings | File Templates.
+	private final MksVcs mksVcs;
+
+	public MksCommittedChangesProvider(MksVcs mksVcs) {
+		this.mksVcs = mksVcs;
+	}
+
+	public MksChangeBrowserSettings createDefaultSettings() {
+		return null;
 	}
 
 	public ChangesBrowserSettingsEditor createFilterUI(boolean showDateFilter) {
