@@ -1,6 +1,5 @@
 package org.intellij.vcs.mks.sicommands;
 
-import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.vcs.VcsException;
 import com.intellij.vcsUtil.VcsUtil;
 import org.intellij.vcs.mks.EncodingProvider;
@@ -21,8 +20,6 @@ import java.util.regex.Pattern;
  * @author Thibaut Fagart
  */
 public abstract class AbstractViewSandboxCommand extends SiCLICommand {
-	private final Logger LOGGER = Logger.getInstance(getClass().getName());
-
 	protected static final String DEFERRED = "deferred";
 	private static final String COMMAND = "viewsandbox";
 	protected static final String DROPPED_TYPE = "dropped";

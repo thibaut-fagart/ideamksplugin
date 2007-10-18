@@ -1,8 +1,8 @@
 package org.intellij.vcs.mks.model;
 
+import com.intellij.openapi.vcs.history.VcsRevisionNumber;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import com.intellij.openapi.vcs.history.VcsRevisionNumber;
 
 /**
  * Used to keep track of the current state of a sandbox. <br/> Is associated
@@ -21,7 +21,8 @@ public final class MksMemberState {
 		SYNC("sync"),
 		DROPPED("dropped"),
 		ADDED("added"),
-		UNKNOWN("unknown");
+		UNKNOWN("unknown"),
+		UNVERSIONED("unversioned");
 		private final String description;
 
 		private Status(String description) {
@@ -59,7 +60,7 @@ public final class MksMemberState {
 	@Override
 	public String toString() {
 		return "memberRev " + ((memberRevision == null) ? "null" : memberRevision.asString()) + ", workingRev " + ((workingRevision == null) ? "null" : workingRevision.asString())
-		       + ", status " + status/* +", checkedout " + checkedout+ ", modified without checkout " + modifiedWithoutCheckout*/
-		       + ", wokingCpid " + workingChangePackageId;
+				+ ", status " + status/* +", checkedout " + checkedout+ ", modified without checkout " + modifiedWithoutCheckout*/
+				+ ", wokingCpid " + workingChangePackageId;
 	}
 }

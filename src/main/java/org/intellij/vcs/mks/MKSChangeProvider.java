@@ -9,6 +9,7 @@ import com.intellij.openapi.vcs.FileStatus;
 import com.intellij.openapi.vcs.VcsException;
 import com.intellij.openapi.vcs.changes.*;
 import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.openapi.wm.WindowManager;
 import com.intellij.ui.ColoredTreeCellRenderer;
 import com.intellij.ui.SimpleTextAttributes;
 import com.intellij.util.Processor;
@@ -21,14 +22,11 @@ import org.intellij.vcs.mks.realtime.SandboxCache;
 import org.intellij.vcs.mks.sicommands.*;
 import org.jetbrains.annotations.NotNull;
 
-import java.io.File;
+import javax.swing.*;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * @author Thibaut Fagart
@@ -50,87 +48,56 @@ class MKSChangeProvider extends AbstractProjectComponent implements ChangeProvid
 	public void getChanges(final VcsDirtyScope dirtyScope, ChangelistBuilder builder, final ProgressIndicator progress) throws VcsException {
 		ArrayList<VcsException> errors = new ArrayList<VcsException>();
 		logger.debug("start getChanges");
+		final JLabel statusLabel = new JLabel();
 		try {
+			WindowManager.getInstance().getStatusBar(myProject).addCustomIndicationComponent(statusLabel);
+			setStatusInfo(statusLabel, "collecting servers");
 			ArrayList<MksServerInfo> servers = getMksServers(progress, errors);
+			setStatusInfo(statusLabel, "collecting change packages");
 			final Map<MksServerInfo, Map<String, MksChangePackage>> changePackagesPerServer = getChangePackages(progress, errors, servers);
 			// collect affected sandboxes
-			final ChangelistBuilder myBuilder = builder;
-			if (MksVcs.DEBUG) {
-				builder = createBuilderLoggingProxy(myBuilder);
-			}
+//			if (MksVcs.DEBUG) {
+//				builder = createBuilderLoggingProxy(myBuilder);
+//			}
+			setStatusInfo(statusLabel, "collecting relevant sandboxes");
 			final Map<String, MksServerInfo> serversByHostAndPort = distributeServersByHostAndPort(servers);
-			final Map<MksServerInfo, Map<String, MksMemberState>> states = new HashMap<MksServerInfo, Map<String, MksMemberState>>();
 			final SandboxCache sandboxCache = mksvcs.getSandboxCache();
+			Set<MksSandboxInfo> sandboxesToRefresh = new HashSet<MksSandboxInfo>();
+
 			for (VirtualFile dir : dirtyScope.getAffectedContentRoots()) {
 				Set<MksSandboxInfo> sandboxes = sandboxCache.getSandboxesIntersecting(dir);
-				for (MksSandboxInfo sandbox : sandboxes) {
-					MksServerInfo sandboxServer = serversByHostAndPort.get(sandbox.hostAndPort);
-					if (states.get(sandboxServer) == null) {
-						states.put(sandboxServer, new HashMap<String, MksMemberState>());
-					}
-					states.get(sandboxServer).putAll(getSandboxState(sandbox, errors, sandboxServer));
-				}
+				sandboxesToRefresh.addAll(sandboxes);
+			}
+			int sandboxCountToRefresh = sandboxesToRefresh.size();
+			int refreshedSandbox = 0;
+			for (MksSandboxInfo sandbox : sandboxesToRefresh) {
+				MksServerInfo sandboxServer = serversByHostAndPort.get(sandbox.hostAndPort);
+				final String message = "requesting mks sandbox "
+						+ sandbox.sandboxPath + " (" + (++refreshedSandbox) + "/" + sandboxCountToRefresh + ") ";
+				setStatusInfo(statusLabel, message);
+				processDirtySandbox(builder, changePackagesPerServer.get(sandboxServer), getSandboxState(sandbox, errors, sandboxServer));
 			}
 			final ChangelistBuilder finalBuilder = builder;
 			// iterate over the local dirty scope to flag unversioned files
+			setStatusInfo(statusLabel, "processing unversioned files");
 			dirtyScope.iterate(new Processor<FilePath>() {
 				public boolean process(FilePath filePath) {
 					if (filePath.isDirectory()) {
-//                        System.err.println("skipping directory");
 						return true;
 					} else if (filePath.getVirtualFile() == null) {
 						logger.warn("no VirtualFile for " + filePath.getPath() + ", ignoring");
-//                        finalBuilder.processIgnoredFile(filePath.getVirtualFile());
 						return true;
 					} else if (sandboxCache.isSandboxProject(filePath.getVirtualFile())) {
 						finalBuilder.processIgnoredFile(filePath.getVirtualFile());
-//                        System.err.println("ignoring project.pj file");
+						//                        System.err.println("ignoring project.pj file");
 						return true;
 					} else {
-						MksSandboxInfo sandbox = sandboxCache.getSandboxInfo(filePath.getVirtualFile());
-						if (sandbox != null) {
-							MksServerInfo sandboxServer = serversByHostAndPort.get(sandbox.hostAndPort);
-							if (sandboxServer != null) {
-								Map<String, MksMemberState> serverStates = states.get(sandboxServer);
-								if (serverStates == null) {
-									logger.info("no sandbox states for server " + sandboxServer + " (used by sandbox " + sandbox + ")");
-									finalBuilder.processUnversionedFile(filePath.getVirtualFile());
-									return true;
-								}
-								MksMemberState state = serverStates.get(filePath.getPath());
-								if (state != null) {
-									return true;
-								}
-								final String absolutePath = filePath.getPath().toUpperCase();
-								// there is possibly a file with a different case ...
-								for (String filename : serverStates.keySet()) {
-									if (filename.toUpperCase().equals(absolutePath) && new File(filename).equals(filePath.getIOFile())) {
-										logger.warn("found a file with different case for " + filename);
-										return true;
-									}
-								}
-							} else {
-								// should not happen, but who knows !
-								logger.warn("no known server for sandbox [" + sandbox.sandboxPath + "]");
-							}
-						}
+						return true;
 					}
-					// either
-					// no state for a sandbox controlled file
-					// or file not sandbox
-					// or no known server for a reported sandbox
-					finalBuilder.processUnversionedFile(filePath.getVirtualFile());
-					return true;
 				}
 			});
-			for (Map.Entry<MksServerInfo, Map<String, MksMemberState>> entry : states.entrySet()) {
-				MksServerInfo sandboxServer = entry.getKey();
-				processDirtySandbox(builder, changePackagesPerServer.get(sandboxServer), entry.getValue());
-			}
-		} catch (RuntimeException e) {
-			e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
-			throw e;
 		} finally {
+			WindowManager.getInstance().getStatusBar(myProject).removeCustomIndicationComponent(statusLabel);
 			logger.debug("end getChanges");
 		}
 		if (!errors.isEmpty()) {
@@ -138,6 +105,10 @@ class MKSChangeProvider extends AbstractProjectComponent implements ChangeProvid
 		}
 
 
+	}
+
+	private void setStatusInfo(JLabel statusLabel, String message) {
+		statusLabel.setText(message);
 	}
 
 	private ChangelistBuilder createBuilderLoggingProxy(final ChangelistBuilder myBuilder) {
@@ -234,6 +205,10 @@ class MKSChangeProvider extends AbstractProjectComponent implements ChangeProvid
 				}
 				case NOT_CHANGED:
 					break;
+				case UNVERSIONED: {
+					builder.processUnversionedFile(virtualFile);
+					break;
+				}
 				case UNKNOWN: {
 					builder.processChange(new Change(
 							new MksContentRevision(mksvcs, filePath, state.workingRevision),
@@ -254,21 +229,25 @@ class MKSChangeProvider extends AbstractProjectComponent implements ChangeProvid
 	private Map<String, MksMemberState> getSandboxState(@NotNull final MksSandboxInfo sandbox, final ArrayList<VcsException> errors, final MksServerInfo server) {
 		Map<String, MksMemberState> states = new HashMap<String, MksMemberState>();
 
-		ViewSandboxWithoutChangesCommand fullSandboxCommand = new ViewSandboxWithoutChangesCommand(errors, mksvcs, server.user, sandbox.sandboxPath);
+		ViewSandboxWithoutChangesCommand fullSandboxCommand = new ViewSandboxWithoutChangesCommand(errors, mksvcs, sandbox.sandboxPath);
 		fullSandboxCommand.execute();
 		states.putAll(fullSandboxCommand.getMemberStates());
-
-		ViewSandboxOutOfSyncCommand outOfSyncCommand = new ViewSandboxOutOfSyncCommand(errors, mksvcs, server.user, sandbox.sandboxPath);
-		outOfSyncCommand.execute();
-		states.putAll(outOfSyncCommand.getMemberStates());
 
 		ViewSandboxLocalChangesCommand localChangesCommand = new ViewSandboxLocalChangesCommand(errors, mksvcs, server.user, sandbox.sandboxPath);
 		localChangesCommand.execute();
 		states.putAll(localChangesCommand.getMemberStates());
 
-		ViewSandboxMissingCommand missingCommand = new ViewSandboxMissingCommand(errors, mksvcs, server.user, sandbox.sandboxPath);
-		missingCommand.execute();
-		states.putAll(missingCommand.getMemberStates());
+		ViewNonMembersCommand nonMembersCommand = new ViewNonMembersCommand(errors, mksvcs, sandbox);
+		nonMembersCommand.execute();
+		states.putAll(nonMembersCommand.getMemberStates());
+// todo the below belong to incoming changes
+//		ViewSandboxOutOfSyncCommand outOfSyncCommand = new ViewSandboxOutOfSyncCommand(errors, mksvcs, sandbox.sandboxPath);
+//		outOfSyncCommand.execute();
+//		states.putAll(outOfSyncCommand.getMemberStates());
+
+//		ViewSandboxMissingCommand missingCommand = new ViewSandboxMissingCommand(errors, mksvcs, sandbox.sandboxPath);
+//		missingCommand.execute();
+//		states.putAll(missingCommand.getMemberStates());
 
 		return states;
 	}
