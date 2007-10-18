@@ -7,19 +7,17 @@ import com.intellij.openapi.vcs.VcsException;
 import com.intellij.openapi.vcs.history.*;
 import com.intellij.util.ui.ColumnInfo;
 import com.intellij.vcsUtil.VcsUtil;
-import org.intellij.vcs.mks.MksRevisionNumber;
 import org.intellij.vcs.mks.MksVcs;
 import org.intellij.vcs.mks.model.MksMemberRevisionInfo;
+import org.intellij.vcs.mks.model.MksMemberState;
 import org.intellij.vcs.mks.realtime.MksSandboxInfo;
-import org.intellij.vcs.mks.sicommands.SiCLICommand;
+import org.intellij.vcs.mks.sicommands.AbstractViewSandboxCommand;
 import org.intellij.vcs.mks.sicommands.ViewMemberHistoryCommand;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.StringReader;
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -39,8 +37,21 @@ public class MksVcsHistoryProvider implements VcsHistoryProvider {
 	public VcsHistorySession createSessionFor(final FilePath filePath) throws VcsException {
 		final boolean isDirectory = filePath.isDirectory();
 		final MksSandboxInfo sandbox = getSandbox(filePath);
-		List<VcsFileRevision> revisions = getRevisions(filePath, sandbox);
-		return new VcsHistorySession(revisions) {
+		if (sandbox == null) {
+			LOGGER.warn("can't find sandbox for " + filePath);
+			return null;
+		}
+		return new VcsHistorySession(null) {
+			private List<VcsFileRevision> revisions;
+
+			@Override
+			public synchronized List<VcsFileRevision> getRevisionList() {
+				if (revisions == null) {
+					revisions = getRevisions(filePath);
+				}
+				return revisions;
+			}
+
 			@Override
 			@Nullable
 			public VcsRevisionNumber calcCurrentRevisionNumber() {
@@ -72,32 +83,48 @@ public class MksVcsHistoryProvider implements VcsHistoryProvider {
 		assert sandboxFolder != null : "sandbox parent folder can not be null";
 		assert filePath.getPath().startsWith(sandboxFolder.getPath()) :
 				"" + filePath.getPath() + " should start with " + sandboxFolder.getPath();
-		final String[] currentRevisionHolder = new String[1];
-		(new SiCLICommand(new ArrayList<VcsException>(), vcs, "viewsandbox", "--sandbox=" + sandbox.sandboxPath,
-				"--filter=file:" + filePath.getPath().substring(sandboxFolder.getPath().length() + 1),
-				"--fields=workingrev"
+		final AbstractViewSandboxCommand command = new AbstractViewSandboxCommand(new ArrayList<VcsException>(), vcs, sandbox.sandboxPath
+//				"--filter=file:" + MKSHelper.getRelativePath(filePath, sandboxFolder),
+//				"--fields=workingrev",
+//				"--recurse"
 		) {
+			protected MksMemberState createState(String workingRev, String memberRev, String workingCpid, String locker, String lockedSandbox, String type, String deferred) throws VcsException {
+				return new MksMemberState(createRevision(workingRev), createRevision(memberRev), workingCpid, MksMemberState.Status.UNKNOWN);
+			}
+
+/*
 			@Override
 			public void execute() {
 				try {
 					super.executeCommand();
 					BufferedReader reader = new BufferedReader(new StringReader(commandOutput));
-					currentRevisionHolder[0] = reader.readLine();
+					String line ;
+					while ((line = reader.readLine()) != null && !"".equals(line)) {
+						if (currentRevisionHolder[0] == null) {
+							currentRevisionHolder[0] = line;
+						} else {
+							LOGGER.warn("multiple members retrieved for "+filePath+"!!");
+						}
+					}
+
 				} catch (IOException e) {
 					LOGGER.error("error obtaining current revision for " + filePath, e);
 				}
 
 			}
-		}).execute();
-		if (currentRevisionHolder[0] == null) {
+*/
+		};
+		command.execute();
+		final MksMemberState state = command.getMemberStates().get(filePath.getPath());
+		if (state == null) {
 			LOGGER.error("error obtaining current revision for " + filePath);
 			throw new VcsException("error obtaining current revision for " + filePath);
 		}
-		return new MksRevisionNumber(currentRevisionHolder[0]);
+		return state.workingRevision;
 
 	}
 
-	private List<VcsFileRevision> getRevisions(FilePath filePath, MksSandboxInfo sandbox) {
+	private List<VcsFileRevision> getRevisions(FilePath filePath) {
 		final ViewMemberHistoryCommand command = new ViewMemberHistoryCommand(new ArrayList<VcsException>(), vcs, filePath.getPath());
 		command.execute();
 		if (command.foundError()) {
@@ -127,8 +154,15 @@ public class MksVcsHistoryProvider implements VcsHistoryProvider {
 		return null;
 	}
 
-	public ColumnInfo[] getRevisionColumns() {
-		return new ColumnInfo[0];
+	public ColumnInfo<MksVcsFileRevision, String>[] getRevisionColumns() {
+		final ColumnInfo<MksVcsFileRevision, String> myColumnInfo = new ColumnInfo<MksVcsFileRevision, String>("change package") {
+			public String valueOf(MksVcsFileRevision mksVcsFileRevision) {
+				return mksVcsFileRevision.getCpid();
+			}
+		};
+		final ColumnInfo<MksVcsFileRevision, String>[] array = (ColumnInfo<MksVcsFileRevision, String>[]) Array.newInstance(myColumnInfo.getClass(), 1);
+		array[0] = myColumnInfo;
+		return array;
 	}//return null if your revisions cannot be tree
 
 	@Nullable
