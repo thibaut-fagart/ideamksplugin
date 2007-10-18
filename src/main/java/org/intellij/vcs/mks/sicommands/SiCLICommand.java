@@ -82,7 +82,7 @@ public abstract class SiCLICommand extends AbstractMKSCommand implements Runnabl
 				final int exitValue = process.exitValue();
 				final String errorOutput = new String(stderr.get(), encodingProvider.getMksSiEncoding(command));
 				if (!"".equals(errorOutput)) {
-					LOGGER.warn("return code " + exitValue + " for command " + this
+					LOGGER.error("return code " + exitValue + " for command " + this
 							+ ", stdErr=" + errorOutput);
 				}
 			} catch (IllegalThreadStateException e) {
