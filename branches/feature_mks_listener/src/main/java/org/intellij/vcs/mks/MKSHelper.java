@@ -1,6 +1,7 @@
 package org.intellij.vcs.mks;
 
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.vcs.FilePath;
 import com.intellij.openapi.vcs.VcsException;
 import com.intellij.openapi.vfs.VfsUtil;
 import com.intellij.openapi.vfs.VirtualFile;
@@ -239,5 +240,9 @@ public class MKSHelper {
 
 	public static TriclopsSiMembers createMembers(MksSandboxInfo key) {
 		return createMembers(key.getSiSandbox());
+	}
+
+	public static String getRelativePath(FilePath filePath, FilePath parentPath) {
+		return filePath.getPath().substring(parentPath.getPath().length() + 1);
 	}
 }

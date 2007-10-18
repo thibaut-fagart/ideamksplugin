@@ -88,17 +88,17 @@ public abstract class AbstractViewSandboxCommand extends SiCLICommand {
 		String line;
 		try {
 			while ((line = reader.readLine()) != null) {
-				try {
-					Matcher matcher = wholeLinePattern.matcher(line);
-					if (matcher.matches()) {
-						String workingRev = matcher.group(WORKING_REV_GROUP_IDX);
-						String memberRev = matcher.group(MEMBER_REV_GROUP_IDX);
-						String workingCpid = matcher.group(WORKING_CPID_GROUP_IDX);
-						String deferred = matcher.group(DEFERRED_GROUP_IDX);
-						String type = matcher.group(TYPE_GROUP_IDX);
-						String locker = matcher.group(LOCKER_GROUP_IDX);
-						String name = matcher.group(NAME_GROUP_IDX);
-						String lockedSandbox = matcher.group(LOCKED_SANDBOX_GROUP_IDX);
+				Matcher matcher = wholeLinePattern.matcher(line);
+				if (matcher.matches()) {
+					String workingRev = matcher.group(WORKING_REV_GROUP_IDX);
+					String memberRev = matcher.group(MEMBER_REV_GROUP_IDX);
+					String workingCpid = matcher.group(WORKING_CPID_GROUP_IDX);
+					String deferred = matcher.group(DEFERRED_GROUP_IDX);
+					String type = matcher.group(TYPE_GROUP_IDX);
+					String locker = matcher.group(LOCKER_GROUP_IDX);
+					String name = matcher.group(NAME_GROUP_IDX);
+					String lockedSandbox = matcher.group(LOCKED_SANDBOX_GROUP_IDX);
+					try {
 						if (isMember(type)) {
 							MksMemberState memberState = createState(workingRev, memberRev, workingCpid, locker, lockedSandbox, type, deferred);
 							setState(name, memberState);
@@ -107,15 +107,18 @@ public abstract class AbstractViewSandboxCommand extends SiCLICommand {
 						} else {
 							LOGGER.warn("unexpected type " + type + " for " + line);
 						}
-					} else {
+					} catch (VcsException e) {
+						// should not happen, VcsExceptions on ChangePackageId
+						if (e.getCause() != null) {
+							LOGGER.error(e);
+						}
 						//noinspection ThrowableInstanceNeverThrown
-						errors.add(new VcsException(toString() + " : unexpected line [" + line + "]"));
-					}
-				} catch (VcsException e) {
-					// should not happen, VcsExceptions on ChangePackageId
-					//noinspection ThrowableInstanceNeverThrown
-					errors.add(new VcsException(e));
+						errors.add(new VcsException(name + " " + e.getMessage()));
 
+					}
+				} else {
+					//noinspection ThrowableInstanceNeverThrown
+					errors.add(new VcsException(toString() + " : unexpected line [" + line + "]"));
 				}
 			}
 		} catch (IOException e) {
