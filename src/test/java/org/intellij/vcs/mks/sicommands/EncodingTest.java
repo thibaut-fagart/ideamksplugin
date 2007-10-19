@@ -12,21 +12,20 @@
  */
 package org.intellij.vcs.mks.sicommands;
 
+import junit.framework.TestCase;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.net.URL;
 import java.nio.charset.Charset;
-import junit.framework.TestCase;
 
 public class EncodingTest extends TestCase {
 
 	public void testEncoding() throws IOException {
 		for (String encoding : Charset.availableCharsets().keySet()) {
-			if (testFileUsing("viewsandbox/sample1.txt", encoding, "Working file 1 082 bytes larger")) {
+			if (testFileUsing("viewsandbox/sample1.txt", encoding, "Working file 1,082 bytes larger")) {
 				System.out.println("encoding " + encoding + " OK");
 			}
 		}
@@ -38,7 +37,7 @@ public class EncodingTest extends TestCase {
 		InputStream inputStream = testFile.openStream();
 		BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, encoding));
 		try {
-			String line = null;
+			String line;
 			boolean found = false;
 			int i = 1;
 			while (!found && (line = reader.readLine()) != null) {
@@ -53,7 +52,7 @@ public class EncodingTest extends TestCase {
 			try {
 				reader.close();
 			} catch (IOException e) {
-				e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+				e.printStackTrace();
 			}
 		}
 

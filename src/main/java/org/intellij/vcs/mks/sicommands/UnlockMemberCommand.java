@@ -32,8 +32,9 @@ public class UnlockMemberCommand extends SiCLICommand {
 	public void execute() {
 		try {
 			super.executeCommand();
-			// todo verifier que le unlock s'est bien passé
+			// todo verifier que le unlock s'est bien passÃ©
 		} catch (IOException e) {
+			//noinspection ThrowableInstanceNeverThrown
 			errors.add(new VcsException(e));
 		}
 	}
