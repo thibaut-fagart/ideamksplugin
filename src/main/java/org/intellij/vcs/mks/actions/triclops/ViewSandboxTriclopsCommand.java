@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+@Deprecated
 public class ViewSandboxTriclopsCommand implements MksCommand {
 	public void executeCommand(@NotNull MksVcs mksVcs, @NotNull List<VcsException> exceptions, @NotNull VirtualFile[] affectedFiles) throws VcsException {
 		Map<MksSandboxInfo, ArrayList<VirtualFile>> map = mksVcs.dispatchBySandbox(affectedFiles);
