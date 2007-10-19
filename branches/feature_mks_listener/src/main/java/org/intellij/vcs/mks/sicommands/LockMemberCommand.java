@@ -34,7 +34,7 @@ public class LockMemberCommand extends SiCLICommand {
 	public void execute() {
 		try {
 			super.executeCommand();
-			// todo verifier que le lock s'est bien passé
+			// todo verifier que le lock s'est bien passÃ©
 		} catch (IOException e) {
 			//noinspection ThrowableInstanceNeverThrown
 			errors.add(new VcsException(e));

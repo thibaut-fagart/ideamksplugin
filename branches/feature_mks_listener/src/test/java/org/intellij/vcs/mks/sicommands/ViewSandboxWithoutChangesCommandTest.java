@@ -68,7 +68,7 @@ public class ViewSandboxWithoutChangesCommandTest extends TestCase {
 		BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, encoding));
 		StringWriter sw = new StringWriter();
 		PrintWriter pw = new PrintWriter(sw);
-		String line = null;
+		String line;
 		while ((line = reader.readLine()) != null) {
 			pw.println(line);
 		}
@@ -78,7 +78,7 @@ public class ViewSandboxWithoutChangesCommandTest extends TestCase {
 
 	public void testEncoding() throws IOException {
 		for (String encoding : Charset.availableCharsets().keySet()) {
-			if (testFileUsing("viewsandbox/sample1.txt", encoding, "Working file 1 082 bytes larger")) {
+			if (testFileUsing("viewsandbox/sample1.txt", encoding, "Working file 1,082 bytes larger")) {
 				System.out.println("encoding " + encoding + " OK");
 			}
 		}
@@ -90,7 +90,7 @@ public class ViewSandboxWithoutChangesCommandTest extends TestCase {
 		InputStream inputStream = testFile.openStream();
 		BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, encoding));
 		try {
-			String line = null;
+			String line;
 			boolean found = false;
 			int i = 1;
 			while (!found && (line = reader.readLine()) != null) {
@@ -105,7 +105,7 @@ public class ViewSandboxWithoutChangesCommandTest extends TestCase {
 			try {
 				reader.close();
 			} catch (IOException e) {
-				e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+				e.printStackTrace();
 			}
 		}
 
