@@ -4,6 +4,7 @@ import com.intellij.openapi.vcs.AbstractVcs;
 import mks.integrations.common.TriclopsException;
 import mks.integrations.common.TriclopsSiMembers;
 import org.intellij.vcs.mks.MKSHelper;
+import org.intellij.vcs.mks.MksVcs;
 import org.jetbrains.annotations.NotNull;
 
 public class ResyncTriclopsCommand extends AbstractMultipleTargetTriclopsCommand {
@@ -14,7 +15,7 @@ public class ResyncTriclopsCommand extends AbstractMultipleTargetTriclopsCommand
 
 	@NotNull
 	public String getActionName(@NotNull AbstractVcs vcs) {
-		return "Resynchronize";
+		return MksVcs.getBundle().getString("action.resynchronize");
 	}
 
 }

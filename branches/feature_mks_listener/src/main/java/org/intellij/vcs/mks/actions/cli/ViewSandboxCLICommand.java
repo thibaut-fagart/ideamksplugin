@@ -11,6 +11,7 @@ import org.intellij.vcs.mks.sicommands.SiCLICommand;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -28,7 +29,7 @@ public class ViewSandboxCLICommand implements MksCommand {
 			try {
 				executeCommand();
 			} catch (IOException e) {
-				LOGGER.error("error opening sandbox " + sandboxPath + " in MKS client", e);
+				LOGGER.error(MessageFormat.format(MksVcs.getBundle().getString("error.opening.sandbox.in.mks.client"), sandboxPath), e);
 			}
 		}
 	}
@@ -43,6 +44,6 @@ public class ViewSandboxCLICommand implements MksCommand {
 
 	@NotNull
 	public String getActionName(@NotNull AbstractVcs vcs) {
-		return "View Sandbox";
+		return MksVcs.getBundle().getString("action.view.sandbox");
 	}
 }

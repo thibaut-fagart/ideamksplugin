@@ -50,10 +50,8 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.util.ArrayList;
-import java.util.Iterator;
+import java.util.*;
 import java.util.List;
-import java.util.Map;
 
 public class MksVcs extends AbstractVcs implements ProjectComponent, EncodingProvider {
 	static final Logger LOGGER = Logger.getInstance(MksVcs.class.getName());
@@ -79,6 +77,7 @@ public class MksVcs extends AbstractVcs implements ProjectComponent, EncodingPro
 	private static final String MKS_PROJECT_PJ = "project.pj";
 	private final VcsHistoryProvider vcsHistoryProvider = new MksVcsHistoryProvider(this);
 	private final MksCommittedChangesProvider committedChangesProvider = new MksCommittedChangesProvider(this);
+	private static ResourceBundle bundle;
 
 
 	public MksVcs(Project project) {
@@ -633,5 +632,12 @@ public class MksVcs extends AbstractVcs implements ProjectComponent, EncodingPro
 	@Nullable
 	public CommittedChangesProvider getCommittedChangesProvider() {
 		return committedChangesProvider;
+	}
+
+	public static ResourceBundle getBundle() {
+		if (bundle == null) {
+			bundle = ResourceBundle.getBundle("/org/intellij/vcs/mks/mksBundle.properties");
+		}
+		return bundle;
 	}
 }

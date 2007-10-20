@@ -12,6 +12,7 @@ import org.intellij.vcs.mks.MksVcs;
 import org.intellij.vcs.mks.MksVcsException;
 import org.jetbrains.annotations.NotNull;
 
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -32,7 +33,7 @@ public abstract class BasicAction extends AnAction {
 			exceptions.add(new MksVcsException(/*"Unable to obtain file status"*/ e.getMessage(), e));
 		}
 
-		WindowManager.getInstance().getStatusBar(project).setInfo(getActionName(mksVcs) + " complete.");
+		WindowManager.getInstance().getStatusBar(project).setInfo(MessageFormat.format(MksVcs.getBundle().getString("action.complete"), getActionName(mksVcs)));
 	}
 
 	@Override

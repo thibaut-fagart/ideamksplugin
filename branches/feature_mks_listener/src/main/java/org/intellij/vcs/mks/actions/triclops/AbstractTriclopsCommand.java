@@ -47,7 +47,7 @@ public abstract class AbstractTriclopsCommand implements MksCommand {
 			}
 			return result;
 		} catch (TriclopsException e) {
-			throw new MksVcsException("Unable to obtain file status", e);
+			throw new MksVcsException(MksVcs.getBundle().getString("unable.to.obtain.file.status"), e);
 		}
 
 	}
