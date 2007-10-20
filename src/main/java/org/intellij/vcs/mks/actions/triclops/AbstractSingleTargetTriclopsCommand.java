@@ -6,8 +6,10 @@ import mks.integrations.common.TriclopsException;
 import mks.integrations.common.TriclopsSiMembers;
 import org.intellij.vcs.mks.MksVcs;
 import org.intellij.vcs.mks.MksVcsException;
+import org.jetbrains.annotations.Nls;
 import org.jetbrains.annotations.NotNull;
 
+import java.text.MessageFormat;
 import java.util.List;
 
 public abstract class AbstractSingleTargetTriclopsCommand extends AbstractTriclopsCommand {
@@ -26,9 +28,9 @@ public abstract class AbstractSingleTargetTriclopsCommand extends AbstractTriclo
 				perform(siMembers);
 			} catch (TriclopsException e) {
 				if (MksVcs.isLastCommandCancelled()) {
+					@Nls final String pattern = "{0} Error: {1}";
 					//noinspection ThrowableInstanceNeverThrown
-					exceptions.add(new MksVcsException(getActionName(mksVcs) +
-							" Error: " + MksVcs.getMksErrorMessage(), e));
+					exceptions.add(new MksVcsException(MessageFormat.format(pattern, getActionName(mksVcs), MksVcs.getMksErrorMessage()), e));
 				}
 			}
 		}

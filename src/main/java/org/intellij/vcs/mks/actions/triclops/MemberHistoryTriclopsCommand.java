@@ -4,6 +4,7 @@ import com.intellij.openapi.vcs.AbstractVcs;
 import mks.integrations.common.TriclopsException;
 import mks.integrations.common.TriclopsSiMembers;
 import org.intellij.vcs.mks.MKSHelper;
+import org.intellij.vcs.mks.MksVcs;
 import org.jetbrains.annotations.NotNull;
 
 public class MemberHistoryTriclopsCommand extends AbstractSingleTargetTriclopsCommand {
@@ -13,7 +14,7 @@ public class MemberHistoryTriclopsCommand extends AbstractSingleTargetTriclopsCo
 
 	@NotNull
 	public String getActionName(@NotNull AbstractVcs vcs) {
-		return "Member History";
+		return MksVcs.getBundle().getString("action.member.history");
 	}
 
 

@@ -4,6 +4,7 @@ import com.intellij.openapi.vcs.AbstractVcs;
 import mks.integrations.common.TriclopsException;
 import mks.integrations.common.TriclopsSiMembers;
 import org.intellij.vcs.mks.MKSHelper;
+import org.intellij.vcs.mks.MksVcs;
 import org.intellij.vcs.mks.actions.MksCommand;
 import org.jetbrains.annotations.NotNull;
 
@@ -14,7 +15,7 @@ public class AddMemberCommand extends AbstractMultipleTargetTriclopsCommand impl
 
 	@NotNull
 	public String getActionName(@NotNull AbstractVcs vcs) {
-		return "AddMembers";
+		return MksVcs.getBundle().getString("action.addmembers");
 	}
 
 }
