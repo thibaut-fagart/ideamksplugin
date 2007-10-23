@@ -13,7 +13,10 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.startup.StartupManager;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.util.IconLoader;
-import com.intellij.openapi.vcs.*;
+import com.intellij.openapi.vcs.AbstractVcs;
+import com.intellij.openapi.vcs.EditFileProvider;
+import com.intellij.openapi.vcs.FilePath;
+import com.intellij.openapi.vcs.VcsException;
 import com.intellij.openapi.vcs.changes.ChangeListManager;
 import com.intellij.openapi.vcs.changes.ChangeProvider;
 import com.intellij.openapi.vcs.checkin.CheckinEnvironment;
@@ -43,7 +46,8 @@ import javax.swing.table.AbstractTableModel;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.StyleContext;
-import java.awt.*;
+import java.awt.BorderLayout;
+import java.awt.Component;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
@@ -51,7 +55,6 @@ import java.awt.event.MouseEvent;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.*;
-import java.util.List;
 
 public class MksVcs extends AbstractVcs implements ProjectComponent, EncodingProvider {
 	static final Logger LOGGER = Logger.getInstance(MksVcs.class.getName());
@@ -76,7 +79,6 @@ public class MksVcs extends AbstractVcs implements ProjectComponent, EncodingPro
 	private MksVcs.TasksModel tasksModel;
 	private static final String MKS_PROJECT_PJ = "project.pj";
 	private final VcsHistoryProvider vcsHistoryProvider = new MksVcsHistoryProvider(this);
-	private final MksCommittedChangesProvider committedChangesProvider = new MksCommittedChangesProvider(this);
 	private static ResourceBundle bundle;
 
 
@@ -341,16 +343,6 @@ public class MksVcs extends AbstractVcs implements ProjectComponent, EncodingPro
 		return project.getComponent(MksVcs.class);
 	}
 
-	@Override
-	public synchronized boolean fileExistsInVcs(FilePath filePath) {
-		// todo added to see if this is still called/needed
-		LOGGER.warn("fileExistsInVcs (" + filePath + ")");
-		if (DEBUG) {
-			debug("fileExistsInVcs : " + filePath.getPresentableUrl());
-		}
-		return getSandboxCache().isPartOfSandbox(filePath.getVirtualFile());
-	}
-
 	public static synchronized String getMksErrorMessage() {
 		return MKSHelper.getMksErrorMessage();
 	}
@@ -360,21 +352,16 @@ public class MksVcs extends AbstractVcs implements ProjectComponent, EncodingPro
 	}
 
 	/**
-	 * checks if the file is in a directory controlled by mks
+	 * checks if the file is in a directory controlled by mks and is not a mks project file
 	 *
 	 * @param filePath the file designation
 	 * @return true if the file is in a directory controlled by mks
 	 */
 	@Override
 	public synchronized boolean fileIsUnderVcs(FilePath filePath) {
-		if (!filePath.getName().equals("project.pj")) {
-			if (DEBUG) {
-				debug("fileIsUnderVcs : " + filePath.getPresentableUrl());
-			}
-			return getSandboxCache().getSandboxInfo(filePath.getVirtualFile()) != null;
-		} else {
-			return false;
-		}
+//		System.out.println("super.fileIsUnderVcs " + filePath + " = " + super.fileIsUnderVcs(filePath));
+		return super.fileIsUnderVcs(filePath)
+				&& !getSandboxCache().isSandboxProject(filePath.getVirtualFile());
 	}
 
 	private void debug(String s, Exception e) {
@@ -629,14 +616,9 @@ public class MksVcs extends AbstractVcs implements ProjectComponent, EncodingPro
 		return vcsHistoryProvider;
 	}
 
-	@Nullable
-	public CommittedChangesProvider getCommittedChangesProvider() {
-		return committedChangesProvider;
-	}
-
 	public static ResourceBundle getBundle() {
 		if (bundle == null) {
-			bundle = ResourceBundle.getBundle("/org/intellij/vcs/mks/mksBundle.properties");
+			bundle = ResourceBundle.getBundle("/org/intellij/vcs/mks/mksBundle");
 		}
 		return bundle;
 	}
