@@ -15,36 +15,36 @@ import java.util.ArrayList;
  */
 public class MksContentRevision implements ContentRevision {
 
-    final VcsRevisionNumber myRevision;
-    private MksVcs mksvcs;
-    final FilePath myFile;
+	final VcsRevisionNumber myRevision;
+	private MksVcs mksvcs;
+	final FilePath myFile;
 
-    public MksContentRevision(MksVcs mksvcs, FilePath myFile, VcsRevisionNumber myRevision) {
-        this.mksvcs = mksvcs;
-        this.myFile = myFile;
-        this.myRevision = myRevision;
-    }
+	public MksContentRevision(@NotNull MksVcs mksvcs, @NotNull FilePath myFile, @NotNull VcsRevisionNumber myRevision) {
+		this.mksvcs = mksvcs;
+		this.myFile = myFile;
+		this.myRevision = myRevision;
+	}
 
-    @Nullable
-    public String getContent() throws VcsException {
-        GetContentRevision getRevisionCommand = new GetContentRevision(new ArrayList<VcsException>(), mksvcs,
-                this.getRevisionNumber(), this.getFile().getPath());
-        getRevisionCommand.execute();
-        return getRevisionCommand.getContent();
-    }
+	@Nullable
+	public String getContent() throws VcsException {
+		GetContentRevision getRevisionCommand = new GetContentRevision(new ArrayList<VcsException>(), mksvcs,
+				this.getRevisionNumber(), this.getFile().getPath());
+		getRevisionCommand.execute();
+		return getRevisionCommand.getContent();
+	}
 
-    @NotNull
-    public FilePath getFile() {
-        return myFile;
-    }
+	@NotNull
+	public FilePath getFile() {
+		return myFile;
+	}
 
-    @NotNull
-    public VcsRevisionNumber getRevisionNumber() {
-        return myRevision;
-    }
+	@NotNull
+	public VcsRevisionNumber getRevisionNumber() {
+		return myRevision;
+	}
 
-    @Override
-    public String toString() {
-        return "MksContentRevision[" + getFile() + ":" + getRevisionNumber() + "]";
-    }
+	@Override
+	public String toString() {
+		return "MksContentRevision[" + getFile() + ":" + getRevisionNumber() + "]";
+	}
 }
