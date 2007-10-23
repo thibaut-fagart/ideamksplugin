@@ -56,6 +56,9 @@ public class SandboxCacheImpl implements SandboxCache {
 				try {
 					Thread.sleep(SLEEP_TIME);
 				} catch (InterruptedException e) {
+					LOGGER.warn(Thread.currentThread().getName() + " interupted, terminating");
+					Thread.currentThread().interrupt();
+					return;
 				}
 				ArrayList<MksSandboxInfo> tempList;
 				synchronized (pendingUpdates) {
@@ -127,7 +130,7 @@ public class SandboxCacheImpl implements SandboxCache {
 					public void run() {
 						ApplicationManager.getApplication().runReadAction(new Runnable() {
 							public void run() {
-								VcsDirtyScopeManager.getInstance(project).dirDirtyRecursively(sandboxParentFolderVFile, true);
+								VcsDirtyScopeManager.getInstance(project).dirDirtyRecursively(sandboxParentFolderVFile);
 							}
 						});
 					}
@@ -243,7 +246,6 @@ public class SandboxCacheImpl implements SandboxCache {
 		for (MksSandboxInfo sandboxInfo : sandboxByFolder.values()) {
 			VirtualFile sandboxFile = sandboxInfo.sandboxPjFile;
 			if (sandboxFile == null) {
-
 				synchronized (lock) {
 					VirtualFile key = null;
 					LOGGER.warn("SandboxInfo with NULL virtualFile !! removing from registered sandboxes");
@@ -256,13 +258,14 @@ public class SandboxCacheImpl implements SandboxCache {
 					sandboxByFolder.remove(key);
 					addRejected(sandboxInfo);
 				}
-			}
-			if (VfsUtil.isAncestor(directory, sandboxFile, false)) {
-				result.add(sandboxInfo);
 			} else {
-				final VirtualFile sandboxParentFile = sandboxFile.getParent();
-				if (sandboxParentFile != null && VfsUtil.isAncestor(sandboxParentFile, directory, false)) {
+				if (VfsUtil.isAncestor(directory, sandboxFile, false)) {
 					result.add(sandboxInfo);
+				} else {
+					final VirtualFile sandboxParentFile = sandboxFile.getParent();
+					if (sandboxParentFile != null && VfsUtil.isAncestor(sandboxParentFile, directory, false)) {
+						result.add(sandboxInfo);
+					}
 				}
 			}
 		}

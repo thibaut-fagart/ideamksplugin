@@ -55,6 +55,7 @@ public class AsyncStreamBuffer {
 				reader.join();
 
 			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
 			}
 		}
 	}
