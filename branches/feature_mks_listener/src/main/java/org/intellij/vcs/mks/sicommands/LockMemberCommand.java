@@ -15,9 +15,11 @@ import java.util.List;
 public class LockMemberCommand extends SiCLICommand {
 	@NotNull
 	private final String[] members;
+	@org.jetbrains.annotations.NonNls
+	public static final String COMMAND = "lock";
 
 	public LockMemberCommand(List<VcsException> errors, EncodingProvider encodingProvider, @NotNull MksChangePackage changePackage, String... members) {
-		super(errors, encodingProvider, "lock", createArray("--nobranch", "--nobranchvariant", "--cpid=" + changePackage.getId(), members));
+		super(errors, encodingProvider, COMMAND, createArray("--nobranch", "--nobranchvariant", "--cpid=" + changePackage.getId(), members));
 		assert members.length > 0 : "need to specify which member to lock";
 		this.members = members;
 	}

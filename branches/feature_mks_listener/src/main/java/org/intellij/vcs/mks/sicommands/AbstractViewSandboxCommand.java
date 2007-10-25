@@ -21,7 +21,7 @@ import java.util.regex.Pattern;
  */
 public abstract class AbstractViewSandboxCommand extends SiCLICommand {
 	protected static final String DEFERRED = "deferred";
-	private static final String COMMAND = "viewsandbox";
+	public static final String COMMAND = "viewsandbox";
 	protected static final String DROPPED_TYPE = "dropped";
 
 	private static final String fieldsParam;
