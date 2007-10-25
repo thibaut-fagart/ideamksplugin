@@ -11,9 +11,14 @@
 	<version>${project.version}</version>
 	<vendor logo="/icons/mks.png" url="http://code.google.com/p/ideamksplugin/">Eric Sheffer, Thibaut Fagart</vendor>
 	<category>VCS Integration</category>
-	<idea-version since-build="7002"/>
+	<idea-version since-build="7330"/>
 
 	<change-notes><![CDATA[<ul>
+	<li>0.7  <a href="http://code.google.com/p/ideamksplugin/issues/list?q=Milestone%20Release0.7&can=1">googlecode issues resolved in 0.7</a> <br><br/>
+	Vcs Directory Status support<br/>
+	Vcs Member History support, together with Compare With ... actions<br/>
+	Possible to move changes from Unversioned/Modified Without Checkout to non-mks controlled changelists<br/>
+	</li>
 	<li>0.6 <a href="http://code.google.com/p/ideamksplugin/issues/list?q=Milestone%20Release0.6&can=1">googlecode issues resolved in 0.6</a> <br>
 	 View Changes ignores IDEA ignored files <br>
 	 Most MKS actions now applicable on multiple targets (Actions will only be available if applicable on the current selection)<br>
@@ -126,8 +131,13 @@
 					text="About MKS..."
 					description="Information about MKS Source Integrity"/>
 			<separator/>
-			<reference id="Compare.SameVersion" text="Compare with BASE revision"/>
-			<reference id="Compare.LastVersion" text="Compare with revision at HEAD"/>
+			<reference id="UpdateFiles"/>
+			<reference id="CheckStatusForFiles"/>
+
+			<reference id="Compare.SameVersion"/>
+			<!-- text="Compare with BASE revision"/>-->
+			<reference id="Compare.LastVersion"/>
+			<!-- text="Compare with revision at HEAD"/>-->
 			<reference id="Compare.Selected"/>
 			<reference id="Vcs.ShowTabbedFileHistory"/>
 			<reference id="Vcs.ShowHistoryForBlock"/>

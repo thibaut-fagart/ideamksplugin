@@ -22,6 +22,7 @@ import com.intellij.openapi.vcs.changes.ChangeProvider;
 import com.intellij.openapi.vcs.checkin.CheckinEnvironment;
 import com.intellij.openapi.vcs.diff.DiffProvider;
 import com.intellij.openapi.vcs.history.VcsHistoryProvider;
+import com.intellij.openapi.vcs.update.UpdateEnvironment;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileManager;
 import com.intellij.openapi.wm.ToolWindow;
@@ -37,6 +38,7 @@ import mks.integrations.common.TriclopsSiSandbox;
 import org.intellij.vcs.mks.history.MksVcsHistoryProvider;
 import org.intellij.vcs.mks.realtime.*;
 import org.intellij.vcs.mks.sicommands.*;
+import org.intellij.vcs.mks.update.MksUpdateEnvironment;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -79,6 +81,7 @@ public class MksVcs extends AbstractVcs implements ProjectComponent, EncodingPro
 	private static final String MKS_PROJECT_PJ = "project.pj";
 	private final VcsHistoryProvider vcsHistoryProvider = new MksVcsHistoryProvider(this);
 	private static ResourceBundle bundle;
+	private final MksUpdateEnvironment updateEnvironment = new MksUpdateEnvironment(this);
 
 	public MksVcs(Project project) {
 		super(project);
@@ -634,5 +637,11 @@ public class MksVcs extends AbstractVcs implements ProjectComponent, EncodingPro
 			bundle = ResourceBundle.getBundle("/org/intellij/vcs/mks/mksBundle");
 		}
 		return bundle;
+	}
+
+	@Override
+	@Nullable
+	public UpdateEnvironment getStatusEnvironment() {
+		return updateEnvironment;
 	}
 }
