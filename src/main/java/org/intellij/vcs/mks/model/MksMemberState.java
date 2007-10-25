@@ -4,6 +4,8 @@ import com.intellij.openapi.vcs.history.VcsRevisionNumber;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Date;
+
 /**
  * Used to keep track of the current state of a sandbox. <br/> Is associated
  * with a sandbox member and keeps all the VCS related info. <br/> It is set by
@@ -22,7 +24,8 @@ public final class MksMemberState {
 		DROPPED("dropped"),
 		ADDED("added"),
 		UNKNOWN("unknown"),
-		UNVERSIONED("unversioned");
+		UNVERSIONED("unversioned"),
+		REMOTELY_ADDED("remotely added");
 		private final String description;
 
 		private Status(String description) {
@@ -48,13 +51,21 @@ public final class MksMemberState {
 	public final Status status;
 	@Nullable
 	public final String workingChangePackageId;
+	@Nullable
+	private final Date memberTimestamp;
 
 	public MksMemberState(final VcsRevisionNumber workingRevision, final VcsRevisionNumber memberRevision, final
 	String workingChangePackageId, final Status status) {
+		this(workingRevision, memberRevision, workingChangePackageId, status, null);
+	}
+
+	public MksMemberState(final VcsRevisionNumber workingRevision, final VcsRevisionNumber memberRevision, final
+	String workingChangePackageId, final Status status, Date membertimestamp) {
 		this.workingRevision = workingRevision;
 		this.memberRevision = memberRevision;
 		this.workingChangePackageId = workingChangePackageId;
 		this.status = status;
+		this.memberTimestamp = membertimestamp;
 	}
 
 	@Override
@@ -62,5 +73,10 @@ public final class MksMemberState {
 		return "memberRev " + ((memberRevision == null) ? "null" : memberRevision.asString()) + ", workingRev " + ((workingRevision == null) ? "null" : workingRevision.asString())
 				+ ", status " + status/* +", checkedout " + checkedout+ ", modified without checkout " + modifiedWithoutCheckout*/
 				+ ", wokingCpid " + workingChangePackageId;
+	}
+
+	@Nullable
+	public Date getMemberTimestamp() {
+		return memberTimestamp;
 	}
 }

@@ -80,7 +80,6 @@ public class MksVcs extends AbstractVcs implements ProjectComponent, EncodingPro
 	private final VcsHistoryProvider vcsHistoryProvider = new MksVcsHistoryProvider(this);
 	private static ResourceBundle bundle;
 
-
 	public MksVcs(Project project) {
 		super(project);
 		sandboxCache = new SandboxCacheImpl(project);
