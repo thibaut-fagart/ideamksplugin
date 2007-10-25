@@ -1,0 +1,3 @@
+1.1 3022:1 deferred deferred-drop  c:\Documents and Settings\A6253567.HBEU\sandboxes\cso\CSOWeb\WebContent\WEB-INF\lib\classes12-10.2.0.1.0.jar 1.1 
+1.1 3027:1 deferred deferred-drop  c:\Documents and Settings\A6253567.HBEU\sandboxes\cso\CSOWeb\WebContent\WEB-INF\lib\es-jsf-ui-web-1.0.3.jar 1.4 
+
