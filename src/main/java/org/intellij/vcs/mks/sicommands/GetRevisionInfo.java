@@ -1,13 +1,15 @@
 package org.intellij.vcs.mks.sicommands;
 
+import com.intellij.openapi.vcs.VcsException;
+import com.intellij.openapi.vcs.history.VcsRevisionNumber;
+import org.intellij.vcs.mks.EncodingProvider;
+import org.intellij.vcs.mks.MksRevisionNumber;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import org.intellij.vcs.mks.EncodingProvider;
-import org.intellij.vcs.mks.MksRevisionNumber;
-import com.intellij.openapi.vcs.VcsException;
 
 /**
  * @author Thibaut Fagart
@@ -16,9 +18,9 @@ public class GetRevisionInfo extends SiCLICommand {
     public static final String COMMAND = "rlog";
     public static final String patternString = "([\\d\\.]*)(?:\\s+)([\\d\\.]*)(?:\\s+)([\\d\\.]*)"; // 1 : branchtip, 2 : member, 3 : working
     private final Pattern pattern = Pattern.compile(patternString);
-    private MksRevisionNumber branchTip;
-    private MksRevisionNumber memberRev;
-    private MksRevisionNumber workingRev;
+    private VcsRevisionNumber branchTip;
+    private VcsRevisionNumber memberRev;
+    private VcsRevisionNumber workingRev;
     private final String memberPath;
 
     public GetRevisionInfo(List<VcsException> errors, EncodingProvider encodingProvider, String memberPath, File directory) {
@@ -41,11 +43,12 @@ public class GetRevisionInfo extends SiCLICommand {
             String line = lines[start];
             Matcher matcher = pattern.matcher(line);
             if (matcher.matches()) {
-                branchTip = new MksRevisionNumber(matcher.group(1));
-                memberRev = new MksRevisionNumber(matcher.group(2));
-                workingRev = new MksRevisionNumber(matcher.group(3));
-            } else if (line.contains("is not a current or destined or pending member")) {
-	            LOGGER.warn(memberPath + " is not a mks member (any more?)");
+                branchTip = MksRevisionNumber.createRevision(matcher.group(1));
+                memberRev = MksRevisionNumber.createRevision(matcher.group(2));
+                workingRev = MksRevisionNumber.createRevision(matcher.group(3));
+            } else
+            if (line.contains("is not a current or destined or pending member")) {
+                LOGGER.warn(memberPath + " is not a mks member (any more?)");
             } else {
                 LOGGER.error("unexpected command output {" + line + "}, expected (" + patternString + ")");
             }
@@ -62,7 +65,7 @@ public class GetRevisionInfo extends SiCLICommand {
      *
      * @return revision number
      */
-    public MksRevisionNumber getBranchTip() {
+    public VcsRevisionNumber getBranchTip() {
         return branchTip;
     }
 
@@ -71,13 +74,14 @@ public class GetRevisionInfo extends SiCLICommand {
      *
      * @return revision number
      */
-    public MksRevisionNumber getMemberRev() {
+    public VcsRevisionNumber getMemberRev() {
         return memberRev;
     }
 
-    public MksRevisionNumber getWorkingRev() {
+    public VcsRevisionNumber getWorkingRev() {
         return workingRev;
     }
+
     @Override
     public String toString() {
         return "GetRevisionInfo[" + memberPath + "]";

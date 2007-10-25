@@ -2,6 +2,7 @@ package org.intellij.vcs.mks.sicommands;
 
 import com.intellij.openapi.vcs.VcsException;
 import org.intellij.vcs.mks.EncodingProvider;
+import org.intellij.vcs.mks.MksRevisionNumber;
 import org.intellij.vcs.mks.model.MksMemberState;
 
 import java.util.List;
@@ -15,16 +16,16 @@ import java.util.List;
 public class ViewSandboxOutOfSyncCommand extends AbstractViewSandboxCommand {
 
 
-	public ViewSandboxOutOfSyncCommand(final List<VcsException> errors, final EncodingProvider encodingProvider,
-									   final String sandboxPath) {
-		super(errors, encodingProvider, sandboxPath, "--filter=changed:sync", "--filter=!changed:working");
-	}
+    public ViewSandboxOutOfSyncCommand(final List<VcsException> errors, final EncodingProvider encodingProvider,
+                                       final String sandboxPath) {
+        super(errors, encodingProvider, sandboxPath, "--filter=changed:sync", "--filter=!changed:working");
+    }
 
-	@Override
-	protected MksMemberState createState(final String workingRev, final String memberRev, final String workingCpid,
-										 final String locker, final String lockedSandbox, final String type, final String deferred) throws VcsException {
-		return new MksMemberState(createRevision(workingRev), createRevision(memberRev), workingCpid,
-				isDropped(type) ? MksMemberState.Status.DROPPED : MksMemberState.Status.SYNC);
-	}
+    @Override
+    protected MksMemberState createState(final String workingRev, final String memberRev, final String workingCpid,
+                                         final String locker, final String lockedSandbox, final String type, final String deferred) throws VcsException {
+        return new MksMemberState((MksRevisionNumber.createRevision(workingRev)), (MksRevisionNumber.createRevision(memberRev)), workingCpid,
+                isDropped(type) ? MksMemberState.Status.DROPPED : MksMemberState.Status.SYNC);
+    }
 
 }
