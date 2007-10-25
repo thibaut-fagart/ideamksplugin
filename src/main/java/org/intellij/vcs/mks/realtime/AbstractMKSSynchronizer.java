@@ -1,7 +1,6 @@
 package org.intellij.vcs.mks.realtime;
 
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.project.ProjectManager;
 import org.intellij.vcs.mks.EncodingProvider;
 
 import java.io.*;
@@ -27,7 +26,7 @@ public abstract class AbstractMKSSynchronizer implements LongRunningTask {
 	private Thread runnerThread;
 	// todo add support to detect end of updates
 	// all lines for an update come in a close succession, should be possible to detect it using a background thread or wait with timeouts
-	
+
 	public AbstractMKSSynchronizer(String command, EncodingProvider encodingProvider, String... args) {
 		this.command = command;
 		this.encodingProvider = encodingProvider;
@@ -96,6 +95,12 @@ public abstract class AbstractMKSSynchronizer implements LongRunningTask {
 					isAlive = false;
 				} catch (InterruptedException e) {
 					LOGGER.warn("interrupted while waiting for MKS persistent synchronizer process to terminate");
+					try {
+						process.exitValue();
+					} catch (IllegalThreadStateException e1) {
+						LOGGER.warn("terminating process as we were interrupted before it completed");
+						process.destroy();
+					}
 				}
 			}
 		}, "MksSynchronizer (" + getClass().getName() + ") death notifier").start();
