@@ -15,9 +15,11 @@ import java.util.List;
 public class UnlockMemberCommand extends SiCLICommand {
 	@NotNull
 	private final String[] members;
+	@org.jetbrains.annotations.NonNls
+	public static final String COMMAND = "unlock";
 
 	public UnlockMemberCommand(List<VcsException> errors, EncodingProvider encodingProvider, String... members) {
-		super(errors, encodingProvider, "unlock", createArray("--nobreaklock", members));
+		super(errors, encodingProvider, COMMAND, createArray("--nobreaklock", members));
 		assert members.length > 0 : "need to specify which member to lock";
 		this.members = members;
 	}

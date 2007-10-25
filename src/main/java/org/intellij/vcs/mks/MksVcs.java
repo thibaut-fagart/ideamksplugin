@@ -36,8 +36,7 @@ import mks.integrations.common.TriclopsSiMembers;
 import mks.integrations.common.TriclopsSiSandbox;
 import org.intellij.vcs.mks.history.MksVcsHistoryProvider;
 import org.intellij.vcs.mks.realtime.*;
-import org.intellij.vcs.mks.sicommands.GetContentRevision;
-import org.intellij.vcs.mks.sicommands.ListChangePackages;
+import org.intellij.vcs.mks.sicommands.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -535,9 +534,24 @@ public class MksVcs extends AbstractVcs implements ProjectComponent, EncodingPro
 
 	}
 
+	/**
+	 * returns the list of available si commands
+	 *
+	 * @return
+	 */
 	public static String[] getCommands() {
 		return new String[]{
-				GetContentRevision.COMMAND, ListChangePackages.COMMAND
+				AbstractViewSandboxCommand.COMMAND,
+				GetContentRevision.COMMAND,
+				GetRevisionInfo.COMMAND,
+				ListChangePackages.COMMAND,
+				ListSandboxes.COMMAND,
+				ListServers.COMMAND,
+				LockMemberCommand.COMMAND,
+				RenameChangePackage.COMMAND,
+				UnlockMemberCommand.COMMAND,
+				ViewMemberHistoryCommand.COMMAND,
+				ViewNonMembersCommand.COMMAND
 		};
 	}
 

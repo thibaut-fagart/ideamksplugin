@@ -18,6 +18,8 @@ import java.util.Map;
 
 public class ViewNonMembersCommand extends SiCLICommand {
 	private final Map<String, MksMemberState> memberStates = new HashMap<String, MksMemberState>();
+	@org.jetbrains.annotations.NonNls
+	public static final String COMMAND = "viewnonmembers";
 
 	/**
 	 * @param errors
@@ -25,7 +27,7 @@ public class ViewNonMembersCommand extends SiCLICommand {
 	 * @param sandbox		  must be a directory
 	 */
 	public ViewNonMembersCommand(@NotNull List<VcsException> errors, @NotNull EncodingProvider encodingProvider, MksSandboxInfo sandbox) {
-		super(errors, encodingProvider, "viewnonmembers", "--fields=absolutepath", "--recurse",
+		super(errors, encodingProvider, COMMAND, "--fields=absolutepath", "--recurse",
 				"--hostname=" + sandbox.hostAndPort.substring(0, sandbox.hostAndPort.indexOf(':')));
 		setWorkingDir(new File(VcsUtil.getFilePath(sandbox.sandboxPath).getParentPath().getPath()));
 	}
