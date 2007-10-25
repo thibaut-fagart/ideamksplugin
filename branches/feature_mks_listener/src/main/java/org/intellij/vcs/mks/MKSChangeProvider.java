@@ -262,7 +262,16 @@ class MKSChangeProvider extends AbstractProjectComponent implements ChangeProvid
 
 		ViewNonMembersCommand nonMembersCommand = new ViewNonMembersCommand(errors, mksvcs, sandbox);
 		nonMembersCommand.execute();
-		states.putAll(nonMembersCommand.getMemberStates());
+		for (Map.Entry<String, MksMemberState> entry : nonMembersCommand.getMemberStates().entrySet()) {
+			if (myProject.getProjectScope().contains(VcsUtil.getVirtualFile(entry.getKey()))) {
+//				System.err.println("adding "+entry.getKey());
+				states.put(entry.getKey(), entry.getValue());
+//			} else {
+//				System.err.println("ignoring "+entry.getKey());
+			}
+
+		}
+//		states.putAll(nonMembersCommand.getMemberStates());
 // todo the below belong to incoming changes
 //		ViewSandboxOutOfSyncCommand outOfSyncCommand = new ViewSandboxOutOfSyncCommand(errors, mksvcs, sandbox.sandboxPath);
 //		outOfSyncCommand.execute();
