@@ -38,6 +38,8 @@ class MKSChangeProvider extends AbstractProjectComponent implements ChangeProvid
 	private final Logger BUILDER_PROXY_LOGGER = Logger.getInstance(getClass().getName() + ".ChangelistBuilder");
 	@NotNull
 	private final MksVcs mksvcs;
+	private static final String UNVERSIONED_LIST = "Unversioned";
+	private static final String MODIFIED_WITHOUT_CHECKOUT_LIST = "Modified without checkout";
 
 	public MKSChangeProvider(@NotNull MksVcs mksvcs) {
 		super(mksvcs.getProject());
@@ -136,15 +138,19 @@ class MKSChangeProvider extends AbstractProjectComponent implements ChangeProvid
 
 	private void processDirtySandbox(final ChangelistBuilder builder, final Map<String, MksChangePackage> changePackages,
 									 final Map<String, MksMemberState> states) {
+		final ChangeListManager listManager = ChangeListManager.getInstance(myProject);
 		for (Map.Entry<String, MksMemberState> entry : states.entrySet()) {
 			MksMemberState state = entry.getValue();
 			FilePath filePath = VcsUtil.getFilePath(entry.getKey());
 			VirtualFile virtualFile = VcsUtil.getVirtualFile(entry.getKey());
+			if (null != virtualFile && mksvcs.getSandboxCache().isSandboxProject(virtualFile)) {
+				continue;
+			}
 			switch (state.status) {
 				case ADDED: {
 					MksChangePackage changePackage = getChangePackage(changePackages, state);
 					Change change = new Change(
-							new MksContentRevision(mksvcs, filePath, state.workingRevision),
+							null,
 							CurrentContentRevision.create(filePath),
 							FileStatus.ADDED);
 					if (changePackage == null) {
@@ -158,7 +164,7 @@ class MKSChangeProvider extends AbstractProjectComponent implements ChangeProvid
 				case CHECKED_OUT: {
 					MksChangePackage changePackage = getChangePackage(changePackages, state);
 					Change change = new Change(
-							new MksContentRevision(mksvcs, filePath, state.workingRevision),
+							new MksContentRevision(mksvcs, filePath, state.memberRevision),
 							CurrentContentRevision.create(filePath),
 							FileStatus.MODIFIED);
 					if (changePackage == null) {
@@ -170,15 +176,21 @@ class MKSChangeProvider extends AbstractProjectComponent implements ChangeProvid
 					break;
 				}
 				case MODIFIED_WITHOUT_CHECKOUT: {
-					builder.processModifiedWithoutCheckout(virtualFile);
+					ChangeList userChangeList = getUserChangelist(filePath, listManager);
+					builder.processChangeInList(new Change(new MksContentRevision(mksvcs, filePath, state.memberRevision),
+							CurrentContentRevision.create(filePath),
+							FileStatus.HIJACKED), (userChangeList == null) ? MODIFIED_WITHOUT_CHECKOUT_LIST : userChangeList.getName());
+
+//					builder.processModifiedWithoutCheckout(virtualFile);
 					break;
 				}
 				case MISSISNG: {
 					// todo some of those changes belong to the Incoming tab
-					builder.processChange(new Change(
-							new MksContentRevision(mksvcs, filePath, state.workingRevision),
+					ChangeList userChangeList = getUserChangelist(filePath, listManager);
+					builder.processChangeInList(new Change(
 							new MksContentRevision(mksvcs, filePath, state.memberRevision),
-							FileStatus.DELETED_FROM_FS));
+							new MksContentRevision(mksvcs, filePath, state.workingRevision),
+							FileStatus.DELETED_FROM_FS), (userChangeList == null) ? UNVERSIONED_LIST : userChangeList.getName());
 //					builder.processLocallyDeletedFile(filePath);
 					break;
 				}
@@ -192,7 +204,7 @@ class MKSChangeProvider extends AbstractProjectComponent implements ChangeProvid
 				case DROPPED: {
 					MksChangePackage changePackage = getChangePackage(changePackages, state);
 					Change change = new Change(
-							new MksContentRevision(mksvcs, filePath, state.workingRevision),
+							new MksContentRevision(mksvcs, filePath, state.memberRevision),
 							CurrentContentRevision.create(filePath),
 							FileStatus.DELETED);
 					if (changePackage == null) {
@@ -206,13 +218,19 @@ class MKSChangeProvider extends AbstractProjectComponent implements ChangeProvid
 				case NOT_CHANGED:
 					break;
 				case UNVERSIONED: {
-					builder.processUnversionedFile(virtualFile);
+					ChangeList userChangeList = getUserChangelist(filePath, listManager);
+
+					Change change = new Change(
+							null,
+							CurrentContentRevision.create(filePath),
+							FileStatus.UNKNOWN);
+					builder.processChangeInList(change, (userChangeList == null) ? UNVERSIONED_LIST : userChangeList.getName());
 					break;
 				}
 				case UNKNOWN: {
 					builder.processChange(new Change(
-							new MksContentRevision(mksvcs, filePath, state.workingRevision),
 							new MksContentRevision(mksvcs, filePath, state.memberRevision),
+							new MksContentRevision(mksvcs, filePath, state.workingRevision),
 							FileStatus.UNKNOWN));
 				}
 				default: {
@@ -220,6 +238,11 @@ class MKSChangeProvider extends AbstractProjectComponent implements ChangeProvid
 				}
 			}
 		}
+	}
+
+	private ChangeList getUserChangelist(FilePath filePath, ChangeListManager changeListManager) {
+		final Change change = changeListManager.getChange(filePath);
+		return (change == null) ? null : changeListManager.getChangeList(change);
 	}
 
 	private MksChangePackage getChangePackage(final Map<String, MksChangePackage> changePackages, final MksMemberState state) {
@@ -233,7 +256,7 @@ class MKSChangeProvider extends AbstractProjectComponent implements ChangeProvid
 		fullSandboxCommand.execute();
 		states.putAll(fullSandboxCommand.getMemberStates());
 
-		ViewSandboxLocalChangesCommand localChangesCommand = new ViewSandboxLocalChangesCommand(errors, mksvcs, server.user, sandbox.sandboxPath);
+		ViewSandboxLocalChangesOrLockedCommand localChangesCommand = new ViewSandboxLocalChangesOrLockedCommand(errors, mksvcs, server.user, sandbox.sandboxPath);
 		localChangesCommand.execute();
 		states.putAll(localChangesCommand.getMemberStates());
 
@@ -245,7 +268,7 @@ class MKSChangeProvider extends AbstractProjectComponent implements ChangeProvid
 //		outOfSyncCommand.execute();
 //		states.putAll(outOfSyncCommand.getMemberStates());
 
-//		ViewSandboxMissingCommand missingCommand = new ViewSandboxMissingCommand(errors, mksvcs, sandbox.sandboxPath);
+//		ViewSandboxRemoteChangesCommand missingCommand = new ViewSandboxRemoteChangesCommand(errors, mksvcs, sandbox.sandboxPath);
 //		missingCommand.execute();
 //		states.putAll(missingCommand.getMemberStates());
 
