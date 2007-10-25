@@ -28,18 +28,23 @@ public class ViewSandboxWithoutChangesCommandTest extends TestCase {
 		Map<String, MksMemberState> states = command.getMemberStates();
 		for (Map.Entry<String, MksMemberState> entry : states.entrySet()) {
 			MksMemberState state = entry.getValue();
-			assertFalse("there is no modifiedWithoutCheckout files", state.status == MksMemberState.Status.MODIFIED_WITHOUT_CHECKOUT);
 			assertNotNull("no member revision", state.memberRevision);
 			assertNotNull("no working revision", state.workingRevision);
+			assertEquals("should only see non changed files", MksMemberState.Status.NOT_CHANGED, state.status);
+			assertNull("should not see working cpid, as only non changed files are fetched", state.workingChangePackageId);
+		}
+		for (VcsException error : errors) {
+			System.err.println("error " + error);
+			error.printStackTrace();
 		}
 		assertTrue("errors found", errors.isEmpty());
-		String modifiedWithoutCheckoutFile =
-				"c:\\Documents and Settings\\A6253567.HBEU\\sandboxes\\J2EE\\HJF-Core\\unittestsrc\\com\\hsbc\\hbfr\\ccf\\at\\util\\PerfLogUtilsTestCase.java";
+		String lockedFile =
+				"c:\\Documents and Settings\\A6253567.HBEU\\sandboxes\\J2EE\\HJF-Core\\pom.xml";
 		// this command is not supposed to detect changes
-		MksMemberState memberState = states.get(modifiedWithoutCheckoutFile);
-		assertFalse(memberState.status == MksMemberState.Status.CHECKED_OUT);
-		assertNotNull(states.get(modifiedWithoutCheckoutFile).workingChangePackageId);
-		assertEquals("2875:1", states.get(modifiedWithoutCheckoutFile).workingChangePackageId);
+		MksMemberState state = states.get(lockedFile);
+		assertNotNull(state);
+		assertEquals("1.4.1.1", state.workingRevision.asString());
+		assertEquals("1.4.1.1", state.memberRevision.asString());
 	}
 
 	private ViewSandboxWithoutChangesCommand createCommand(final List<VcsException> errors, final String sandboxPath) {

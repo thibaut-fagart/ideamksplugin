@@ -15,9 +15,9 @@ import java.util.Map;
 /**
  * @author Thibaut Fagart
  */
-public class ViewSandboxChangesCommandTest extends TestCase {
+public class ViewSandboxLocalChangesOrLockedCommandTest extends TestCase {
 	private static final String ENCODING = "IBM437";
-	private ViewSandboxLocalChangesCommand commandLocal;
+	private ViewSandboxLocalChangesOrLockedCommand commandLocal;
 	private List<VcsException> errors;
 
 	protected void setUp() throws Exception {
@@ -26,8 +26,8 @@ public class ViewSandboxChangesCommandTest extends TestCase {
 
 	}
 
-	public void testModifiedWithoutCheckout() {
-		String sandboxPath = "c:\\Documents and Settings\\A6253567.HBEU\\sandboxes\\J2EE\\HJF-Core\\project.pj";
+	public void testFindsModifiedWithoutCheckout() {
+		String sandboxPath = "c:\\Documents and Settings\\A6253567.HBEU\\sandboxes\\J2EE\\project.pj";
 		commandLocal = createCommand(errors, sandboxPath, "viewsandbox/changedOrLocked.txt");
 		commandLocal.execute();
 		String modifiedWithoutCheckOutFile = "c:\\Documents and Settings\\A6253567.HBEU\\sandboxes\\J2EE\\HJF-Core\\unittestsrc\\log4j.properties";
@@ -38,35 +38,32 @@ public class ViewSandboxChangesCommandTest extends TestCase {
 
 	}
 
-	public void testCheckedOutWithChangePackage() {
-		String sandboxPath = "c:\\Documents and Settings\\A6253567.HBEU\\sandboxes\\J2EE\\HJF-Core\\project.pj";
+	public void testFindsCheckedOutWithChangePackage() {
+		String sandboxPath = "c:\\Documents and Settings\\A6253567.HBEU\\sandboxes\\J2EE\\project.pj";
 		commandLocal = createCommand(errors, sandboxPath, "viewsandbox/changedOrLocked.txt");
 		commandLocal.execute();
-		String checkedOutFile = "c:\\Documents and Settings\\A6253567.HBEU\\sandboxes\\J2EE\\HJF-Core\\unittestsrc\\com\\hsbc\\hbfr\\ccf\\at\\util\\PerfLogUtilsTestCase.java";
+		String checkedOutFile = "c:\\Documents and Settings\\A6253567.HBEU\\sandboxes\\J2EE\\HJE-Batch\\src\\com\\hsbc\\hbfr\\ccf\\at\\batch\\AccessorInputSource.java";
 
 		MksMemberState memberState = commandLocal.getMemberStates().get(checkedOutFile);
 		assertNotNull("missing state", memberState);
 		assertNotNull("missing CP id", memberState.workingChangePackageId);
-		assertEquals("bad CP id", "2875:1", memberState.workingChangePackageId);
-		assertTrue("bad checkedout status", memberState.status == MksMemberState.Status.CHECKED_OUT);
-		assertFalse("bad modifiedWithoutCheckout status", memberState.status == MksMemberState.Status.MODIFIED_WITHOUT_CHECKOUT);
-
+		assertEquals("bad CP id", "2951:1", memberState.workingChangePackageId);
+		assertEquals("bad checkedout status", MksMemberState.Status.CHECKED_OUT, memberState.status);
 	}
 
-	public void testCheckedOutInAnotherSandboxBySameUser() {
-		String sandboxPath = "c:\\Documents and Settings\\A6253567.HBEU\\sandboxes\\J2EE\\HJF-Core\\project.pj";
+	public void testViewsCheckedOutInAnotherSandboxBySameUserAsUnknown() {
+		String sandboxPath = "c:\\Documents and Settings\\A6253567.HBEU\\sandboxes\\J2EE\\project.pj";
 		commandLocal = createCommand(errors, sandboxPath, "viewsandbox/changedOrLocked.txt");
 		commandLocal.execute();
-		String checkedOutInAnotherSandboxFile = "c:\\Documents and Settings\\A6253567.HBEU\\sandboxes\\J2EE\\HJF-Core\\pom.xml";
+		String checkedOutInAnotherSandboxFile = "c:\\Documents and Settings\\A6253567.HBEU\\sandboxes\\J2EE\\pom.xml";
 
 		MksMemberState memberState = commandLocal.getMemberStates().get(checkedOutInAnotherSandboxFile);
 		assertNotNull("missing state", memberState);
-		assertFalse("bad checkedout status", memberState.status == MksMemberState.Status.CHECKED_OUT);
-		assertFalse("bad modifiedWithoutCheckout status", memberState.status == MksMemberState.Status.MODIFIED_WITHOUT_CHECKOUT);
+		assertEquals("expecting UNKNOWN", MksMemberState.Status.UNKNOWN, memberState.status);
 	}
 
 	public void testLocallyDeleted() {
-		String sandboxPath = "c:\\Documents and Settings\\A6253567.HBEU\\sandboxes\\J2EE\\HJF-Core\\project.pj";
+		String sandboxPath = "c:\\Documents and Settings\\A6253567.HBEU\\sandboxes\\J2EE\\project.pj";
 		commandLocal = createCommand(errors, sandboxPath, "viewsandbox/changedOrLocked.txt");
 		commandLocal.execute();
 		String locallyDeletedFile = "c:\\Documents and Settings\\A6253567.HBEU\\sandboxes\\J2EE\\HJF-Core\\build\\HJF-Core-debug.jar";
@@ -78,51 +75,44 @@ public class ViewSandboxChangesCommandTest extends TestCase {
 
 	}
 
-	public void testLocallyModifiedAndCheckedOut() {
-		String sandboxPath = "c:\\Documents and Settings\\A6253567.HBEU\\sandboxes\\J2EE\\HJF-Core\\project.pj";
-		commandLocal = createCommand(errors, sandboxPath, "viewsandbox/changedOrLocked.txt");
-		commandLocal.execute();
-//        List < VcsException > errors = new ArrayList<VcsException>();
-//
-//        String sandboxPath = "c:\\Documents and Settings\\A6253567.HBEU\\sandboxes\\J2EE\\HJF-Core\\project.pj";
-//        ViewSandboxLocalChangesCommand commandLocal = createCommand(errors, sandboxPath);
-//        commandLocal.execute();
-
-		Map<String, MksMemberState> states = commandLocal.getMemberStates();
-		for (Map.Entry<String, MksMemberState> entry : states.entrySet()) {
-			MksMemberState state = entry.getValue();
-			System.out.println(entry.getKey() + " => " + state);
-			assertNotNull("no member revision", state.memberRevision);
-			assertNotNull("no working revision", state.workingRevision);
-		}
-		boolean error = commandLocal.foundError();
-		if (error) {
-			for (VcsException vcsException : errors) {
-				System.err.println("erreur " + vcsException);
-			}
-		}
-		assertFalse("errors found", error);
-	}
-
 	public void testDeferredAdd() {
 		List<VcsException> errors = new ArrayList<VcsException>();
 
-		String sandboxPath = "c:\\Documents and Settings\\A6253567.HBEU\\sandboxes\\DS2\\Presentation\\esf-servlet-rp\\project.pj";
+		String sandboxPath = "c:\\Documents and Settings\\A6253567.HBEU\\sandboxes\\CSO\\project.pj";
 		commandLocal = createCommand(errors, sandboxPath, "viewsandbox/deferred-add.txt");
 		commandLocal.execute();
 		Map<String, MksMemberState> states = commandLocal.getMemberStates();
-		assertEquals(1, states.size());
-		MksMemberState state = states.values().iterator().next();
-		assertEquals(MksMemberState.Status.ADDED, state.status);
+		assertEquals(2, states.size());
+		for (Map.Entry<String, MksMemberState> entry : states.entrySet()) {
+			assertEquals(MksMemberState.Status.ADDED, entry.getValue().status);
+			assertNotNull(entry.getValue().workingChangePackageId);
+			assertNull(entry.getValue().memberRevision);
+		}
 	}
 
-	private ViewSandboxLocalChangesCommand createCommand(final List<VcsException> errors, final String sandboxPath, final String outputFile) {
+	public void testDeferredDrop() {
+		List<VcsException> errors = new ArrayList<VcsException>();
+
+		String sandboxPath = "c:\\Documents and Settings\\A6253567.HBEU\\sandboxes\\CSO\\project.pj";
+		commandLocal = createCommand(errors, sandboxPath, "viewsandbox/deferred-drop.txt");
+		commandLocal.execute();
+		Map<String, MksMemberState> states = commandLocal.getMemberStates();
+		assertEquals(2, states.size());
+		for (Map.Entry<String, MksMemberState> entry : states.entrySet()) {
+			assertEquals(MksMemberState.Status.DROPPED, entry.getValue().status);
+			assertNotNull(entry.getValue().workingChangePackageId);
+			assertNull(entry.getValue().workingRevision);
+			assertNotNull(entry.getValue().memberRevision);
+		}
+	}
+
+	private ViewSandboxLocalChangesOrLockedCommand createCommand(final List<VcsException> errors, final String sandboxPath, final String outputFile) {
 		EncodingProvider encodingProvider = new EncodingProvider() {
 			public String getMksSiEncoding(final String command) {
 				return ENCODING;
 			}
 		};
-		return new ViewSandboxLocalChangesCommand(errors, encodingProvider, "e9310750", sandboxPath) {
+		return new ViewSandboxLocalChangesOrLockedCommand(errors, encodingProvider, "e9310750", sandboxPath) {
 			@Override
 			protected String executeCommand() throws IOException {
 				commandOutput = loadResourceWithEncoding(outputFile, ENCODING);
