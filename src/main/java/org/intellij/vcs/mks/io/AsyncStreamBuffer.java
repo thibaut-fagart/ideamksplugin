@@ -21,8 +21,11 @@ public class AsyncStreamBuffer {
 				ByteArrayOutputStream out = new ByteArrayOutputStream();
 
 				int b;
-				while (active && (b = in.read()) != -1) {
-					out.write(b);
+				byte[] buffer = new byte[2048];
+				int readBytes;
+
+				while (active && (readBytes = in.read(buffer)) != -1) {
+					out.write(buffer, 0, readBytes);
 				}
 
 				buf = out.toByteArray();

@@ -4,10 +4,15 @@ import com.intellij.openapi.vcs.VcsException;
 import org.intellij.vcs.mks.MksVcs;
 import org.intellij.vcs.mks.model.MksChangePackage;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.StringReader;
 import java.util.List;
 
 /**
+ * uses si editcp --summary=newName --hostname=host. <br/>
+ * This command writes its "normal output" to stderr ... in this case, the id of the changepackage affected
+ *
  * @author Thibaut Fagart
  */
 public class RenameChangePackage extends SiCLICommand {
@@ -16,7 +21,7 @@ public class RenameChangePackage extends SiCLICommand {
 	public static final String COMMAND = "editcp";
 
 	public RenameChangePackage(List<VcsException> errors, MksVcs mksvcs, MksChangePackage changePackage, String newName) {
-		super(errors, mksvcs, COMMAND, "--summary", newName, changePackage.getId());
+		super(errors, mksvcs, COMMAND, "--summary=" + newName, "--hostname=" + changePackage.server, changePackage.getId());
 		this.changePackage = changePackage;
 	}
 
@@ -24,14 +29,12 @@ public class RenameChangePackage extends SiCLICommand {
 	public void execute() {
 		try {
 			executeCommand();
-			String[] lines = commandOutput.split("\r\n");
-			int start = 0;
-			while (shoudIgnore(lines[start])) {
-				// skipping connecting/reconnecting lines
-				start++;
+			BufferedReader reader = new BufferedReader(new StringReader(commandOutput));
+			String line;
+			while (((line = reader.readLine()) != null) && shouldIgnore(line)) {
 			}
-			if (lines.length != (start + 1) || !lines[start].equals(changePackage.getId())) {
-				String message = "unexpected command output {" + lines[start] + "}, expected {" + changePackage.getId() + "}";
+			if (null != line) {
+				String message = "unexpected command output {" + commandOutput + "}, expected nothing";
 				LOGGER.error(message);
 				//noinspection ThrowableInstanceNeverThrown
 				errors.add(new VcsException(message));
@@ -40,6 +43,41 @@ public class RenameChangePackage extends SiCLICommand {
 			//noinspection ThrowableInstanceNeverThrown
 			errors.add(new VcsException(e));
 		}
+	}
+
+	@Override
+	protected void handleErrorOutput(String errorOutput) {
+		if (!isErrorCode(exitValue)) {
+			try {
+				BufferedReader reader = new BufferedReader(new StringReader(errorOutput));
+				String line;
+				while (((line = reader.readLine()) != null) && shouldIgnore(line)) {
+				}
+				if (!changePackage.getId().equals(line)) {
+					String message = "unexpected command error output {" + errorOutput + "}, expected {" + changePackage.getId() + "}";
+					LOGGER.error(message);
+					//noinspection ThrowableInstanceNeverThrown
+					errors.add(new VcsException(message));
+				}
+				while (((line = reader.readLine()) != null) && shouldIgnore(line)) {
+				}
+				if (line != null) {
+					String message = "unexpected command error output {" + errorOutput + "}, expected {" + changePackage.getId() + "}";
+					LOGGER.error(message);
+					//noinspection ThrowableInstanceNeverThrown
+					errors.add(new VcsException(message));
+				}
+			} catch (IOException e) {
+				//noinspection ThrowableInstanceNeverThrown
+				errors.add(new VcsException(e));
+			}
+		} else {
+			super.handleErrorOutput(errorOutput);
+		}
+	}
+
+	protected boolean isErrorCode(int exitValue) {
+		return !(0 == exitValue);
 	}
 
 	@Override

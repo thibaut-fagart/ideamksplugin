@@ -123,8 +123,8 @@ class MksChangeListAdapter extends ChangeListAdapter {
 			// todo create and execute lock command for each sandbox
 		} else {
 			super.changesMoved(changes, fromList, toList);
+			return;
 		}
-		// todo update changePackages
 	}
 
 

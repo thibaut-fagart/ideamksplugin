@@ -1,13 +1,14 @@
 package org.intellij.vcs.mks.sicommands;
 
+import com.intellij.openapi.vcs.VcsException;
+import org.intellij.vcs.mks.EncodingProvider;
+import org.intellij.vcs.mks.model.MksServerInfo;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Pattern;
 import java.util.regex.Matcher;
-import org.intellij.vcs.mks.EncodingProvider;
-import org.intellij.vcs.mks.model.MksServerInfo;
-import com.intellij.openapi.vcs.VcsException;
+import java.util.regex.Pattern;
 
 /**
  * @author Thibaut Fagart
@@ -20,44 +21,45 @@ public class ListServers extends SiCLICommand {
 	public static final String COMMAND = "servers";
 
 	public ListServers(List<VcsException> errors, EncodingProvider encodingProvider) {
-        super(errors, encodingProvider, COMMAND);
-    }
+		super(errors, encodingProvider, COMMAND);
+	}
 
-    @Override
-    public void execute() {
-	    Pattern pattern = Pattern.compile(patternString);
-	    ArrayList<MksServerInfo> tempServers = new ArrayList<MksServerInfo>();
-        try {
-            executeCommand();
-            String[] lines = commandOutput.split("\n");
-            int start = 0;
-            while (shoudIgnore(lines[start])) {
-                // skipping connecting/reconnecting lines
-                start++;
-            }
-            for (int i = start, max = lines.length; i < max; i++) {
-                String line = lines[i];
-	            Matcher matcher = pattern.matcher(line);
-	            if (matcher.matches()) {
-		            String user = matcher.group(1);
-                    String host = matcher.group(2);
-		            String port = matcher.group(3);
-                    tempServers.add(new MksServerInfo(user, host,port));
-                } else {
-                    LOGGER.error("unexpected command output {" + line + "}, expected [user@host:port]");
-                    //noinspection ThrowableInstanceNeverThrown
-                    errors.add(new VcsException("ListServers : unexpected line structure " + line));
-                }
-            }
-            servers = tempServers;
-        } catch (IOException e) {
-            //noinspection ThrowableInstanceNeverThrown
-            errors.add(new VcsException(e));
-        }
-    }
-    @Override
-    public String toString() {
-        return "ListServers";
-    }
-	
+	@Override
+	public void execute() {
+		Pattern pattern = Pattern.compile(patternString);
+		ArrayList<MksServerInfo> tempServers = new ArrayList<MksServerInfo>();
+		try {
+			executeCommand();
+			String[] lines = commandOutput.split("\n");
+			int start = 0;
+			while (shouldIgnore(lines[start])) {
+				// skipping connecting/reconnecting lines
+				start++;
+			}
+			for (int i = start, max = lines.length; i < max; i++) {
+				String line = lines[i];
+				Matcher matcher = pattern.matcher(line);
+				if (matcher.matches()) {
+					String user = matcher.group(1);
+					String host = matcher.group(2);
+					String port = matcher.group(3);
+					tempServers.add(new MksServerInfo(user, host, port));
+				} else {
+					LOGGER.error("unexpected command output {" + line + "}, expected [user@host:port]");
+					//noinspection ThrowableInstanceNeverThrown
+					errors.add(new VcsException("ListServers : unexpected line structure " + line));
+				}
+			}
+			servers = tempServers;
+		} catch (IOException e) {
+			//noinspection ThrowableInstanceNeverThrown
+			errors.add(new VcsException(e));
+		}
+	}
+
+	@Override
+	public String toString() {
+		return "ListServers";
+	}
+
 }
