@@ -16,8 +16,9 @@
 	<change-notes><![CDATA[<ul>
 	<li>0.7  <a href="http://code.google.com/p/ideamksplugin/issues/list?q=Milestone%20Release0.7&can=1">googlecode issues resolved in 0.7</a> <br><br/>
 	Vcs Directory Status support<br/>
-	Vcs Member History support, together with Compare With ... actions<br/>
+	Vcs Member History support, together with Compare With ... actions.<br/>
 	Possible to move changes from Unversioned/Modified Without Checkout to non-mks controlled changelists<br/>
+	Change package renaming support<br/>
 	</li>
 	<li>0.6 <a href="http://code.google.com/p/ideamksplugin/issues/list?q=Milestone%20Release0.6&can=1">googlecode issues resolved in 0.6</a> <br>
 	 View Changes ignores IDEA ignored files <br>
@@ -150,6 +151,17 @@
 			   class="org.intellij.vcs.mks.actions.MksGroup">
 			<reference id="MKS.MemberDiffsAction"/>
 			<add-to-group group-id="Vcs.CheckinProjectPopup" anchor="last"/>
+		</group>
+		<group id="MksUpdateGroup">
+			<reference id="Compare.SameVersion"/>
+			<!-- text="Compare with BASE revision"/>-->
+			<reference id="Compare.LastVersion"/>
+			<!-- text="Compare with revision at HEAD"/>-->
+			<reference id="Compare.Selected"/>
+			<reference id="Vcs.ShowTabbedFileHistory"/>
+			<reference id="Vcs.ShowHistoryForBlock"/>
+
+			<add-to-group group-id="UpdateActionGroup" anchor="last"/>
 		</group>
 	</actions>
 </idea-plugin>
