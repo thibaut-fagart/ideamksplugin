@@ -10,7 +10,8 @@ import org.intellij.vcs.mks.model.MksMemberState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.*;
+import java.io.File;
+import java.io.IOException;
 import java.util.Date;
 import java.util.List;
 
@@ -34,6 +35,8 @@ public abstract class SiCLICommand extends AbstractMKSCommand implements Runnabl
 	protected static final String userPattern = "([^\\s]+)?";
 	private String commandString;
 	protected static final String DEFERRED = "deferred";
+	protected int exitValue;
+	private String errorOutput;
 
 	public SiCLICommand(@NotNull List<VcsException> errors, @NotNull EncodingProvider encodingProvider, @NotNull String command, String... args) {
 		super(errors);
@@ -75,40 +78,61 @@ public abstract class SiCLICommand extends AbstractMKSCommand implements Runnabl
 		Process process = builder.start();
 		AsyncStreamBuffer stderr =
 				new AsyncStreamBuffer(process.getErrorStream());
+		AsyncStreamBuffer stdout =
+				new AsyncStreamBuffer(process.getInputStream());
 
-		InputStream is = process.getInputStream();
-		Reader reader = new BufferedReader(new InputStreamReader(is, encodingProvider.getMksSiEncoding(command)));
-		StringWriter sw;
+//		InputStream is = process.getInputStream();
+
+//		Reader reader = new BufferedReader(new InputStreamReader(is, encodingProvider.getMksSiEncoding(command)));
+//		StringWriter sw;
+//		try {
+//			char[] buffer = new char[2048];
+//			int readChars;
+//			sw = new StringWriter();
+//			while ((readChars = reader.read(buffer)) != -1) {
+//				sw.write(new String(buffer, 0, readChars));
+//			}
+//		} finally {
+//			reader.close();
+//			try {
+//				final String errorOutput = new String(stderr.get(), encodingProvider.getMksSiEncoding(command));
+//				if (!"".equals(errorOutput)) {
+//					if (exitValue == 0) {
+//						LOGGER.warn("command [" + this + "] wrote to stderr " + errorOutput);
+//					} else {
+//						LOGGER.error("return code " + exitValue + " for command " + this
+//								+ ", stdErr=" + errorOutput);
+//					}
+//				}
+//			} catch (IllegalThreadStateException e) {
+//				process.destroy();
+//			}
+//		}
+		commandOutput = new String(stdout.get(), encodingProvider.getMksSiEncoding(command));
+		errorOutput = new String(stderr.get(), encodingProvider.getMksSiEncoding(command));
 		try {
-			char[] buffer = new char[2048];
-			int readChars;
-			sw = new StringWriter();
-			while ((readChars = reader.read(buffer)) != -1) {
-				sw.write(new String(buffer, 0, readChars));
-			}
-		} finally {
-			reader.close();
-			try {
-				final int exitValue = process.exitValue();
-				final String errorOutput = new String(stderr.get(), encodingProvider.getMksSiEncoding(command));
-				if (!"".equals(errorOutput)) {
-					if (exitValue == 0) {
-						LOGGER.warn("command [" + this + "] wrote to stderr " + errorOutput);
-					} else {
-						LOGGER.error("return code " + exitValue + " for command " + this
-								+ ", stdErr=" + errorOutput);
-					}
-				}
-			} catch (IllegalThreadStateException e) {
-				process.destroy();
-			}
-			LOGGER.debug(toString() + " finished in " + (System.currentTimeMillis() - start + " ms"));
+			exitValue = process.waitFor();
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
 		}
-		commandOutput = sw.toString();
+//		process.exitValue();
+		LOGGER.debug(toString() + " finished in " + (System.currentTimeMillis() - start + " ms"));
+//		sw.toString();
 		return buf.toString();
 	}
 
-	protected boolean shoudIgnore(String line) {
+	protected void handleErrorOutput(String errorOutput) {
+		if (!"".equals(errorOutput)) {
+			if (exitValue == 0) {
+				LOGGER.warn("command [" + this + "] wrote to stderr " + errorOutput);
+			} else {
+				LOGGER.error("return code " + exitValue + " for command " + this
+						+ ", stdErr=" + errorOutput);
+			}
+		}
+	}
+
+	protected boolean shouldIgnore(String line) {
 		return line.startsWith("Reconnecting") || line.startsWith("Connecting");
 	}
 

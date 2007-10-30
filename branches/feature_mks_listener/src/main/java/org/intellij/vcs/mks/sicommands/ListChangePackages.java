@@ -36,7 +36,7 @@ public class ListChangePackages extends SiCLICommand {
 			String command = executeCommand();
 			String[] lines = commandOutput.split("\n");
 			int start = 0;
-			while (shoudIgnore(lines[start])) {
+			while (shouldIgnore(lines[start])) {
 				// skipping connecting/reconnecting lines
 				start++;
 			}
