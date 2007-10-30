@@ -25,3 +25,10 @@ will only syncrhonize new members
 
 == resynchronize only non locally-modified files ==
 si resync --filter=changed:sync --filter=!changed:working
+== resynchronize only newly added files ==
+si resync --filter=changed:newmem --filter=!changed:working
+
+
+= Important : encoding issues =
+It seems encodings need to be set differently depending on the commands.
+On my Installation (French machine, French server), it seems most of si commands (especially si viewcps, and any command that outputs dates) need to be run with one of the following encodings : IBM00858 IBM437 IBM850 IBM857 IBM861 IBM863 IBM865, but the encoding used to checkin files is different : ISO-8859-1 needs to be used for si viewrevision
