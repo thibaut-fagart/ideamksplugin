@@ -32,12 +32,6 @@ si resync --filter=changed:newmem --filter=!changed:working
 = Important : encoding issues =
 It seems encodings need to be set differently depending on the commands.
 
-On my Installation (French machine, French server), it seems most of si commands (especially si viewcps, and any command that outputs dates) need to be run with one of the following encodings : 
-  * IBM00858 
-  * IBM437 
-  * IBM850 
-  * IBM857 
-  * IBM861 
-  * IBM863 
-  * IBM865, 
-but the encoding used to checkin files seems different : ISO-8859-1 needs to be used for si viewrevision. This encoding is indeed the one that was used to create the file initially
+On my Installation (French machine, French server), it seems most of si commands (especially si viewcps, and any command that outputs dates) need to be run with IBM850 encoding. 
+
+But the encoding used to checkin files seems different : ISO-8859-1 needs to be used for si viewrevision. This encoding is indeed the one that was used to create the file initially
