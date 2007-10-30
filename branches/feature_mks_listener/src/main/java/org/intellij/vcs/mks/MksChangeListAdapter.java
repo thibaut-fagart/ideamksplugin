@@ -103,6 +103,13 @@ class MksChangeListAdapter extends ChangeListAdapter {
 		}
 	}
 
+	/**
+	 * non vcs controlled members moved to a mks changepackage should be added
+	 *
+	 * @param changes
+	 * @param fromList
+	 * @param toList
+	 */
 	@Override
 	public void changesMoved(Collection<Change> changes, ChangeList fromList, ChangeList toList) {
 		// need to check the changes are controlled by mks
