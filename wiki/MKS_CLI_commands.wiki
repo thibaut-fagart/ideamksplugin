@@ -14,6 +14,9 @@ si viewsandbox --filter=changed:working
 si viewsandbox --filter=changed:working --filter=!locked:$user$
  (locally changed, but not locked by user)
 
+= Add member command =
+si add --createSubprojects --cpid=xx --defer --description="some text" "member path"
+
 = How to ... =
 == revert a deferred add operation ==
  si revert "filename"
