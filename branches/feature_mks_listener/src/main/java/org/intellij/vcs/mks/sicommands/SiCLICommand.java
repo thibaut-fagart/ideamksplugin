@@ -36,7 +36,6 @@ public abstract class SiCLICommand extends AbstractMKSCommand implements Runnabl
 	private String commandString;
 	protected static final String DEFERRED = "deferred";
 	protected int exitValue;
-	private String errorOutput;
 
 	public SiCLICommand(@NotNull List<VcsException> errors, @NotNull EncodingProvider encodingProvider, @NotNull String command, String... args) {
 		super(errors);
@@ -81,43 +80,17 @@ public abstract class SiCLICommand extends AbstractMKSCommand implements Runnabl
 		AsyncStreamBuffer stdout =
 				new AsyncStreamBuffer(process.getInputStream());
 
-//		InputStream is = process.getInputStream();
-
-//		Reader reader = new BufferedReader(new InputStreamReader(is, encodingProvider.getMksSiEncoding(command)));
-//		StringWriter sw;
-//		try {
-//			char[] buffer = new char[2048];
-//			int readChars;
-//			sw = new StringWriter();
-//			while ((readChars = reader.read(buffer)) != -1) {
-//				sw.write(new String(buffer, 0, readChars));
-//			}
-//		} finally {
-//			reader.close();
-//			try {
-//				final String errorOutput = new String(stderr.get(), encodingProvider.getMksSiEncoding(command));
-//				if (!"".equals(errorOutput)) {
-//					if (exitValue == 0) {
-//						LOGGER.warn("command [" + this + "] wrote to stderr " + errorOutput);
-//					} else {
-//						LOGGER.error("return code " + exitValue + " for command " + this
-//								+ ", stdErr=" + errorOutput);
-//					}
-//				}
-//			} catch (IllegalThreadStateException e) {
-//				process.destroy();
-//			}
-//		}
 		commandOutput = new String(stdout.get(), encodingProvider.getMksSiEncoding(command));
-		errorOutput = new String(stderr.get(), encodingProvider.getMksSiEncoding(command));
+		String errorOutput = new String(stderr.get(), encodingProvider.getMksSiEncoding(command));
+		handleErrorOutput(errorOutput);
 		try {
 			exitValue = process.waitFor();
 		} catch (InterruptedException e) {
 			Thread.currentThread().interrupt();
+			e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+			LOGGER.debug("interrupted", e);
 		}
-//		process.exitValue();
 		LOGGER.debug(toString() + " finished in " + (System.currentTimeMillis() - start + " ms"));
-//		sw.toString();
 		return buf.toString();
 	}
 
