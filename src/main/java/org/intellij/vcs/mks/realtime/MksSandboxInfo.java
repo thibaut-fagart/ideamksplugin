@@ -44,7 +44,7 @@ public final class MksSandboxInfo implements Comparable<MksSandboxInfo> {
 		this.mksProject = mksProject;
 		this.devPath = devPath;
 		this.sandboxPjFile = sandboxPjFile;
-		this.hostAndPort = hostAndPort;
+		this.hostAndPort = hostAndPort.toLowerCase();
 		this.sandboxPath = sandboxPath;
 	}
 
