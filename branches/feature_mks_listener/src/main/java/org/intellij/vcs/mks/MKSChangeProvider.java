@@ -263,12 +263,25 @@ class MKSChangeProvider extends AbstractProjectComponent implements ChangeProvid
 		ViewNonMembersCommand nonMembersCommand = new ViewNonMembersCommand(errors, mksvcs, sandbox);
 		nonMembersCommand.execute();
 		for (Map.Entry<String, MksMemberState> entry : nonMembersCommand.getMemberStates().entrySet()) {
-			if (myProject.getProjectScope().contains(VcsUtil.getVirtualFile(entry.getKey()))) {
-//				System.err.println("adding "+entry.getKey());
+			VirtualFile virtualFile = VcsUtil.getVirtualFile(entry.getKey());
+			if (null == virtualFile) {
+				logger.warn("no virtual file for filepath " + entry.getKey() + ", trying refreshing");
+				final HashSet<FilePath> set = new HashSet<FilePath>();
+				set.add(VcsUtil.getFilePath(entry.getKey()));
+				VcsUtil.refreshFiles(myProject, set);
+				virtualFile = VcsUtil.getVirtualFile(entry.getKey());
+				if (null == virtualFile) {
+					logger.warn("refreshing did not help");
+					continue;
+				}
+			}
+			if (myProject.getProjectScope().contains(virtualFile)) {
 				states.put(entry.getKey(), entry.getValue());
+			}
+//				System.err.println("adding "+entry.getKey());
 //			} else {
 //				System.err.println("ignoring "+entry.getKey());
-			}
+
 
 		}
 //		states.putAll(nonMembersCommand.getMemberStates());
