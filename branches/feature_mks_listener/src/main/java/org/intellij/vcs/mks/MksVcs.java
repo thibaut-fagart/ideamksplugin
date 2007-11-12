@@ -45,6 +45,7 @@ import org.jetbrains.annotations.Nullable;
 import javax.swing.*;
 import javax.swing.table.AbstractTableModel;
 import javax.swing.table.TableCellRenderer;
+import javax.swing.text.BadLocationException;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.StyleContext;
 import java.awt.BorderLayout;
@@ -366,19 +367,22 @@ public class MksVcs extends AbstractVcs implements ProjectComponent, EncodingPro
 	}
 
 	private void debug(String s, Exception e) {
-		StringBuffer oldText = new StringBuffer((mksTextArea == null) ? "" : mksTextArea.getText());
-		oldText.append("\n").append(s);
+		StringWriter sw = new StringWriter();
+		PrintWriter pw = new PrintWriter(sw);
+		pw.println(s);
 		if (e != null) {
 			LOGGER.debug(s, e);
-			StringWriter sw = new StringWriter();
-			PrintWriter pw = new PrintWriter(sw);
 			e.printStackTrace(pw);
-			oldText.append(sw.toString());
 		} else {
 			LOGGER.debug(s);
 		}
 		if (mksTextArea != null) {
-			mksTextArea.setText(oldText.toString());
+			pw.flush();
+			try {
+				mksTextArea.getDocument().insertString(mksTextArea.getDocument().getLength(), sw.toString(), null);
+			} catch (BadLocationException e1) {
+				e1.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+			}
 		}
 	}
 
