@@ -109,7 +109,8 @@ public class ViewMemberHistoryCommand extends SiCLICommand {
 		try {
 			return format.parse(date);
 		} catch (ParseException e) {
-			throw new VcsException("unknown date forma for " + date + " (expected [" + DATE_PATTERN + "])");
+			throw new VcsException("unknown date format for " + date + " (expected [" + DATE_PATTERN + "]). " +
+					"This may be an encoding issue, encoding used was " + encodingProvider.getMksSiEncoding(COMMAND));
 		}
 	}
 
