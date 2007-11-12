@@ -24,7 +24,6 @@ public abstract class AbstractMKSSynchronizer implements LongRunningTask {
 	 * the thread from which the command is actually launched
 	 */
 	private Thread runnerThread;
-	// todo add support to detect end of updates
 	// all lines for an update come in a close succession, should be possible to detect it using a background thread or wait with timeouts
 
 	public AbstractMKSSynchronizer(String command, EncodingProvider encodingProvider, String... args) {
