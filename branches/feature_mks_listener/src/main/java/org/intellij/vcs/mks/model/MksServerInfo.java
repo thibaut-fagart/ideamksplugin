@@ -14,7 +14,7 @@ public final class MksServerInfo {
 	public final String port;
 
 	public MksServerInfo(@NotNull final String user, @NotNull final String host, @NotNull final String port) {
-		this.host = host;
+		this.host = host.toLowerCase();
 		this.port = port;
 		this.user = user;
 	}
