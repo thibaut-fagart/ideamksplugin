@@ -145,6 +145,7 @@
 
 			<add-to-group group-id="VcsGroup" anchor="last"/>
 			<add-to-group group-id="VcsGroups" anchor="last"/>
+			<add-to-group group-id="UpdateActionGroup" anchor="last"/>
 		</group>
 
 		<group id="MKS.Vcs.CheckinProjectPopup" text="_MKS" popup="true"
@@ -152,16 +153,22 @@
 			<reference id="MKS.MemberDiffsAction"/>
 			<add-to-group group-id="Vcs.CheckinProjectPopup" anchor="last"/>
 		</group>
-		<group id="MksUpdateGroup">
-			<reference id="Compare.SameVersion"/>
-			<!-- text="Compare with BASE revision"/>-->
-			<reference id="Compare.LastVersion"/>
-			<!-- text="Compare with revision at HEAD"/>-->
-			<reference id="Compare.Selected"/>
-			<reference id="Vcs.ShowTabbedFileHistory"/>
-			<reference id="Vcs.ShowHistoryForBlock"/>
+		<!--
+	   <group id="MksUpdateGroup">
+		   <reference id="Compare.SameVersion"/>
+		   -->
+		<!-- text="Compare with BASE revision"/>-->
+		<!--
+		   <reference id="Compare.LastVersion"/>
+		   -->
+		<!-- text="Compare with revision at HEAD"/>-->
+		<!--
+			  <reference id="Compare.Selected"/>
+			  <reference id="Vcs.ShowTabbedFileHistory"/>
+			  <reference id="Vcs.ShowHistoryForBlock"/>
 
-			<add-to-group group-id="UpdateActionGroup" anchor="last"/>
-		</group>
+			  <add-to-group group-id="UpdateActionGroup" anchor="last"/>
+		  </group>
+  -->
 	</actions>
 </idea-plugin>
