@@ -90,6 +90,10 @@ public class ViewMemberHistoryCommand extends SiCLICommand {
 							//noinspection StatementWithEmptyBody
 							while (reader.readLine() != null) {
 							}
+						} else if (revisionsInfo.size() >= 1) {
+							LOGGER.debug("assuming multiline comment :" + line);
+							final MksMemberRevisionInfo info = revisionsInfo.get(revisionsInfo.size() - 1);
+							info.setDescription(info.getDescription() + "\n" + line);
 						} else {
 							//noinspection ThrowableInstanceNeverThrown
 							errors.add(new VcsException("ViewMemberHistory: unexpected line [" + line + "]"));
