@@ -1,18 +1,17 @@
 package org.intellij.vcs.mks.io;
 
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
 public class AsyncStreamBuffer {
-	private InputStream in;
+	private final InputStream in;
 
 	private IOException cause;
 	private byte[] buf;
 
 	private Thread reader = new Thread() {
-		private boolean active;
+		private volatile boolean active;
 
 		@Override
 		public void run() {
@@ -20,7 +19,6 @@ public class AsyncStreamBuffer {
 			try {
 				ByteArrayOutputStream out = new ByteArrayOutputStream();
 
-				int b;
 				byte[] buffer = new byte[2048];
 				int readBytes;
 
@@ -47,11 +45,11 @@ public class AsyncStreamBuffer {
 		reader.start();
 	}
 
-	public boolean isOpen() {
+	public synchronized boolean isOpen() {
 		return reader != null && reader.isAlive();
 	}
 
-	protected void waitFor() throws IOException {
+	protected synchronized void waitFor() throws IOException {
 		if (isOpen()) {
 			//noinspection EmptyCatchBlock
 			try {
@@ -61,10 +59,6 @@ public class AsyncStreamBuffer {
 				Thread.currentThread().interrupt();
 			}
 		}
-	}
-
-	public int size() throws IOException {
-		return get().length;
 	}
 
 	public byte[] get() throws IOException {
@@ -77,16 +71,16 @@ public class AsyncStreamBuffer {
 		return buf;
 	}
 
-	public InputStream openStream() throws IOException {
-		return new ByteArrayInputStream(get());
-	}
-
 	public void close() throws IOException {
-		if (isOpen()) {
-			reader.interrupt();
+		try {
+			if (isOpen()) {
+				reader.interrupt();
 
-			waitFor();
+				waitFor();
+				in.close();
+			}
+		} finally {
+			reader = null;
 		}
-		reader = null;
 	}
 }
