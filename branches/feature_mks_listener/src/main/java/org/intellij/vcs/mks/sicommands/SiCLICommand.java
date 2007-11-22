@@ -75,22 +75,25 @@ public abstract class SiCLICommand extends AbstractMKSCommand implements Runnabl
 		LOGGER.warn("executing " + buf.toString());
 		builder.redirectErrorStream(false);
 		Process process = builder.start();
-		AsyncStreamBuffer stderr =
-				new AsyncStreamBuffer(process.getErrorStream());
-		AsyncStreamBuffer stdout =
-				new AsyncStreamBuffer(process.getInputStream());
-
-		commandOutput = new String(stdout.get(), encodingProvider.getMksSiEncoding(command));
-		String errorOutput = new String(stderr.get(), encodingProvider.getMksSiEncoding(command));
-		handleErrorOutput(errorOutput);
 		try {
-			exitValue = process.waitFor();
-		} catch (InterruptedException e) {
-			Thread.currentThread().interrupt();
-			e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
-			LOGGER.debug("interrupted", e);
+			AsyncStreamBuffer stderr =
+					new AsyncStreamBuffer(process.getErrorStream());
+			AsyncStreamBuffer stdout =
+					new AsyncStreamBuffer(process.getInputStream());
+
+			commandOutput = new String(stdout.get(), encodingProvider.getMksSiEncoding(command));
+			String errorOutput = new String(stderr.get(), encodingProvider.getMksSiEncoding(command));
+			try {
+				exitValue = process.waitFor();
+			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
+				e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+				LOGGER.debug("interrupted", e);
+			}
+			handleErrorOutput(errorOutput);
+		} finally {
+			LOGGER.debug(toString() + " finished in " + (System.currentTimeMillis() - start + " ms"));
 		}
-		LOGGER.debug(toString() + " finished in " + (System.currentTimeMillis() - start + " ms"));
 		return buf.toString();
 	}
 

@@ -12,6 +12,7 @@ public final class MksServerInfo {
 	public final String host;
 	@NotNull
 	public final String port;
+	public boolean isSIServer = true;
 
 	public MksServerInfo(@NotNull final String user, @NotNull final String host, @NotNull final String port) {
 		this.host = host.toLowerCase();

@@ -2,6 +2,7 @@ package org.intellij.vcs.mks;
 
 import com.intellij.openapi.components.AbstractProjectComponent;
 import com.intellij.openapi.components.ProjectComponent;
+import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.vcs.FilePath;
@@ -305,7 +306,12 @@ class MKSChangeProvider extends AbstractProjectComponent implements ChangeProvid
 	 */
 	private Map<MksServerInfo, Map<String, MksChangePackage>> getChangePackages(final ProgressIndicator progress, final ArrayList<VcsException> errors, final ArrayList<MksServerInfo> servers) {
 		final Map<MksServerInfo, Map<String, MksChangePackage>> changePackages = new HashMap<MksServerInfo, Map<String, MksChangePackage>>();
+		final MksConfiguration config = ServiceManager.getService(myProject, MksConfiguration.class);
 		for (MksServerInfo server : servers) {
+			if (!config.isServerSiServer(server)) {
+				mksvcs.debug("ignoring " + server.host + ":" + server.port + " when querying changepackages");
+				continue;
+			}
 			final ListChangePackages listCpsAction = new ListChangePackages(errors, mksvcs, server);
 			if (progress != null) {
 				progress.setIndeterminate(true);
@@ -315,6 +321,8 @@ class MKSChangeProvider extends AbstractProjectComponent implements ChangeProvid
 			if (listCpsAction.foundError()) {
 				logger.warn("error querying mks cps");
 			}
+			config.serverIsSiServer(listCpsAction.serverInfo, listCpsAction.serverInfo.isSIServer);
+
 			Map<String, MksChangePackage> serverChangePackages = new HashMap<String, MksChangePackage>();
 			for (MksChangePackage changePackage : listCpsAction.changePackages) {
 				serverChangePackages.put(changePackage.getId(), changePackage);

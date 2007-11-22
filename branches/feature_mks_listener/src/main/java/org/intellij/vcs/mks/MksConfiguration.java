@@ -5,6 +5,7 @@ import com.intellij.openapi.util.DefaultJDOMExternalizer;
 import com.intellij.openapi.util.InvalidDataException;
 import com.intellij.openapi.util.JDOMExternalizable;
 import com.intellij.openapi.util.WriteExternalException;
+import org.intellij.vcs.mks.model.MksServerInfo;
 import org.jdom.Element;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
@@ -66,6 +67,44 @@ public class MksConfiguration
 	public String PROJECT;
 	public StringMap SI_ENCODINGS;
 	public String defaultEncoding;
+	/**
+	 * (host:port(,host:port)*)?
+	 */
+	public String nonSiServers = "";
+
+	public boolean isServerSiServer(MksServerInfo aServer) {
+		return !nonSiServers.contains(toStorableString(aServer));
+	}
+
+	public void serverIsSiServer(MksServerInfo aServer, boolean yesOrNo) {
+		if (!yesOrNo) {
+			if (!nonSiServers.contains(toStorableString(aServer))) {
+				synchronized (this) {
+					if (nonSiServers.length() > 0) {
+						nonSiServers = nonSiServers + "," + toStorableString(aServer);
+					} else {
+						nonSiServers = toStorableString(aServer);
+					}
+				}
+			}
+		} else {
+			if (nonSiServers.contains(toStorableString(aServer))) {
+				synchronized (this) {
+					if (nonSiServers.equals(toStorableString(aServer))) {
+						nonSiServers = "";
+					} else {
+						nonSiServers = nonSiServers.replace(toStorableString(aServer), "");
+						nonSiServers = nonSiServers.replace(",,", ",");
+					}
+				}
+			}
+
+		}
+	}
+
+	private String toStorableString(MksServerInfo aServer) {
+		return aServer.host + ":" + aServer.port;
+	}
 
 	public static class StringMap implements JDOMExternalizable {
 		@NonNls
