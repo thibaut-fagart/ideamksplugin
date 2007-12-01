@@ -48,8 +48,7 @@ import javax.swing.table.TableCellRenderer;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.StyleContext;
-import java.awt.BorderLayout;
-import java.awt.Component;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
@@ -57,6 +56,7 @@ import java.awt.event.MouseEvent;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.*;
+import java.util.List;
 
 public class MksVcs extends AbstractVcs implements ProjectComponent, EncodingProvider {
 	static final Logger LOGGER = Logger.getInstance(MksVcs.class.getName());
@@ -324,6 +324,7 @@ public class MksVcs extends AbstractVcs implements ProjectComponent, EncodingPro
 		ToolWindow toolWindow = toolWindowManager.registerToolWindow("MKS", true, ToolWindowAnchor.BOTTOM);
 		PeerFactory pf = com.intellij.peer.PeerFactory.getInstance();
 		Content content = pf.getContentFactory().createContent(mksPanel, "", false); // first arg is a JPanel
+		content.setCloseable(false);
 		toolWindow.getContentManager().addContent(content);
 
 		toolWindow.setIcon(IconLoader.getIcon("/icons/mks.gif", getClass()));
