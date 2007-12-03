@@ -6,6 +6,7 @@ import org.intellij.vcs.mks.EncodingProvider;
 import org.intellij.vcs.mks.model.MksChangePackage;
 import org.intellij.vcs.mks.model.MksServerInfo;
 import org.jetbrains.annotations.NonNls;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
@@ -40,13 +41,11 @@ public class ListChangePackages extends SiCLICommand {
 		try {
 			String command = executeCommand();
 			String[] lines = commandOutput.split("\n");
-			int start = 0;
-			while (start < lines.length && shouldIgnore(lines[start])) {
-				// skipping connecting/reconnecting lines
-				start++;
-			}
-			for (int i = start, max = lines.length; i < max; i++) {
+			for (int i = 0, max = lines.length; i < max; i++) {
 				String line = lines[i];
+				if (shouldIgnore(line)) {
+					continue;
+				}
 				String[] parts = line.split("\t");
 				if (parts.length < 4) {
 					String errrorMessage = "unexpected command output {" + line + "}, expected 4 parts separated by \\t, while executing " + command;
@@ -69,51 +68,14 @@ public class ListChangePackages extends SiCLICommand {
 		super.handleErrorOutput(errorOutput);
 
 		if (exitValue == 128 && errorOutput.contains("(it may be down)")) {
-			class MyDialog extends DialogWrapper {
-				MyDialog() {
-					super(false);
-					init();
-				}
-
-				@Override
-				@Nullable
-				protected JComponent createCenterPanel() {
-					//					JPanel panel = new JPanel(new BorderLayout());
-					//					panel.add(
-					return new JLabel("Is " + serverInfo.host + ":" + serverInfo.port + " a source integrity server ?\n" +
-							"It does not seem to accept si commands.\n" +
-							"(Answer yes if it is only momentarily down");
-					//					);
-					//					return panel;
-				}
-
-				@Override
-				protected Action[] createActions() {
-					Action[] actions = new Action[2];
-					actions[0] = new AbstractAction("Yes") {
-						public void actionPerformed(ActionEvent e) {
-							serverInfo.isSIServer = true;
-							close(1);
-						}
-					};
-					actions[1] = new AbstractAction("No") {
-						public void actionPerformed(ActionEvent e) {
-							serverInfo.isSIServer = false;
-							close(1);
-						}
-					};
-					return actions;
-				}
-			}
-
-			final MyDialog dialog = new MyDialog();
+			final IsServerSiServerDialog dialog = new IsServerSiServerDialog(serverInfo.host + ":" + serverInfo.port);
 			try {
 				SwingUtilities.invokeAndWait(new Runnable() {
 					public void run() {
 						dialog.show();
 					}
-
 				});
+				serverInfo.isSIServer = dialog.isSiServer;
 			} catch (InterruptedException e) {
 				Thread.currentThread().interrupt();
 			} catch (InvocationTargetException e) {
@@ -122,8 +84,6 @@ public class ListChangePackages extends SiCLICommand {
 				//noinspection ThrowableInstanceNeverThrown
 				errors.add(o instanceof VcsException ? (VcsException) o : new VcsException(o));
 			}
-
-
 		}
 	}
 
@@ -136,4 +96,42 @@ public class ListChangePackages extends SiCLICommand {
 	public String toString() {
 		return "ListChangePackages[" + serverInfo + "]";
 	}
+
+	static class IsServerSiServerDialog extends DialogWrapper {
+		boolean isSiServer = false;
+		private final String serverName;
+
+		IsServerSiServerDialog(@NotNull String serverName) {
+			super(false);
+			this.serverName = serverName;
+			init();
+		}
+
+		@Override
+		@Nullable
+		protected JComponent createCenterPanel() {
+			return new JLabel("Is " + serverName + " a source integrity server ?\n" +
+					"It does not seem to accept si commands.\n" +
+					"(Answer yes if it is only momentarily down");
+		}
+
+		@Override
+		protected Action[] createActions() {
+			Action[] actions = new Action[2];
+			actions[0] = new AbstractAction("Yes") {
+				public void actionPerformed(ActionEvent e) {
+					isSiServer = true;
+					close(1);
+				}
+			};
+			actions[1] = new AbstractAction("No") {
+				public void actionPerformed(ActionEvent e) {
+					isSiServer = false;
+					close(1);
+				}
+			};
+			return actions;
+		}
+	}
+
 }
