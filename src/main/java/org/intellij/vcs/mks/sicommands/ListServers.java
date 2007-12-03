@@ -32,12 +32,11 @@ public class ListServers extends SiCLICommand {
 			executeCommand();
 			String[] lines = commandOutput.split("\n");
 			int start = 0;
-			while (shouldIgnore(lines[start])) {
-				// skipping connecting/reconnecting lines
-				start++;
-			}
 			for (int i = start, max = lines.length; i < max; i++) {
 				String line = lines[i];
+				if (shouldIgnore(line)) {
+					continue;
+				}
 				Matcher matcher = pattern.matcher(line);
 				if (matcher.matches()) {
 					String user = matcher.group(1);
@@ -55,6 +54,10 @@ public class ListServers extends SiCLICommand {
 			//noinspection ThrowableInstanceNeverThrown
 			errors.add(new VcsException(e));
 		}
+	}
+
+	protected boolean shouldIgnore(String line) {
+		return super.shouldIgnore(line) || line.trim().length() == 0;
 	}
 
 	@Override
