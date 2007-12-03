@@ -5,6 +5,7 @@ import com.intellij.openapi.components.ProjectComponent;
 import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProgressIndicator;
+import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.vcs.FilePath;
 import com.intellij.openapi.vcs.FileStatus;
 import com.intellij.openapi.vcs.VcsException;
@@ -19,12 +20,13 @@ import org.intellij.vcs.mks.model.MksChangePackage;
 import org.intellij.vcs.mks.model.MksMemberState;
 import org.intellij.vcs.mks.model.MksServerInfo;
 import org.intellij.vcs.mks.realtime.MksSandboxInfo;
-import org.intellij.vcs.mks.realtime.SandboxCache;
 import org.intellij.vcs.mks.sicommands.*;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.*;
@@ -54,27 +56,26 @@ class MKSChangeProvider extends AbstractProjectComponent implements ChangeProvid
 		final JLabel statusLabel = new JLabel();
 		try {
 			WindowManager.getInstance().getStatusBar(myProject).addCustomIndicationComponent(statusLabel);
+			Set<MksSandboxInfo> sandboxesToRefresh = collectSandboxesToRefresh(dirtyScope, statusLabel);
 			setStatusInfo(statusLabel, "collecting servers");
 			ArrayList<MksServerInfo> servers = getMksServers(progress, errors);
+			checkNeededServersAreOnlineAndReconnectIfNeeded(sandboxesToRefresh, servers);
 			setStatusInfo(statusLabel, "collecting change packages");
-			final Map<MksServerInfo, Map<String, MksChangePackage>> changePackagesPerServer = getChangePackages(progress, errors, servers);
 			// collect affected sandboxes
 //			if (MksVcs.DEBUG) {
 //				builder = createBuilderLoggingProxy(myBuilder);
 //			}
-			setStatusInfo(statusLabel, "collecting relevant sandboxes");
 			final Map<String, MksServerInfo> serversByHostAndPort = distributeServersByHostAndPort(servers);
-			final SandboxCache sandboxCache = mksvcs.getSandboxCache();
-			Set<MksSandboxInfo> sandboxesToRefresh = new HashSet<MksSandboxInfo>();
 
-			for (VirtualFile dir : dirtyScope.getAffectedContentRoots()) {
-				Set<MksSandboxInfo> sandboxes = sandboxCache.getSandboxesIntersecting(dir);
-				sandboxesToRefresh.addAll(sandboxes);
-			}
 			int sandboxCountToRefresh = sandboxesToRefresh.size();
 			int refreshedSandbox = 0;
+			final Map<MksServerInfo, Map<String, MksChangePackage>> changePackagesPerServer = getChangePackages(progress, errors, servers);
 			for (MksSandboxInfo sandbox : sandboxesToRefresh) {
-				MksServerInfo sandboxServer = serversByHostAndPort.get(sandbox.hostAndPort);
+				@Nullable MksServerInfo sandboxServer = serversByHostAndPort.get(sandbox.hostAndPort);
+				if (sandboxServer == null) {
+					logger.warn("sandbox [" + sandbox.sandboxPath + "] bound to unknown or not connected server[" + sandbox.hostAndPort + "], skipping");
+					continue;
+				}
 				final String message = "requesting mks sandbox "
 						+ sandbox.sandboxPath + " (" + (++refreshedSandbox) + "/" + sandboxCountToRefresh + ") ";
 				setStatusInfo(statusLabel, message);
@@ -90,7 +91,7 @@ class MKSChangeProvider extends AbstractProjectComponent implements ChangeProvid
 					} else if (filePath.getVirtualFile() == null) {
 						logger.warn("no VirtualFile for " + filePath.getPath() + ", ignoring");
 						return true;
-					} else if (sandboxCache.isSandboxProject(filePath.getVirtualFile())) {
+					} else if (mksvcs.getSandboxCache().isSandboxProject(filePath.getVirtualFile())) {
 						finalBuilder.processIgnoredFile(filePath.getVirtualFile());
 						//                        System.err.println("ignoring project.pj file");
 						return true;
@@ -108,6 +109,65 @@ class MKSChangeProvider extends AbstractProjectComponent implements ChangeProvid
 		}
 
 
+	}
+
+	private void checkNeededServersAreOnlineAndReconnectIfNeeded(Set<MksSandboxInfo> sandboxesToRefresh, ArrayList<MksServerInfo> servers) {
+		Set<String> connectedServers = new HashSet<String>();
+		for (MksServerInfo server : servers) {
+			connectedServers.add(server.host + ":" + server.port);
+		}
+		Set<String> serversNeedingReconnect = new HashSet<String>();
+		for (MksSandboxInfo sandboxInfo : sandboxesToRefresh) {
+			if (!connectedServers.contains(sandboxInfo.hostAndPort)) {
+				serversNeedingReconnect.add(sandboxInfo.hostAndPort);
+			}
+		}
+		for (final String hostAndPort : serversNeedingReconnect) {
+			// request user and password
+
+			int colonIndex = hostAndPort.indexOf(':');
+			String host = hostAndPort.substring(0, colonIndex);
+			String port = hostAndPort.substring(colonIndex + 1);
+			class UserAndPassword {
+				String user;
+				String password;
+			}
+			final UserAndPassword userAndPassword = new UserAndPassword();
+			try {
+				SwingUtilities.invokeAndWait(new Runnable() {
+					public void run() {
+						userAndPassword.user = Messages.showInputDialog(mksvcs.getProject(), "user", "MKS : reconnect to " + hostAndPort, null);
+						userAndPassword.password = Messages.showInputDialog(mksvcs.getProject(), "password", "MKS : reconnect to " + hostAndPort, null);
+
+					}
+				});
+			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
+			} catch (InvocationTargetException e) {
+				logger.error(e);
+				continue;
+			}
+			if (userAndPassword.user == null || userAndPassword.password == null) {
+				continue;
+			}
+			SiConnectCommand command = new SiConnectCommand(mksvcs, host, port, userAndPassword.user, userAndPassword.password);
+			command.execute();
+			if (!command.foundError() && (command.getServer() != null)) {
+				servers.add(command.getServer());
+			} else {
+				logger.warn("unable to connect to " + hostAndPort);
+			}
+		}
+	}
+
+	private Set<MksSandboxInfo> collectSandboxesToRefresh(VcsDirtyScope dirtyScope, JLabel statusLabel) {
+		setStatusInfo(statusLabel, "collecting relevant sandboxes");
+		Set<MksSandboxInfo> sandboxesToRefresh = new HashSet<MksSandboxInfo>();
+		for (VirtualFile dir : dirtyScope.getAffectedContentRoots()) {
+			Set<MksSandboxInfo> sandboxes = mksvcs.getSandboxCache().getSandboxesIntersecting(dir);
+			sandboxesToRefresh.addAll(sandboxes);
+		}
+		return sandboxesToRefresh;
 	}
 
 	private void setStatusInfo(JLabel statusLabel, String message) {
@@ -250,7 +310,7 @@ class MKSChangeProvider extends AbstractProjectComponent implements ChangeProvid
 		return state.workingChangePackageId == null ? null : changePackages.get(state.workingChangePackageId);
 	}
 
-	private Map<String, MksMemberState> getSandboxState(@NotNull final MksSandboxInfo sandbox, final ArrayList<VcsException> errors, final MksServerInfo server) {
+	private Map<String, MksMemberState> getSandboxState(@NotNull final MksSandboxInfo sandbox, final ArrayList<VcsException> errors, @NotNull final MksServerInfo server) {
 		Map<String, MksMemberState> states = new HashMap<String, MksMemberState>();
 
 		ViewSandboxWithoutChangesCommand fullSandboxCommand = new ViewSandboxWithoutChangesCommand(errors, mksvcs, sandbox.sandboxPath);
@@ -266,13 +326,13 @@ class MKSChangeProvider extends AbstractProjectComponent implements ChangeProvid
 		for (Map.Entry<String, MksMemberState> entry : nonMembersCommand.getMemberStates().entrySet()) {
 			VirtualFile virtualFile = VcsUtil.getVirtualFile(entry.getKey());
 			if (null == virtualFile) {
-				logger.warn("no virtual file for filepath " + entry.getKey() + ", trying refreshing");
+//				logger.warn("no virtual file for filepath " + entry.getKey() + ", trying refreshing");
 				final HashSet<FilePath> set = new HashSet<FilePath>();
 				set.add(VcsUtil.getFilePath(entry.getKey()));
 				VcsUtil.refreshFiles(myProject, set);
 				virtualFile = VcsUtil.getVirtualFile(entry.getKey());
 				if (null == virtualFile) {
-					logger.warn("refreshing did not help");
+//					logger.warn("refreshing did not help");
 					continue;
 				}
 			}

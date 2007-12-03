@@ -19,11 +19,6 @@ import java.util.List;
  * @author Thibaut Fagart
  */
 public abstract class SiCLICommand extends AbstractMKSCommand implements Runnable {
-	protected final EncodingProvider encodingProvider;
-	private String command;
-	private String[] args;
-	protected String commandOutput;
-	private File workingDir;
 	protected static final String DEFERRED_ADD = "deferred-add";
 	protected static final String DEFERRED_DROP = "deferred-drop";
 	protected static final String revisionPattern = "(\\d+(?:\\.\\d+)*)?";
@@ -33,8 +28,13 @@ public abstract class SiCLICommand extends AbstractMKSCommand implements Runnabl
 	protected static final String namePattern = "(.+)";
 	protected static final String sandboxPattern = namePattern + "?";
 	protected static final String userPattern = "([^\\s]+)?";
-	private String commandString;
 	protected static final String DEFERRED = "deferred";
+	private String commandString;
+	protected final EncodingProvider encodingProvider;
+	private String command;
+	private String[] args;
+	protected String commandOutput;
+	private File workingDir;
 	protected int exitValue;
 
 	public SiCLICommand(@NotNull List<VcsException> errors, @NotNull EncodingProvider encodingProvider, @NotNull String command, String... args) {
@@ -101,6 +101,8 @@ public abstract class SiCLICommand extends AbstractMKSCommand implements Runnabl
 		if (!"".equals(errorOutput)) {
 			if (exitValue == 0) {
 				LOGGER.warn("command [" + this + "] wrote to stderr " + errorOutput);
+			} else if (exitValue == 2 && errorOutput.startsWith("Connecting to ")) {
+				LOGGER.warn("mks returned [" + errorOutput + "], you probably need to reconnect to the server manually, try executing 'si connect --hostname=$mksHost$'");
 			} else {
 				LOGGER.error("return code " + exitValue + " for command " + this
 						+ ", stdErr=" + errorOutput);
