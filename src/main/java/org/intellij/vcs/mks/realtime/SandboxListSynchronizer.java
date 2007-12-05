@@ -20,9 +20,10 @@ public class SandboxListSynchronizer extends AbstractMKSSynchronizer {
 	private static final int PROJECT_TYPE_GROUP_IDX = 3;
 	private static final int PROJECT_VERSION_GROUP_IDX = 4;
 	private static final int SERVER_GROUP_IDX = 5;
+	private String currentProjectPath = null;
 
 	public SandboxListSynchronizer(EncodingProvider encodingProvider, SandboxCache sandboxCache) {
-		super(ListSandboxes.COMMAND, encodingProvider, "--nodisplaySubs");
+		super(ListSandboxes.COMMAND, encodingProvider, "--displaySubs");
 		this.sandboxCache = sandboxCache;
 		pattern = Pattern.compile(patternString);
 	}
@@ -49,13 +50,29 @@ public class SandboxListSynchronizer extends AbstractMKSSynchronizer {
 					String projectType = matcher.group(PROJECT_TYPE_GROUP_IDX);
 					String projectVersion = matcher.group(PROJECT_VERSION_GROUP_IDX);
 					String serverHostAndPort = matcher.group(SERVER_GROUP_IDX);
+					boolean isSubSandbox = isSubSandbox(projectPath);
+					if (isSubSandbox) {
+						if (currentProjectPath == null) {
+							throw new IllegalStateException("encountering a subsandbox without its containing sandbox");
+						}
+						projectPath = currentProjectPath + projectPath;
+					} else {
+						if (projectPath.indexOf('/') < 0) {
+							throw new IllegalStateException("projectPath [" + projectPath + "] does not contain /");
+						}
+						currentProjectPath = projectPath.substring(0, projectPath.lastIndexOf('/') + 1);
+					}
 //					System.out.println("adding ["+filePath+"]");
-					sandboxCache.addSandboxPath(sandboxPath, serverHostAndPort, projectPath, projectVersion);
+					sandboxCache.addSandboxPath(sandboxPath, serverHostAndPort, projectPath, projectVersion, isSubSandbox);
 				}
 			}
 		} catch (Exception e) {
 			LOGGER.error("error parsing mks synchronizer output [" + line + "], skipping that line", e);
 		}
+	}
+
+	private boolean isSubSandbox(String projectPath) {
+		return !projectPath.startsWith("/");
 	}
 
 	public String getDescription() {

@@ -33,11 +33,12 @@ public interface SandboxCache extends ModuleRootListener {
 
 	/**
 	 * @param sandboxPath
-	 * @param serverHostAndPort
-	 * @param mksProject
+	 * @param serverHostAndPort host:port of the server that hosts the project
+	 * @param mksProject		the mks project path this sandbox is associated with
 	 * @param devPath		   null if the sandbox is on the trunk
+	 * @param isSubSandbox	  true if the sandbox is not a top level sandbox
 	 */
-	void addSandboxPath(@NotNull String sandboxPath, @NotNull final String serverHostAndPort, @NotNull String mksProject, @Nullable String devPath);
+	void addSandboxPath(@NotNull String sandboxPath, @NotNull final String serverHostAndPort, @NotNull String mksProject, @Nullable String devPath, boolean isSubSandbox);
 
 	// for mks monitoring
 	void dumpStateOn(@NotNull PrintWriter pw);
