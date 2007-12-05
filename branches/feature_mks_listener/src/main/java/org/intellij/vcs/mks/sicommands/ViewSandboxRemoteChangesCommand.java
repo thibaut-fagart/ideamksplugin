@@ -37,6 +37,9 @@ public class ViewSandboxRemoteChangesCommand extends AbstractViewSandboxCommand 
 			} else if (workingRev != null && memberRev != null) {
 				return new MksMemberState((MksRevisionNumber.createRevision(workingRev)), (MksRevisionNumber.createRevision(memberRev)), workingCpid,
 						MksMemberState.Status.SYNC);
+			} else if (isDropped(type) && workingRev != null) {
+				return new MksMemberState((MksRevisionNumber.createRevision(workingRev)), (MksRevisionNumber.createRevision(memberRev)), workingCpid,
+						MksMemberState.Status.REMOTELY_DROPPED);
 			} else {
 				LOGGER.warn("unexpected ! ");
 				throw new VcsException("unexpected");

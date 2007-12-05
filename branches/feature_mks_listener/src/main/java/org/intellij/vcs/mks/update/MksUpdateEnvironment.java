@@ -79,6 +79,9 @@ public class MksUpdateEnvironment implements UpdateEnvironment {
 					case REMOTELY_ADDED:
 						updatedFiles.getGroupById(FileGroup.CREATED_ID).add(entry.getKey(), mksVcs, state.memberRevision);
 						break;
+					case REMOTELY_DROPPED:
+						updatedFiles.getGroupById(FileGroup.REMOVED_FROM_REPOSITORY_ID).add(entry.getKey(), mksVcs, state.memberRevision);
+						break;
 					case DROPPED:
 						updatedFiles.getGroupById(FileGroup.LOCALLY_REMOVED_ID).add(entry.getKey());
 						break;
