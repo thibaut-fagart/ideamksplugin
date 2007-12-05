@@ -38,10 +38,10 @@ public class ViewSandboxWithoutChangesCommandTest extends TestCase {
 			error.printStackTrace();
 		}
 		assertTrue("errors found", errors.isEmpty());
-		String lockedFile =
-				"c:\\Documents and Settings\\A6253567.HBEU\\sandboxes\\J2EE\\HJF-Core\\pom.xml";
+		String member =
+				"c:\\Documents and Settings\\A6253567\\sandboxes\\J2EE\\HJF-Core\\pom.xml";
 		// this command is not supposed to detect changes
-		MksMemberState state = states.get(lockedFile);
+		MksMemberState state = states.get(member);
 		assertNotNull(state);
 		assertEquals("1.4.1.1", state.workingRevision.asString());
 		assertEquals("1.4.1.1", state.memberRevision.asString());

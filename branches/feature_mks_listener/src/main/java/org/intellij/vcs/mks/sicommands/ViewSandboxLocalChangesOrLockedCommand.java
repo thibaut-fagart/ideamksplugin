@@ -5,6 +5,7 @@ import org.intellij.vcs.mks.EncodingProvider;
 import org.intellij.vcs.mks.model.MksMemberState;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.List;
 
 /**
@@ -72,9 +73,13 @@ public class ViewSandboxLocalChangesOrLockedCommand extends AbstractViewSandboxC
 			return false;
 		}
 		File sandboxPjFile = new File(this.sandboxPath);
-		String sandboxFolder = sandboxPjFile.getParent();
 		File lockedSandboxPjFile = new File(lockedSandbox);
-		return lockedSandboxPjFile.getAbsolutePath().startsWith(sandboxFolder);
+		try {
+			return lockedSandboxPjFile.getCanonicalPath().equals(sandboxPjFile.getCanonicalPath());
+		} catch (IOException e) {
+			LOGGER.warn("exception comparing locked sandbox and current sandbox, assuming different", e);
+			return false;
+		}
 	}
 
 	private boolean isLockedByMe(final String locker) {

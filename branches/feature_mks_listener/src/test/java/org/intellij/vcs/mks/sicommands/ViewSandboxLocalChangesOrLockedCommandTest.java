@@ -4,6 +4,7 @@ import com.intellij.openapi.vcs.VcsException;
 import junit.framework.TestCase;
 import org.intellij.vcs.mks.EncodingProvider;
 import org.intellij.vcs.mks.model.MksMemberState;
+import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.*;
@@ -19,6 +20,8 @@ public class ViewSandboxLocalChangesOrLockedCommandTest extends TestCase {
 	private static final String ENCODING = "IBM437";
 	private ViewSandboxLocalChangesOrLockedCommand commandLocal;
 	private List<VcsException> errors;
+	@NonNls
+	private static final String SANDBOX_DIR = "c:\\Documents and Settings\\A6253567\\sandboxes\\J2EE";
 
 	protected void setUp() throws Exception {
 		super.setUp();
@@ -27,10 +30,10 @@ public class ViewSandboxLocalChangesOrLockedCommandTest extends TestCase {
 	}
 
 	public void testFindsModifiedWithoutCheckout() {
-		String sandboxPath = "c:\\Documents and Settings\\A6253567.HBEU\\sandboxes\\J2EE\\project.pj";
+		String sandboxPath = SANDBOX_DIR + "\\project.pj";
 		commandLocal = createCommand(errors, sandboxPath, "viewsandbox/changedOrLocked.txt");
 		commandLocal.execute();
-		String modifiedWithoutCheckOutFile = "c:\\Documents and Settings\\A6253567.HBEU\\sandboxes\\J2EE\\HJF-Core\\unittestsrc\\log4j.properties";
+		String modifiedWithoutCheckOutFile = SANDBOX_DIR + "\\HJF-Core\\unittestsrc\\log4j.properties";
 		MksMemberState memberState = commandLocal.getMemberStates().get(modifiedWithoutCheckOutFile);
 		assertNotNull("missing state", memberState);
 		assertTrue("bad modifiedWithoutCheckout status", memberState.status == MksMemberState.Status.MODIFIED_WITHOUT_CHECKOUT);
@@ -39,10 +42,10 @@ public class ViewSandboxLocalChangesOrLockedCommandTest extends TestCase {
 	}
 
 	public void testFindsCheckedOutWithChangePackage() {
-		String sandboxPath = "c:\\Documents and Settings\\A6253567.HBEU\\sandboxes\\J2EE\\project.pj";
+		String sandboxPath = SANDBOX_DIR + "\\project.pj";
 		commandLocal = createCommand(errors, sandboxPath, "viewsandbox/changedOrLocked.txt");
 		commandLocal.execute();
-		String checkedOutFile = "c:\\Documents and Settings\\A6253567.HBEU\\sandboxes\\J2EE\\HJE-Batch\\src\\com\\hsbc\\hbfr\\ccf\\at\\batch\\AccessorInputSource.java";
+		String checkedOutFile = SANDBOX_DIR + "\\HJE-Batch\\pom.xml";
 
 		MksMemberState memberState = commandLocal.getMemberStates().get(checkedOutFile);
 		assertNotNull("missing state", memberState);
@@ -52,21 +55,25 @@ public class ViewSandboxLocalChangesOrLockedCommandTest extends TestCase {
 	}
 
 	public void testViewsCheckedOutInAnotherSandboxBySameUserAsUnknown() {
-		String sandboxPath = "c:\\Documents and Settings\\A6253567.HBEU\\sandboxes\\J2EE\\project.pj";
+		String sandboxPath = SANDBOX_DIR + "\\project.pj";
 		commandLocal = createCommand(errors, sandboxPath, "viewsandbox/changedOrLocked.txt");
 		commandLocal.execute();
-		String checkedOutInAnotherSandboxFile = "c:\\Documents and Settings\\A6253567.HBEU\\sandboxes\\J2EE\\pom.xml";
+		String checkedOutInAnotherSandboxFile = SANDBOX_DIR + "\\HJE-Batch\\src\\com\\hsbc\\hbfr\\ccf\\at\\batch\\Batch.java";
 
 		MksMemberState memberState = commandLocal.getMemberStates().get(checkedOutInAnotherSandboxFile);
 		assertNotNull("missing state", memberState);
 		assertEquals("expecting UNKNOWN", MksMemberState.Status.UNKNOWN, memberState.status);
 	}
 
+	public void testFile() throws IOException {
+		System.out.println(new File("c:/Readme.txt").getCanonicalPath());
+	}
+
 	public void testLocallyDeleted() {
-		String sandboxPath = "c:\\Documents and Settings\\A6253567.HBEU\\sandboxes\\J2EE\\project.pj";
+		String sandboxPath = SANDBOX_DIR + "\\project.pj";
 		commandLocal = createCommand(errors, sandboxPath, "viewsandbox/changedOrLocked.txt");
 		commandLocal.execute();
-		String locallyDeletedFile = "c:\\Documents and Settings\\A6253567.HBEU\\sandboxes\\J2EE\\HJF-Core\\build\\HJF-Core-debug.jar";
+		String locallyDeletedFile = SANDBOX_DIR + "\\HJF-Core\\build\\HJF-Core-debug.jar";
 
 		MksMemberState memberState = commandLocal.getMemberStates().get(locallyDeletedFile);
 		assertNotNull("missing state", memberState);
@@ -78,11 +85,11 @@ public class ViewSandboxLocalChangesOrLockedCommandTest extends TestCase {
 	public void testDeferredAdd() {
 		List<VcsException> errors = new ArrayList<VcsException>();
 
-		String sandboxPath = "c:\\Documents and Settings\\A6253567.HBEU\\sandboxes\\CSO\\project.pj";
+		String sandboxPath = SANDBOX_DIR + "\\sandboxes\\CSO\\project.pj";
 		commandLocal = createCommand(errors, sandboxPath, "viewsandbox/deferred-add.txt");
 		commandLocal.execute();
 		Map<String, MksMemberState> states = commandLocal.getMemberStates();
-		assertEquals(2, states.size());
+		assertEquals(38, states.size());
 		for (Map.Entry<String, MksMemberState> entry : states.entrySet()) {
 			assertEquals(MksMemberState.Status.ADDED, entry.getValue().status);
 			assertNotNull(entry.getValue().workingChangePackageId);
@@ -93,11 +100,11 @@ public class ViewSandboxLocalChangesOrLockedCommandTest extends TestCase {
 	public void testDeferredDrop() {
 		List<VcsException> errors = new ArrayList<VcsException>();
 
-		String sandboxPath = "c:\\Documents and Settings\\A6253567.HBEU\\sandboxes\\CSO\\project.pj";
+		String sandboxPath = SANDBOX_DIR + "\\sandboxes\\CSO\\project.pj";
 		commandLocal = createCommand(errors, sandboxPath, "viewsandbox/deferred-drop.txt");
 		commandLocal.execute();
 		Map<String, MksMemberState> states = commandLocal.getMemberStates();
-		assertEquals(2, states.size());
+		assertEquals(5, states.size());
 		for (Map.Entry<String, MksMemberState> entry : states.entrySet()) {
 			assertEquals(MksMemberState.Status.DROPPED, entry.getValue().status);
 			assertNotNull(entry.getValue().workingChangePackageId);
@@ -132,7 +139,7 @@ public class ViewSandboxLocalChangesOrLockedCommandTest extends TestCase {
 		BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, encoding));
 		StringWriter sw = new StringWriter();
 		PrintWriter pw = new PrintWriter(sw);
-		String line = null;
+		String line;
 		while ((line = reader.readLine()) != null) {
 			pw.println(line);
 		}

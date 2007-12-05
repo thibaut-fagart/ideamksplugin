@@ -27,7 +27,7 @@ public abstract class SiCLICommand extends AbstractMKSCommand implements Runnabl
 	protected static final String unusedPattern = "([^\\s]+)?";
 	protected static final String namePattern = "(.+)";
 	protected static final String sandboxPattern = namePattern + "?";
-	protected static final String userPattern = "([^\\s]+)?";
+	protected static final String userPattern = "(?:(?:[^\\t]+? \\()?([^\\(\\s\\)]+)(?:\\))?)?";
 	protected static final String DEFERRED = "deferred";
 	private String commandString;
 	protected final EncodingProvider encodingProvider;
