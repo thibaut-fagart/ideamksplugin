@@ -27,7 +27,7 @@ public class ViewNonMembersCommand extends SiCLICommand {
 	 * @param sandbox		  must be a directory
 	 */
 	public ViewNonMembersCommand(@NotNull List<VcsException> errors, @NotNull EncodingProvider encodingProvider, MksSandboxInfo sandbox) {
-		super(errors, encodingProvider, COMMAND, "--fields=absolutepath", "--recurse",
+		super(errors, encodingProvider, COMMAND, "--fields=absolutepath", "--recurse", "--sandbox=" + sandbox.sandboxPath,
 				"--hostname=" + sandbox.hostAndPort.substring(0, sandbox.hostAndPort.indexOf(':')));
 		setWorkingDir(new File(VcsUtil.getFilePath(sandbox.sandboxPath).getParentPath().getPath()));
 	}
