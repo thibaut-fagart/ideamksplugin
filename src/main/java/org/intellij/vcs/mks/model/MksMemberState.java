@@ -25,7 +25,8 @@ public final class MksMemberState {
 		ADDED("added"),
 		UNKNOWN("unknown"),
 		UNVERSIONED("unversioned"),
-		REMOTELY_ADDED("remotely added");
+		REMOTELY_ADDED("remotely added"),
+		REMOTELY_DROPPED("remotely dropped");
 		private final String description;
 
 		private Status(String description) {

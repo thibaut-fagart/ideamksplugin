@@ -63,7 +63,7 @@ class MKSChangeProvider extends AbstractProjectComponent implements ChangeProvid
 			setStatusInfo(statusLabel, "collecting change packages");
 			// collect affected sandboxes
 //			if (MksVcs.DEBUG) {
-//				builder = createBuilderLoggingProxy(myBuilder);
+//				builder = createBuilderLoggingProxy(builder);
 //			}
 			final Map<String, MksServerInfo> serversByHostAndPort = distributeServersByHostAndPort(servers);
 
@@ -315,14 +315,15 @@ class MKSChangeProvider extends AbstractProjectComponent implements ChangeProvid
 
 		ViewSandboxWithoutChangesCommand fullSandboxCommand = new ViewSandboxWithoutChangesCommand(errors, mksvcs, sandbox.sandboxPath);
 		fullSandboxCommand.execute();
-		states.putAll(fullSandboxCommand.getMemberStates());
+		addNonExcludedStates(states, fullSandboxCommand.getMemberStates());
 
 		ViewSandboxLocalChangesOrLockedCommand localChangesCommand = new ViewSandboxLocalChangesOrLockedCommand(errors, mksvcs, server.user, sandbox.sandboxPath);
 		localChangesCommand.execute();
-		states.putAll(localChangesCommand.getMemberStates());
+		addNonExcludedStates(states, localChangesCommand.getMemberStates());
 
 		ViewNonMembersCommand nonMembersCommand = new ViewNonMembersCommand(errors, mksvcs, sandbox);
 		nonMembersCommand.execute();
+/*
 		for (Map.Entry<String, MksMemberState> entry : nonMembersCommand.getMemberStates().entrySet()) {
 			VirtualFile virtualFile = VcsUtil.getVirtualFile(entry.getKey());
 			if (null == virtualFile) {
@@ -345,7 +346,8 @@ class MKSChangeProvider extends AbstractProjectComponent implements ChangeProvid
 
 
 		}
-//		states.putAll(nonMembersCommand.getMemberStates());
+*/
+		addNonExcludedStates(states, nonMembersCommand.getMemberStates());
 // todo the below belong to incoming changes
 //		ViewSandboxOutOfSyncCommand outOfSyncCommand = new ViewSandboxOutOfSyncCommand(errors, mksvcs, sandbox.sandboxPath);
 //		outOfSyncCommand.execute();
@@ -356,6 +358,18 @@ class MKSChangeProvider extends AbstractProjectComponent implements ChangeProvid
 //		states.putAll(missingCommand.getMemberStates());
 
 		return states;
+	}
+
+	private void addNonExcludedStates(Map<String, MksMemberState> collectingMap, Map<String, MksMemberState> source) {
+		for (Map.Entry<String, MksMemberState> entry : source.entrySet()) {
+			final FilePath path = VcsUtil.getFilePath(entry.getKey());
+			if (path.getVirtualFile() != null && mksvcs.getProject().getProjectScope().contains(path.getVirtualFile())) {
+				collectingMap.put(entry.getKey(), entry.getValue());
+			} else if (logger.isDebugEnabled()) {
+				logger.debug("skipping " + path.getPath());
+			}
+
+		}
 	}
 
 	/**

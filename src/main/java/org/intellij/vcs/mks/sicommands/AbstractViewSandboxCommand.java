@@ -32,22 +32,22 @@ public abstract class AbstractViewSandboxCommand extends SiCLICommand {
 
 	static {
 		// --fields=workingrev,memberrev,workingcpid,deferred,pendingcpid,revsyncdelta,type,wfdelta,name
-		fieldsParam = "--fields=workingrev,workingcpid,deferred,type,locker,name,memberrev,locksandbox";
-		wholeLinePatternString = "^" + revisionPattern + " " + changePackageIdPattern
+		fieldsParam = "--fields=locker,workingrev,workingcpid,deferred,type,name,memberrev,locksandbox";
+		wholeLinePatternString = "^" + userPattern
+				+ " " + revisionPattern + " " + changePackageIdPattern
 				+ " " + deferredPattern + " " + typePattern
-				+ " " + userPattern
 				+ " " + namePattern
 				+ " " + revisionPattern + " " + sandboxPattern + "$"; // locked sandbox is null when member is not locked
 	}
 
-	private static final int WORKING_REV_GROUP_IDX = 1;
-	private static final int WORKING_CPID_GROUP_IDX = 2;
-	private static final int DEFERRED_GROUP_IDX = 3;
-	private static final int TYPE_GROUP_IDX = 4;
-	private static final int LOCKER_GROUP_IDX = 5;
-	private static final int NAME_GROUP_IDX = 6;
-	private static final int MEMBER_REV_GROUP_IDX = 7;
-	private static final int LOCKED_SANDBOX_GROUP_IDX = 8;
+	private static final int LOCKER_GROUP_IDX = 1;
+	private static final int WORKING_REV_GROUP_IDX = LOCKER_GROUP_IDX + 1;
+	private static final int WORKING_CPID_GROUP_IDX = WORKING_REV_GROUP_IDX + 1;
+	private static final int DEFERRED_GROUP_IDX = WORKING_CPID_GROUP_IDX + 1;
+	private static final int TYPE_GROUP_IDX = DEFERRED_GROUP_IDX + 1;
+	private static final int NAME_GROUP_IDX = TYPE_GROUP_IDX + 1;
+	private static final int MEMBER_REV_GROUP_IDX = NAME_GROUP_IDX + 1;
+	private static final int LOCKED_SANDBOX_GROUP_IDX = MEMBER_REV_GROUP_IDX + 1;
 
 	/**
 	 * Map<FilePath.getPath(), MksMemberState>
