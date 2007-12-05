@@ -17,6 +17,7 @@ public final class MksSandboxInfo implements Comparable<MksSandboxInfo> {
 	public final String hostAndPort;
 	public final String mksProject;
 	public final String devPath;
+	public final boolean isSubSandbox;
 	final VirtualFile sandboxPjFile;
 	int retries = 0;
 	private TriclopsSiSandbox siSandbox;
@@ -39,11 +40,13 @@ public final class MksSandboxInfo implements Comparable<MksSandboxInfo> {
 	 * @param mksProject
 	 * @param devPath	   null if the sandbox is on the trunk
 	 * @param sandboxPjFile null if IDEA has no VirtualFile for the sandbox file
+	 * @param isSubSandbox
 	 */
-	public MksSandboxInfo(@NotNull final String sandboxPath, @NotNull final String hostAndPort, @NotNull String mksProject, @Nullable String devPath, @Nullable final VirtualFile sandboxPjFile) {
+	public MksSandboxInfo(@NotNull final String sandboxPath, @NotNull final String hostAndPort, @NotNull String mksProject, @Nullable String devPath, @Nullable final VirtualFile sandboxPjFile, boolean isSubSandbox) {
 		this.mksProject = mksProject;
 		this.devPath = devPath;
 		this.sandboxPjFile = sandboxPjFile;
+		this.isSubSandbox = isSubSandbox;
 		this.hostAndPort = hostAndPort.toLowerCase();
 		this.sandboxPath = sandboxPath;
 	}
@@ -81,6 +84,6 @@ public final class MksSandboxInfo implements Comparable<MksSandboxInfo> {
 
 	@Override
 	public String toString() {
-		return "MksSandbox[" + sandboxPath + "," + hostAndPort + "]";
+		return "MksSandbox[" + sandboxPath + "," + hostAndPort + (isSubSandbox ? ",subsandbox" : "") + "]";
 	}
 }

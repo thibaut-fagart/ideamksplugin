@@ -35,7 +35,7 @@ public class SandboxCacheImpl implements SandboxCache {
 	/**
 	 * sandboxFolder virtualFile => TriclopsSiSandbox
 	 */
-	private final HashMap<VirtualFile, MksSandboxInfo> sandboxByFolder = new HashMap<VirtualFile, MksSandboxInfo>();
+	private final HashMap<VirtualFile, List<MksSandboxInfo>> sandboxByFolder = new HashMap<VirtualFile, List<MksSandboxInfo>>();
 	private final HashSet<VirtualFile> sandboxVFiles = new HashSet<VirtualFile>();
 	private final HashSet<MksSandboxInfo> outOfScopeSandboxes = new HashSet<MksSandboxInfo>();
 	@NotNull
@@ -86,10 +86,10 @@ public class SandboxCacheImpl implements SandboxCache {
 		return sandboxVFiles.contains(virtualFile) || virtualFile.getName().equals("project.pj");
 	}
 
-	public void addSandboxPath(@NotNull String sandboxPath, @NotNull final String mksHostAndPort, @NotNull String mksProject, @Nullable String devPath) {
+	public void addSandboxPath(@NotNull String sandboxPath, @NotNull final String mksHostAndPort, @NotNull String mksProject, @Nullable String devPath, boolean isSubSandbox) {
 
 		VirtualFile sandboxVFile = VcsUtil.getVirtualFile(sandboxPath);
-		MksSandboxInfo sandboxInfo = new MksSandboxInfo(sandboxPath, mksHostAndPort, mksProject, devPath, sandboxVFile);
+		MksSandboxInfo sandboxInfo = new MksSandboxInfo(sandboxPath, mksHostAndPort, mksProject, devPath, sandboxVFile, isSubSandbox);
 		if (doesSandboxIntersectProject(new File(sandboxPath))) {
 			addSandbox(sandboxInfo);
 		} else {
@@ -119,20 +119,27 @@ public class SandboxCacheImpl implements SandboxCache {
 			synchronized (lock) {
 				// ok sandbox in project path
 //				try {
-				sandboxByFolder.put(sandboxFolder, sandboxInfo);
+				List<MksSandboxInfo> infoList = sandboxByFolder.get(sandboxFolder);
+				if (infoList == null) {
+					infoList = new ArrayList<MksSandboxInfo>();
+					sandboxByFolder.put(sandboxFolder, infoList);
+				}
+				infoList.add(sandboxInfo);
 				sandboxVFiles.add(sandboxVFile);
 				LOGGER.debug("updated sandbox in cache : " + sandboxVFile);
-				final VirtualFile sandboxParentFolderVFile = sandboxVFile.getParent();
-				LOGGER.info("marking " + sandboxParentFolderVFile + "as dirty");
-				ApplicationManager.getApplication().invokeLater(new Runnable() {
-					public void run() {
-						ApplicationManager.getApplication().runReadAction(new Runnable() {
-							public void run() {
-								VcsDirtyScopeManager.getInstance(project).dirDirtyRecursively(sandboxParentFolderVFile);
-							}
-						});
-					}
-				});
+				if (!sandboxInfo.isSubSandbox) {
+					final VirtualFile sandboxParentFolderVFile = sandboxVFile.getParent();
+					LOGGER.info("marking " + sandboxParentFolderVFile + "as dirty");
+					ApplicationManager.getApplication().invokeLater(new Runnable() {
+						public void run() {
+							ApplicationManager.getApplication().runReadAction(new Runnable() {
+								public void run() {
+									VcsDirtyScopeManager.getInstance(project).dirDirtyRecursively(sandboxParentFolderVFile);
+								}
+							});
+						}
+					});
+				}
 
 //				} catch (TriclopsException e) {
 //					LOGGER.error("invalid sandbox ? (" + sandboxPath + ")", e);
@@ -144,7 +151,7 @@ public class SandboxCacheImpl implements SandboxCache {
 			VirtualFile sandboxPjFile = VcsUtil.getVirtualFile(sandboxPath);
 			if (sandboxPjFile != null) {
 				sandboxInfo = new MksSandboxInfo(sandboxInfo.sandboxPath, sandboxInfo.hostAndPort, sandboxInfo.mksProject,
-						sandboxInfo.devPath, sandboxPjFile);
+						sandboxInfo.devPath, sandboxPjFile, sandboxInfo.isSubSandbox);
 			}
 			addRejected(sandboxInfo);
 		}
@@ -194,7 +201,15 @@ public class SandboxCacheImpl implements SandboxCache {
 	// for mks monitoring
 	public void dumpStateOn(@NotNull PrintWriter pw) {
 		pw.println("in project sandboxes");
-		List<MksSandboxInfo> sortList = new ArrayList<MksSandboxInfo>(sandboxByFolder.values());
+
+		List<MksSandboxInfo> sortList = new ArrayList<MksSandboxInfo>(sandboxByFolder.size());
+		for (List<MksSandboxInfo> infoList : sandboxByFolder.values()) {
+			for (MksSandboxInfo sandboxInfo : infoList) {
+				if (!sandboxInfo.isSubSandbox) {
+					sortList.add(sandboxInfo);
+				}
+			}
+		}
 		Comparator<MksSandboxInfo> comparator = new Comparator<MksSandboxInfo>() {
 			public int compare(final MksSandboxInfo first, final MksSandboxInfo other) {
 				if (first == null) {
@@ -212,7 +227,9 @@ public class SandboxCacheImpl implements SandboxCache {
 		}
 		sortList.clear();
 		for (MksSandboxInfo sandbox : outOfScopeSandboxes) {
-			sortList.add(sandbox);
+			if (!sandbox.isSubSandbox) {
+				sortList.add(sandbox);
+			}
 		}
 		Collections.sort(sortList, comparator);
 
@@ -229,7 +246,9 @@ public class SandboxCacheImpl implements SandboxCache {
 		LOGGER.info("rootsChanged, re computing in/out of project sandboxes");
 		synchronized (lock) {
 			List<MksSandboxInfo> allSandboxes = new ArrayList<MksSandboxInfo>(sandboxVFiles.size() + outOfScopeSandboxes.size());
-			allSandboxes.addAll(sandboxByFolder.values());
+			for (List<MksSandboxInfo> infoList : sandboxByFolder.values()) {
+				allSandboxes.addAll(infoList);
+			}
 			allSandboxes.addAll(outOfScopeSandboxes);
 			clear();
 			for (MksSandboxInfo sandbox : allSandboxes) {
@@ -238,31 +257,32 @@ public class SandboxCacheImpl implements SandboxCache {
 		}
 	}
 
+	/**
+	 * @param directory
+	 * @return all the TOP sandboxes intersecting the given directory
+	 */
 	@NotNull
 	public Set<MksSandboxInfo> getSandboxesIntersecting(@NotNull final VirtualFile directory) {
 		Set<MksSandboxInfo> result = new HashSet<MksSandboxInfo>();
-		for (MksSandboxInfo sandboxInfo : sandboxByFolder.values()) {
-			VirtualFile sandboxFile = sandboxInfo.sandboxPjFile;
-			if (sandboxFile == null) {
-				synchronized (lock) {
-					VirtualFile key = null;
-					LOGGER.warn("SandboxInfo with NULL virtualFile !! removing from registered sandboxes");
-					for (Map.Entry<VirtualFile, MksSandboxInfo> entry : sandboxByFolder.entrySet()) {
-						if (entry.getValue().equals(sandboxInfo)) {
-							key = entry.getKey();
-							break;
-						}
+
+		for (List<MksSandboxInfo> infoList : new ArrayList<List<MksSandboxInfo>>(sandboxByFolder.values())) {
+			for (MksSandboxInfo sandboxInfo : infoList) {
+				if (sandboxInfo.isSubSandbox) continue;
+				VirtualFile sandboxFile = sandboxInfo.sandboxPjFile;
+				if (sandboxFile == null) {
+					synchronized (lock) {
+						LOGGER.warn("SandboxInfo with NULL virtualFile !! removing from registered sandboxes");
+						infoList.remove(sandboxInfo);
+						addRejected(sandboxInfo);
 					}
-					sandboxByFolder.remove(key);
-					addRejected(sandboxInfo);
-				}
-			} else {
-				if (VfsUtil.isAncestor(directory, sandboxFile, false)) {
-					result.add(sandboxInfo);
 				} else {
-					final VirtualFile sandboxParentFile = sandboxFile.getParent();
-					if (sandboxParentFile != null && VfsUtil.isAncestor(sandboxParentFile, directory, false)) {
+					if (VfsUtil.isAncestor(directory, sandboxFile, false)) {
 						result.add(sandboxInfo);
+					} else {
+						final VirtualFile sandboxParentFile = sandboxFile.getParent();
+						if (sandboxParentFile != null && VfsUtil.isAncestor(sandboxParentFile, directory, false)) {
+							result.add(sandboxInfo);
+						}
 					}
 				}
 			}
@@ -288,18 +308,42 @@ public class SandboxCacheImpl implements SandboxCache {
 */
 	}
 
+	/**
+	 * returns the highest level non ambiguous sandbox for the given file
+	 *
+	 * @param virtualFile
+	 * @return
+	 */
 	@Nullable
 	public MksSandboxInfo getSandboxInfo(@NotNull final VirtualFile virtualFile) {
 		MksSandboxInfo sandbox = null;
 		VirtualFile cursorDir = (virtualFile.isDirectory() ? virtualFile : virtualFile.getParent());
+		MksSandboxInfo foundSubSandbox = null;
 		for (; cursorDir != null && sandbox == null; cursorDir = cursorDir.getParent()) {
-			sandbox = sandboxByFolder.get(cursorDir);
-			/*
-						   todo need to take care of the case where multiple sanbdoxes are in the same directory
-						   if (sandbox = null
-						   && !checkSandboxContains(sandbox, virtualFile)) {
-							   sandbox = null;
-						   }*/
+			List<MksSandboxInfo> infoList = sandboxByFolder.get(cursorDir);
+			if (infoList == null) {
+				// no sandbox for this folder
+				continue;
+			} else if (infoList.size() == 1) {
+				MksSandboxInfo sandboxInfo = infoList.get(0);
+				if (sandboxInfo.isSubSandbox) {
+					foundSubSandbox = sandboxInfo;
+				} else {
+					sandbox = sandboxInfo;
+				}
+			} else {
+				if (foundSubSandbox != null) {
+					sandbox = foundSubSandbox;
+				} else {
+					// ambiguous sandbox, try to find the good one
+					for (MksSandboxInfo mksSandboxInfo : infoList) {
+						if (checkSandboxContains(mksSandboxInfo, virtualFile)) {
+							sandbox = mksSandboxInfo;
+							break;
+						}
+					}
+				}
+			}
 		}
 		return sandbox;
 	}
