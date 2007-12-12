@@ -308,14 +308,23 @@ public class SandboxCacheImpl implements SandboxCache {
 */
 	}
 
+	@Nullable
+	public MksSandboxInfo getSubSandbox(@NotNull VirtualFile virtualFile) {
+		return getSandbox(virtualFile, true);
+	}
+
 	/**
 	 * returns the highest level non ambiguous sandbox for the given file
 	 *
 	 * @param virtualFile
-	 * @return
+	 * @return the sandbox containing  the give file if one exists, null otherwise
 	 */
 	@Nullable
 	public MksSandboxInfo getSandboxInfo(@NotNull final VirtualFile virtualFile) {
+		return getSandbox(virtualFile, false);
+	}
+
+	private MksSandboxInfo getSandbox(VirtualFile virtualFile, boolean closest) {
 		MksSandboxInfo sandbox = null;
 		VirtualFile cursorDir = (virtualFile.isDirectory() ? virtualFile : virtualFile.getParent());
 		MksSandboxInfo foundSubSandbox = null;
@@ -344,9 +353,13 @@ public class SandboxCacheImpl implements SandboxCache {
 					}
 				}
 			}
+			if (closest && foundSubSandbox != null) {
+				return foundSubSandbox;
+			}
 		}
 		return sandbox;
 	}
+
 
 	/**
 	 * THis only works when sandbox is the bottom most subsandbox including virtualfile. Thus this is not supported
