@@ -1,5 +1,6 @@
 package org.intellij.vcs.mks;
 
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.options.Configurable;
 import com.intellij.openapi.options.ConfigurationException;
 import com.intellij.openapi.project.Project;
@@ -38,7 +39,7 @@ public class MksConfigurableForm implements Configurable {
 	}
 
 	public MksConfigurableForm(Project myProject) {
-		this.configuration = (myProject == null) ? getDesignTimeConfiguration() : myProject.getComponent(MksConfiguration.class);
+		this.configuration = ApplicationManager.getApplication().getComponent(MksConfiguration.class);
 
 		String[] charSetNames = Charset.availableCharsets().keySet().toArray(new String[0]);
 		Arrays.sort(charSetNames);
@@ -159,11 +160,11 @@ public class MksConfigurableForm implements Configurable {
 	public boolean isModified() {
 		MksConfiguration configuration = getConfiguration();
 		boolean equals = configuration.SERVER.equals(serverTextField.getText())
-			&& configuration.PORT == Integer.parseInt(portTextField.getText())
-			&& configuration.USER.equals(userTextField.getText())
-			&& configuration.PASSWORD.equals(new String(passwordField.getPassword()))
+				&& configuration.PORT == Integer.parseInt(portTextField.getText())
+				&& configuration.USER.equals(userTextField.getText())
+				&& configuration.PASSWORD.equals(new String(passwordField.getPassword()))
 //			&& configuration.PROJECT.equals(.getText())
-			&& !isEncodingsModified(configuration);
+				&& !isEncodingsModified(configuration);
 		return !equals;
 	}
 

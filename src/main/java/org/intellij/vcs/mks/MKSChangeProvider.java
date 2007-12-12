@@ -1,8 +1,8 @@
 package org.intellij.vcs.mks;
 
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.AbstractProjectComponent;
 import com.intellij.openapi.components.ProjectComponent;
-import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.ui.Messages;
@@ -380,7 +380,7 @@ class MKSChangeProvider extends AbstractProjectComponent implements ChangeProvid
 	 */
 	private Map<MksServerInfo, Map<String, MksChangePackage>> getChangePackages(final ProgressIndicator progress, final ArrayList<VcsException> errors, final ArrayList<MksServerInfo> servers) {
 		final Map<MksServerInfo, Map<String, MksChangePackage>> changePackages = new HashMap<MksServerInfo, Map<String, MksChangePackage>>();
-		final MksConfiguration config = ServiceManager.getService(myProject, MksConfiguration.class);
+		final MksConfiguration config = ApplicationManager.getApplication().getComponent(MksConfiguration.class);
 		for (MksServerInfo server : servers) {
 			if (!config.isServerSiServer(server)) {
 				mksvcs.debug("ignoring " + server.host + ":" + server.port + " when querying changepackages");

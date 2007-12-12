@@ -11,7 +11,7 @@
 	<version>${project.version}</version>
 	<vendor logo="/icons/mks.png" url="http://code.google.com/p/ideamksplugin/">Eric Sheffer, Thibaut Fagart</vendor>
 	<category>VCS Integration</category>
-	<idea-version since-build="7330"/>
+	<idea-version since-build="7361"/>
 
 	<change-notes><![CDATA[<ul>
 	<li>0.7  <a href="http://code.google.com/p/ideamksplugin/issues/list?q=Milestone%20Release0.7&can=1">googlecode issues resolved in 0.7</a> <br><br/>
@@ -41,28 +41,27 @@
 	<project-components>
 		<component>
 			<interface-class>org.intellij.vcs.mks.MksVcs</interface-class>
-			<implementation-class>org.intellij.vcs.mks.MksVcs
-			</implementation-class>
+			<implementation-class>org.intellij.vcs.mks.MksVcs</implementation-class>
 		</component>
 		<component>
 			<interface-class>org.intellij.vcs.mks.realtime.LongRunningTaskRepository</interface-class>
-			<implementation-class>org.intellij.vcs.mks.realtime.LongRunningTaskRepositoryImpl
-			</implementation-class>
+			<implementation-class>org.intellij.vcs.mks.realtime.LongRunningTaskRepositoryImpl</implementation-class>
 		</component>
 		<component>
-			<implementation-class>org.intellij.vcs.mks.MKSChangeProvider
-			</implementation-class>
-			<option name="workspace" value="true"/>
-		</component>
-		<component>
-			<interface-class>org.intellij.vcs.mks.MksConfiguration
-			</interface-class>
-			<implementation-class>org.intellij.vcs.mks.MksConfiguration
-			</implementation-class>
+			<implementation-class>org.intellij.vcs.mks.MKSChangeProvider</implementation-class>
 			<option name="workspace" value="true"/>
 		</component>
 	</project-components>
-
+	<application-components>
+		<component>
+			<interface-class>org.intellij.vcs.mks.MksConfiguration</interface-class>
+			<implementation-class>org.intellij.vcs.mks.MksConfiguration</implementation-class>
+		</component>
+		<component>
+			<interface-class>org.intellij.vcs.mks.realtime.SandboxListSynchronizer</interface-class>
+			<implementation-class>org.intellij.vcs.mks.realtime.SandboxListSynchronizerImpl</implementation-class>
+		</component>
+	</application-components>
 	<actions>
 		<action id="MKS.MemberDiffsAction"
 				class="org.intellij.vcs.mks.actions.MemberDifferencesAction"

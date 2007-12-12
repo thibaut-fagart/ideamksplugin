@@ -1,6 +1,6 @@
 package org.intellij.vcs.mks;
 
-import com.intellij.openapi.components.ProjectComponent;
+import com.intellij.openapi.components.ApplicationComponent;
 import com.intellij.openapi.util.DefaultJDOMExternalizer;
 import com.intellij.openapi.util.InvalidDataException;
 import com.intellij.openapi.util.JDOMExternalizable;
@@ -16,8 +16,22 @@ import java.util.Map;
 import java.util.ResourceBundle;
 
 public class MksConfiguration
-		implements JDOMExternalizable, ProjectComponent {
+		implements JDOMExternalizable, ApplicationComponent, EncodingProvider {
 	public static final String DEFAULT_ENCODING = Charset.defaultCharset().name();
+
+	public String SERVER;
+	public int PORT;
+	public String USER;
+	public String PASSWORD;
+	public String SANDBOX;
+	public String PROJECT;
+	public StringMap SI_ENCODINGS;
+	public String defaultEncoding;
+	/**
+	 * (host:port(,host:port)*)?
+	 */
+	public String nonSiServers = "";
+
 
 	public MksConfiguration() {
 		SERVER = "";
@@ -27,15 +41,13 @@ public class MksConfiguration
 		SANDBOX = "";
 		PROJECT = "";
 		SI_ENCODINGS = new StringMap();
+		initDefaultEncoding();
+	}
+
+	private void initDefaultEncoding() {
 		ResourceBundle resourceBundle = ResourceBundle.getBundle("org.intellij.vcs.mks.mksBundle");
 		String defaultEncodingName = resourceBundle.getString("defaultEncoding");
-//		defaultEncoding = Charset.defaultCharset().name();
-	}
-
-	public void projectClosed() {
-	}
-
-	public void projectOpened() {
+		defaultEncoding = (defaultEncodingName == null) ? DEFAULT_ENCODING : defaultEncodingName;
 	}
 
 	public void disposeComponent() {
@@ -52,25 +64,15 @@ public class MksConfiguration
 	public void readExternal(Element element)
 			throws InvalidDataException {
 		DefaultJDOMExternalizer.readExternal(this, element);
+		if (defaultEncoding == null) {
+			initDefaultEncoding();
+		}
 	}
 
 	public void writeExternal(Element element)
 			throws WriteExternalException {
 		DefaultJDOMExternalizer.writeExternal(this, element);
 	}
-
-	public String SERVER;
-	public int PORT;
-	public String USER;
-	public String PASSWORD;
-	public String SANDBOX;
-	public String PROJECT;
-	public StringMap SI_ENCODINGS;
-	public String defaultEncoding;
-	/**
-	 * (host:port(,host:port)*)?
-	 */
-	public String nonSiServers = "";
 
 	public boolean isServerSiServer(MksServerInfo aServer) {
 		return !nonSiServers.contains(toStorableString(aServer));
@@ -104,6 +106,12 @@ public class MksConfiguration
 
 	private String toStorableString(MksServerInfo aServer) {
 		return aServer.host + ":" + aServer.port;
+	}
+
+	@NotNull
+	public String getMksSiEncoding(String command) {
+		Map<String, String> encodings = SI_ENCODINGS.getMap();
+		return (encodings.containsKey(command)) ? encodings.get(command) : defaultEncoding;
 	}
 
 	public static class StringMap implements JDOMExternalizable {

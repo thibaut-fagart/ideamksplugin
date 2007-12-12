@@ -49,6 +49,7 @@ public class ViewSandboxWithoutChangesCommandTest extends TestCase {
 
 	private ViewSandboxWithoutChangesCommand createCommand(final List<VcsException> errors, final String sandboxPath) {
 		EncodingProvider encodingProvider = new EncodingProvider() {
+			@NotNull
 			public String getMksSiEncoding(final String command) {
 				return ENCODING;
 			}
