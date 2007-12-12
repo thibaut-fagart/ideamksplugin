@@ -7,7 +7,6 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vcs.*;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.wm.WindowManager;
-import org.intellij.vcs.mks.MksConfiguration;
 import org.intellij.vcs.mks.MksVcs;
 import org.intellij.vcs.mks.MksVcsException;
 import org.jetbrains.annotations.NotNull;
@@ -17,7 +16,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 public abstract class BasicAction extends AnAction {
-	protected MksConfiguration configuration;
 	protected static final String ACTION_CANCELLED_MSG = "The command was cancelled.";
 	protected final MksCommand command;
 
