@@ -7,6 +7,7 @@ import com.intellij.openapi.vcs.VcsException;
 import com.intellij.openapi.vcs.history.*;
 import com.intellij.util.ui.ColumnInfo;
 import com.intellij.vcsUtil.VcsUtil;
+import org.intellij.vcs.mks.MKSHelper;
 import org.intellij.vcs.mks.MksRevisionNumber;
 import org.intellij.vcs.mks.MksVcs;
 import org.intellij.vcs.mks.model.MksMemberRevisionInfo;
@@ -85,7 +86,7 @@ public class MksVcsHistoryProvider implements VcsHistoryProvider {
 		assert filePath.getPath().startsWith(sandboxFolder.getPath()) :
 				"" + filePath.getPath() + " should start with " + sandboxFolder.getPath();
 		final AbstractViewSandboxCommand command = new AbstractViewSandboxCommand(new ArrayList<VcsException>(), vcs, sandbox.sandboxPath
-//				"--filter=file:" + MKSHelper.getRelativePath(filePath, sandboxFolder),
+				, "--filter=file:" + MKSHelper.getRelativePath(filePath, sandboxFolder)
 //				"--fields=workingrev",
 //				"--recurse"
 		) {
@@ -117,7 +118,15 @@ public class MksVcsHistoryProvider implements VcsHistoryProvider {
 */
 		};
 		command.execute();
-		final MksMemberState state = command.getMemberStates().get(filePath.getPath());
+		MksMemberState state = command.getMemberStates().get(filePath.getPath());
+		if (state == null) {
+			for (String s : command.getMemberStates().keySet()) {
+				if (VcsUtil.getFilePath(s).getPath().equals(filePath.getPath())) {
+					state = command.getMemberStates().get(s);
+					break;
+				}
+			}
+		}
 		if (state == null) {
 			LOGGER.error("error obtaining current revision for " + filePath);
 			throw new VcsException("error obtaining current revision for " + filePath);
@@ -143,7 +152,7 @@ public class MksVcsHistoryProvider implements VcsHistoryProvider {
 	}
 
 	private MksSandboxInfo getSandbox(FilePath filePath) {
-		return vcs.getSandboxCache().getSandboxInfo(filePath.getVirtualFile());
+		return vcs.getSandboxCache().getSubSandbox(filePath.getVirtualFile());
 	}
 
 	public AnAction[] getAdditionalActions(FileHistoryPanel panel) {
@@ -163,6 +172,7 @@ public class MksVcsHistoryProvider implements VcsHistoryProvider {
 				return mksVcsFileRevision.getCpid();
 			}
 		};
+		//noinspection unchecked
 		final ColumnInfo<MksVcsFileRevision, String>[] array = (ColumnInfo<MksVcsFileRevision, String>[]) Array.newInstance(myColumnInfo.getClass(), 1);
 		array[0] = myColumnInfo;
 		return array;

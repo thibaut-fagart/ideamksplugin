@@ -11,7 +11,7 @@ import java.util.Set;
 /**
  * @author Thibaut Fagart
  */
-public interface SandboxCache extends ModuleRootListener {
+public interface SandboxCache extends ModuleRootListener, SandboxListListener {
 
 	/**
 	 * @param virtualFile the file that needs a sandbox
@@ -28,17 +28,6 @@ public interface SandboxCache extends ModuleRootListener {
 	 */
 	boolean isSandboxProject(@NotNull VirtualFile virtualFile);
 
-
-	void clear();
-
-	/**
-	 * @param sandboxPath
-	 * @param serverHostAndPort host:port of the server that hosts the project
-	 * @param mksProject		the mks project path this sandbox is associated with
-	 * @param devPath		   null if the sandbox is on the trunk
-	 * @param isSubSandbox	  true if the sandbox is not a top level sandbox
-	 */
-	void addSandboxPath(@NotNull String sandboxPath, @NotNull final String serverHostAndPort, @NotNull String mksProject, @Nullable String devPath, boolean isSubSandbox);
 
 	// for mks monitoring
 	void dumpStateOn(@NotNull PrintWriter pw);
@@ -64,4 +53,11 @@ public interface SandboxCache extends ModuleRootListener {
 	 * called when the project is unloaded, should clean up the cache
 	 */
 	void release();
+
+	/**
+	 * @param virtualFile the file we need the sandbox for
+	 * @return the closest existing subsandbox containing the supplied virtualFile
+	 */
+	@Nullable
+	MksSandboxInfo getSubSandbox(@NotNull VirtualFile virtualFile);
 }
