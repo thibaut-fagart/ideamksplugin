@@ -163,9 +163,29 @@ class MKSChangeProvider extends AbstractProjectComponent implements ChangeProvid
 	private Set<MksSandboxInfo> collectSandboxesToRefresh(VcsDirtyScope dirtyScope, JLabel statusLabel) {
 		setStatusInfo(statusLabel, "collecting relevant sandboxes");
 		Set<MksSandboxInfo> sandboxesToRefresh = new HashSet<MksSandboxInfo>();
-		for (VirtualFile dir : dirtyScope.getAffectedContentRoots()) {
-			Set<MksSandboxInfo> sandboxes = mksvcs.getSandboxCache().getSandboxesIntersecting(dir);
-			sandboxesToRefresh.addAll(sandboxes);
+		for (FilePath dir : dirtyScope.getRecursivelyDirtyDirectories()) {
+			mksvcs.debug("VcsDirtyScope : recursivelyDirtyDir " + dir);
+			VirtualFile vFile = dir.getVirtualFile();
+			if (vFile != null) {
+				Set<MksSandboxInfo> sandboxes = mksvcs.getSandboxCache().getSandboxesIntersecting(vFile);
+				StringBuffer log = new StringBuffer("=> dirtySandbox : ");
+				for (MksSandboxInfo sandbox : sandboxes) {
+					log.append(sandbox.sandboxPath).append(", ");
+				}
+				mksvcs.debug(log.substring(0, log.length() - 2));
+				sandboxesToRefresh.addAll(sandboxes);
+			}
+		}
+		for (FilePath path : dirtyScope.getDirtyFiles()) {
+			mksvcs.debug("VcsDirtyScope : dirtyFile " + path);
+			VirtualFile vFile = path.getVirtualFile();
+			if (vFile != null) {
+				final MksSandboxInfo mksSandboxInfo = mksvcs.getSandboxCache().getSandboxInfo(vFile);
+				if (mksSandboxInfo != null) {
+					mksvcs.debug("=> dirtySandbox : " + mksSandboxInfo.sandboxPath);
+					sandboxesToRefresh.add(mksSandboxInfo);
+				}
+			}
 		}
 		return sandboxesToRefresh;
 	}
