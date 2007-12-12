@@ -10,10 +10,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.startup.StartupManager;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.util.IconLoader;
-import com.intellij.openapi.vcs.AbstractVcs;
-import com.intellij.openapi.vcs.EditFileProvider;
-import com.intellij.openapi.vcs.FilePath;
-import com.intellij.openapi.vcs.VcsException;
+import com.intellij.openapi.vcs.*;
 import com.intellij.openapi.vcs.changes.ChangeListManager;
 import com.intellij.openapi.vcs.changes.ChangeProvider;
 import com.intellij.openapi.vcs.checkin.CheckinEnvironment;
@@ -342,6 +339,7 @@ public class MksVcs extends AbstractVcs implements ProjectComponent, EncodingPro
 	}
 
 	public void debug(String s) {
+		ProjectLevelVcsManager.getInstance(myProject).addMessageToConsoleWindow(s, null);
 		debug(s, null);
 	}
 
