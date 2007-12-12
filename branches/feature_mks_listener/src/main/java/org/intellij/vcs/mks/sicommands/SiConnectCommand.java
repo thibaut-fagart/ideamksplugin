@@ -16,10 +16,11 @@ public class SiConnectCommand extends SiCLICommand {
 	private final String port;
 	private final String user;
 	private MksServerInfo server;
+	public static final String COMMAND = "connect";
 
 	public SiConnectCommand(@NotNull EncodingProvider encodingProvider, @NotNull String host, @NotNull String port,
 							@NotNull String user, @NotNull String password) {
-		super(new ArrayList<VcsException>(), encodingProvider, "connect", "--hostname=" + host, "--port=" + port, "--user=" + user, "--password=" + password);
+		super(new ArrayList<VcsException>(), encodingProvider, COMMAND, "--hostname=" + host, "--port=" + port, "--user=" + user, "--password=" + password);
 		this.host = host;
 		this.port = port;
 		this.user = user;

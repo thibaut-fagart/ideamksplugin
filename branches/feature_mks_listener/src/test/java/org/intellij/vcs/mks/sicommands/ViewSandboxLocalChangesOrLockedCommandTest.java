@@ -115,6 +115,7 @@ public class ViewSandboxLocalChangesOrLockedCommandTest extends TestCase {
 
 	private ViewSandboxLocalChangesOrLockedCommand createCommand(final List<VcsException> errors, final String sandboxPath, final String outputFile) {
 		EncodingProvider encodingProvider = new EncodingProvider() {
+			@NotNull
 			public String getMksSiEncoding(final String command) {
 				return ENCODING;
 			}
