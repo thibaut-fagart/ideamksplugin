@@ -25,7 +25,8 @@ public class SandboxListSynchronizerImpl extends AbstractMKSSynchronizer impleme
 	private static final int PROJECT_TYPE_GROUP_IDX = 3;
 	private static final int PROJECT_VERSION_GROUP_IDX = 4;
 	private static final int SERVER_GROUP_IDX = 5;
-	private String currentProjectPath = null;
+
+	private SandboxInfo currentTopSandbox = null;
 
 	public SandboxListSynchronizerImpl() {
 		super(ListSandboxes.COMMAND, ApplicationManager.getApplication().getComponent(MksConfiguration.class), "--displaySubs");
@@ -33,7 +34,9 @@ public class SandboxListSynchronizerImpl extends AbstractMKSSynchronizer impleme
 	}
 
 	public void addListener(@NotNull SandboxListListener listener) {
-		if (this.listeners.contains(listener)) return;
+		if (this.listeners.contains(listener)) {
+			return;
+		}
 		this.listeners.add(listener);
 		for (SandboxInfo sandbox : currentBatch) {
 			listener.addSandboxPath(sandbox.sandboxPath, sandbox.serverHostAndPort, sandbox.projectPath, sandbox.projectVersion, sandbox.subSandbox);
@@ -84,25 +87,31 @@ public class SandboxListSynchronizerImpl extends AbstractMKSSynchronizer impleme
 					String projectType = matcher.group(PROJECT_TYPE_GROUP_IDX);
 					String projectVersion = matcher.group(PROJECT_VERSION_GROUP_IDX);
 					String serverHostAndPort = matcher.group(SERVER_GROUP_IDX);
-					boolean isSubSandbox = isSubSandbox(projectPath);
-					if (isSubSandbox) {
-						if (currentProjectPath == null) {
-							throw new IllegalStateException("encountering a subsandbox without its containing sandbox");
-						}
-						projectPath = currentProjectPath + projectPath;
-					} else {
-						if (projectPath.indexOf('/') < 0) {
-							throw new IllegalStateException("projectPath [" + projectPath + "] does not contain /");
-						}
-						currentProjectPath = projectPath.substring(0, projectPath.lastIndexOf('/') + 1);
-					}
-//					System.out.println("adding ["+filePath+"]");
-					fireSandboxAdded(sandboxPath, serverHostAndPort, projectPath, projectVersion, isSubSandbox);
+					final SandboxInfo info = resolveSandbox(sandboxPath, serverHostAndPort, projectPath, projectVersion);
+					fireSandboxAdded(info);
 				}
 			}
 		} catch (Exception e) {
-			LOGGER.error("error parsing mks synchronizer output [" + line + "], skipping that line", e);
+			LOGGER.error("error parsing mks synchronizer output [" + line + "], skipping that line  because : " + e.getMessage(), e);
 		}
+	}
+
+	private SandboxInfo resolveSandbox(String sandboxPath, String serverHostAndPort, String projectPath, String projectVersion) {
+		boolean isSubSandbox = isSubSandbox(projectPath);
+		SandboxInfo info;
+		if (isSubSandbox) {
+			if (currentTopSandbox == null) {
+				throw new IllegalStateException("encountering a subsandbox without its containing sandbox");
+			}
+			info = new SandboxInfo(currentTopSandbox, sandboxPath, projectPath, projectVersion);
+		} else {
+			if (projectPath.indexOf('/') < 0) {
+				throw new IllegalStateException("projectPath [" + projectPath + "] does not contain /");
+			}
+			info = new SandboxInfo(sandboxPath, serverHostAndPort, projectPath, projectVersion);
+			currentTopSandbox = info;
+		}
+		return info;
 	}
 
 	private static final class SandboxInfo {
@@ -112,19 +121,32 @@ public class SandboxListSynchronizerImpl extends AbstractMKSSynchronizer impleme
 		private final String serverHostAndPort;
 		private final boolean subSandbox;
 
-		SandboxInfo(String sandboxPath, String serverHostAndPort, String projectPath, String projectVersion, boolean subSandbox) {
+		SandboxInfo(String sandboxPath, String serverHostAndPort, String projectPath, String projectVersion) {
 			this.sandboxPath = sandboxPath;
 			this.serverHostAndPort = serverHostAndPort;
 			this.projectPath = projectPath;
 			this.projectVersion = projectVersion;
-			this.subSandbox = subSandbox;
+			this.subSandbox = false;
+
+		}
+
+		public SandboxInfo(SandboxInfo parentSandbox, String sandboxPath, String subProjectPath, String projectVersion) {
+			this.sandboxPath = sandboxPath;
+			this.projectPath = parentSandbox.getServerFolder() + subProjectPath;
+			this.serverHostAndPort = parentSandbox.serverHostAndPort;
+			this.projectVersion = projectVersion;
+			this.subSandbox = true;
+		}
+
+		public String getServerFolder() {
+			return projectPath.substring(0, projectPath.lastIndexOf('/') + 1);
 		}
 	}
 
-	private void fireSandboxAdded(String sandboxPath, String serverHostAndPort, String projectPath, String projectVersion, boolean subSandbox) {
-		currentBatch.add(new SandboxInfo(sandboxPath, serverHostAndPort, projectPath, projectVersion, subSandbox));
+	private void fireSandboxAdded(SandboxInfo sandbox) {
+		currentBatch.add(sandbox);
 		for (SandboxListListener listener : listeners) {
-			listener.addSandboxPath(sandboxPath, projectPath, projectVersion, serverHostAndPort, subSandbox);
+			listener.addSandboxPath(sandbox.sandboxPath, sandbox.serverHostAndPort, sandbox.projectPath, sandbox.projectVersion, sandbox.subSandbox);
 		}
 	}
 
@@ -136,7 +158,7 @@ public class SandboxListSynchronizerImpl extends AbstractMKSSynchronizer impleme
 	}
 
 	private boolean isSubSandbox(String projectPath) {
-		return !projectPath.startsWith("/");
+		return !(projectPath.charAt(0) == '/');
 	}
 
 	public String getDescription() {
