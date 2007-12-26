@@ -4,6 +4,7 @@ import com.intellij.openapi.vcs.AbstractVcs;
 import com.intellij.openapi.vcs.VcsException;
 import com.intellij.openapi.vfs.VirtualFile;
 import org.intellij.vcs.mks.EncodingProvider;
+import org.intellij.vcs.mks.MksBundle;
 import org.intellij.vcs.mks.MksVcs;
 import org.intellij.vcs.mks.actions.MksCommand;
 import org.intellij.vcs.mks.realtime.MksSandboxInfo;
@@ -29,7 +30,7 @@ public class ViewSandboxCLICommand implements MksCommand {
 			try {
 				executeCommand();
 			} catch (IOException e) {
-				LOGGER.error(MessageFormat.format(MksVcs.getBundle().getString("error.opening.sandbox.in.mks.client"), sandboxPath), e);
+				LOGGER.error(MessageFormat.format(MksBundle.message("error.opening.sandbox.in.mks.client"), sandboxPath), e);
 			}
 		}
 	}
@@ -44,6 +45,6 @@ public class ViewSandboxCLICommand implements MksCommand {
 
 	@NotNull
 	public String getActionName(@NotNull AbstractVcs vcs) {
-		return MksVcs.getBundle().getString("action.view.sandbox");
+		return MksBundle.message("action.view.sandbox");
 	}
 }

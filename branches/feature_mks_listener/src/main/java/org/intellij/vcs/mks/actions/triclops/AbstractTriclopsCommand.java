@@ -5,10 +5,7 @@ import com.intellij.openapi.vfs.VirtualFile;
 import mks.integrations.common.TriclopsException;
 import mks.integrations.common.TriclopsSiMember;
 import mks.integrations.common.TriclopsSiMembers;
-import org.intellij.vcs.mks.DispatchBySandboxCommand;
-import org.intellij.vcs.mks.MKSHelper;
-import org.intellij.vcs.mks.MksVcs;
-import org.intellij.vcs.mks.MksVcsException;
+import org.intellij.vcs.mks.*;
 import org.intellij.vcs.mks.actions.MksCommand;
 import org.intellij.vcs.mks.realtime.MksSandboxInfo;
 import org.jetbrains.annotations.NotNull;
@@ -47,7 +44,7 @@ public abstract class AbstractTriclopsCommand implements MksCommand {
 			}
 			return result;
 		} catch (TriclopsException e) {
-			throw new MksVcsException(MksVcs.getBundle().getString("unable.to.obtain.file.status"), e);
+			throw new MksVcsException(MksBundle.message("unable.to.obtain.file.status"), e);
 		}
 
 	}
