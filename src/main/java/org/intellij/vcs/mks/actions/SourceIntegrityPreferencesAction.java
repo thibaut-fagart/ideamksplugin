@@ -8,6 +8,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vcs.VcsException;
 import mks.integrations.common.TriclopsException;
 import org.intellij.vcs.mks.MKSHelper;
+import org.intellij.vcs.mks.MksBundle;
 import org.intellij.vcs.mks.MksVcs;
 
 import java.util.ArrayList;
@@ -29,7 +30,7 @@ public class SourceIntegrityPreferencesAction extends AnAction {
 					ArrayList<VcsException> errors = new ArrayList<VcsException>();
 					//noinspection ThrowableInstanceNeverThrown
 					errors.add(new VcsException(e));
-					MksVcs.getInstance(project).showErrors(errors, MksVcs.getBundle().getString("action.mks.preferences"));
+					MksVcs.getInstance(project).showErrors(errors, MksBundle.message("action.mks.preferences"));
 				}
 			}
 		});

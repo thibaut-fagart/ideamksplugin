@@ -4,9 +4,13 @@ import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.vcs.*;
+import com.intellij.openapi.vcs.AbstractVcs;
+import com.intellij.openapi.vcs.FileStatusManager;
+import com.intellij.openapi.vcs.ProjectLevelVcsManager;
+import com.intellij.openapi.vcs.VcsException;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.wm.WindowManager;
+import org.intellij.vcs.mks.MksBundle;
 import org.intellij.vcs.mks.MksVcs;
 import org.intellij.vcs.mks.MksVcsException;
 import org.jetbrains.annotations.NotNull;
@@ -31,7 +35,7 @@ public abstract class BasicAction extends AnAction {
 			exceptions.add(new MksVcsException(/*"Unable to obtain file status"*/ e.getMessage(), e));
 		}
 
-		WindowManager.getInstance().getStatusBar(project).setInfo(MessageFormat.format(MksVcs.getBundle().getString("action.complete"), getActionName(mksVcs)));
+		WindowManager.getInstance().getStatusBar(project).setInfo(MessageFormat.format(MksBundle.message("action.complete"), getActionName(mksVcs)));
 	}
 
 	@Override
@@ -48,9 +52,6 @@ public abstract class BasicAction extends AnAction {
 		if (!ProjectLevelVcsManager.getInstance(project).checkAllFilesAreUnder(mksvcs, vFiles)) {
 			return;
 		}
-
-		String actionName = getActionName(mksvcs);
-		AbstractVcsHelper helper = AbstractVcsHelper.getInstance(project);
 
 		final List<VcsException> exceptions = new ArrayList<VcsException>();
 		ApplicationManager.getApplication().runWriteAction(new Runnable() {

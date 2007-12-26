@@ -6,6 +6,7 @@ import com.intellij.openapi.vcs.VcsException;
 import com.intellij.openapi.vfs.VirtualFile;
 import mks.integrations.common.TriclopsException;
 import org.intellij.vcs.mks.MKSHelper;
+import org.intellij.vcs.mks.MksBundle;
 import org.intellij.vcs.mks.MksVcs;
 import org.jetbrains.annotations.NotNull;
 
@@ -31,6 +32,6 @@ public class AboutMksTriclopsMksCommand extends AbstractTriclopsCommand {
 
 	@NotNull
 	public String getActionName(@NotNull AbstractVcs vcs) {
-		return MksVcs.getBundle().getString("action.about.mks");
+		return MksBundle.message("action.about.mks");
 	}
 }

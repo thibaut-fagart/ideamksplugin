@@ -6,6 +6,7 @@ import com.intellij.openapi.vcs.VcsException;
 import com.intellij.openapi.vfs.VirtualFile;
 import mks.integrations.common.TriclopsException;
 import org.intellij.vcs.mks.MKSHelper;
+import org.intellij.vcs.mks.MksBundle;
 import org.intellij.vcs.mks.MksVcs;
 import org.intellij.vcs.mks.actions.MksCommand;
 import org.intellij.vcs.mks.realtime.MksSandboxInfo;
@@ -27,13 +28,13 @@ public class ViewSandboxTriclopsCommand implements MksCommand {
 				MKSHelper.viewSandbox(sandbox.getSiSandbox());
 			} catch (TriclopsException e) {
 				//noinspection ThrowableInstanceNeverThrown
-				LOGGER.error(MessageFormat.format(MksVcs.getBundle().getString("error.opening.sandbox.in.mks.client"), sandbox.sandboxPath), e);
+				LOGGER.error(MessageFormat.format(MksBundle.message("error.opening.sandbox.in.mks.client"), sandbox.sandboxPath), e);
 			}
 		}
 	}
 
 	@NotNull
 	public String getActionName(@NotNull AbstractVcs vcs) {
-		return MksVcs.getBundle().getString("action.view.sandbox");
+		return MksBundle.message("action.view.sandbox");
 	}
 }

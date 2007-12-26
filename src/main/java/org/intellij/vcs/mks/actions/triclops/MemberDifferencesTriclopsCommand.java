@@ -4,7 +4,7 @@ import com.intellij.openapi.vcs.AbstractVcs;
 import mks.integrations.common.TriclopsException;
 import mks.integrations.common.TriclopsSiMembers;
 import org.intellij.vcs.mks.MKSHelper;
-import org.intellij.vcs.mks.MksVcs;
+import org.intellij.vcs.mks.MksBundle;
 import org.jetbrains.annotations.NotNull;
 
 public class MemberDifferencesTriclopsCommand extends AbstractSingleTargetTriclopsCommand {
@@ -15,7 +15,7 @@ public class MemberDifferencesTriclopsCommand extends AbstractSingleTargetTriclo
 
 	@NotNull
 	public String getActionName(@NotNull AbstractVcs vcs) {
-		return MksVcs.getBundle().getString("action.differences");
+		return MksBundle.message("action.differences");
 	}
 
 }

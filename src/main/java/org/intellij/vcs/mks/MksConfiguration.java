@@ -13,7 +13,6 @@ import org.jetbrains.annotations.NotNull;
 import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.ResourceBundle;
 
 public class MksConfiguration
 		implements JDOMExternalizable, ApplicationComponent, EncodingProvider {
@@ -45,8 +44,7 @@ public class MksConfiguration
 	}
 
 	private void initDefaultEncoding() {
-		ResourceBundle resourceBundle = ResourceBundle.getBundle("org.intellij.vcs.mks.mksBundle");
-		String defaultEncodingName = resourceBundle.getString("defaultEncoding");
+		String defaultEncodingName = MksBundle.message("defaultEncoding");
 		defaultEncoding = (defaultEncodingName == null) ? DEFAULT_ENCODING : defaultEncodingName;
 	}
 
