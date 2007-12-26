@@ -75,7 +75,9 @@ public class ViewSandboxLocalChangesOrLockedCommand extends AbstractViewSandboxC
 		File sandboxPjFile = new File(this.sandboxPath);
 		File lockedSandboxPjFile = new File(lockedSandbox);
 		try {
-			return lockedSandboxPjFile.getCanonicalPath().equals(sandboxPjFile.getCanonicalPath());
+			return // same sandbox or a subsandbox
+					lockedSandboxPjFile.getCanonicalPath().equals(sandboxPjFile.getCanonicalPath())
+							|| lockedSandboxPjFile.getCanonicalPath().startsWith(sandboxPjFile.getParentFile().getCanonicalPath());
 		} catch (IOException e) {
 			LOGGER.warn("exception comparing locked sandbox and current sandbox, assuming different", e);
 			return false;
