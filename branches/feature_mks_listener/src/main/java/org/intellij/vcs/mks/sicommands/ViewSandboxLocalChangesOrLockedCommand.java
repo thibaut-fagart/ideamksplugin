@@ -1,5 +1,6 @@
 package org.intellij.vcs.mks.sicommands;
 
+import com.intellij.openapi.util.io.FileUtil;
 import com.intellij.openapi.vcs.VcsException;
 import org.intellij.vcs.mks.EncodingProvider;
 import org.intellij.vcs.mks.model.MksMemberState;
@@ -77,7 +78,7 @@ public class ViewSandboxLocalChangesOrLockedCommand extends AbstractViewSandboxC
 		try {
 			return // same sandbox or a subsandbox
 					lockedSandboxPjFile.getCanonicalPath().equals(sandboxPjFile.getCanonicalPath())
-							|| lockedSandboxPjFile.getCanonicalPath().startsWith(sandboxPjFile.getParentFile().getCanonicalPath());
+							|| FileUtil.isAncestor(sandboxPjFile.getParentFile(), lockedSandboxPjFile, false);
 		} catch (IOException e) {
 			LOGGER.warn("exception comparing locked sandbox and current sandbox, assuming different", e);
 			return false;
