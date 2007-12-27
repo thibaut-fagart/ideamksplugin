@@ -165,15 +165,20 @@ public class MksVcsHistoryProvider implements VcsHistoryProvider {
 		return null;
 	}
 
-	public ColumnInfo<MksVcsFileRevision, String>[] getRevisionColumns() {
-		final ColumnInfo<MksVcsFileRevision, String> myColumnInfo = new ColumnInfo<MksVcsFileRevision, String>("change package") {
+	public ColumnInfo<VcsFileRevision, String>[] getRevisionColumns() {
+		final ColumnInfo<VcsFileRevision, String> myColumnInfo = new ColumnInfo<VcsFileRevision, String>("change package") {
 			@Override
-			public String valueOf(MksVcsFileRevision mksVcsFileRevision) {
-				return mksVcsFileRevision.getCpid();
+			public String valueOf(VcsFileRevision vcsFileRevision) {
+
+				if (vcsFileRevision instanceof MksVcsFileRevision) {
+					return ((MksVcsFileRevision) vcsFileRevision).getCpid();
+				} else {
+					return "unknown";
+				}
 			}
 		};
 		//noinspection unchecked
-		final ColumnInfo<MksVcsFileRevision, String>[] array = (ColumnInfo<MksVcsFileRevision, String>[]) Array.newInstance(myColumnInfo.getClass(), 1);
+		final ColumnInfo<VcsFileRevision, String>[] array = (ColumnInfo<VcsFileRevision, String>[]) Array.newInstance(myColumnInfo.getClass(), 1);
 		array[0] = myColumnInfo;
 		return array;
 	}//return null if your revisions cannot be tree
