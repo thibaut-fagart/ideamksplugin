@@ -24,10 +24,10 @@ public class MksMemberHistoryAsTreeProvider implements HistoryAsTreeProvider {
      */
     public List<TreeItem<VcsFileRevision>> createTreeOn(List<VcsFileRevision> allRevisions) {
         Map<VcsRevisionNumber, TreeItem<VcsFileRevision>> treeItemMap = new HashMap<VcsRevisionNumber, TreeItem<VcsFileRevision>>();
-        Map<VcsRevisionNumber, MksVcsFileRevision> revisionsByRevNumber = new HashMap<VcsRevisionNumber, MksVcsFileRevision>();
+        Map<VcsRevisionNumber, VcsFileRevision> revisionsByRevNumber = new HashMap<VcsRevisionNumber, VcsFileRevision>();
         for (VcsFileRevision revision : allRevisions) {
-            MksVcsFileRevision mksRevision = (MksVcsFileRevision) revision;
-            revisionsByRevNumber.put(mksRevision.getRevisionNumber(), mksRevision);
+//            MksVcsFileRevision mksRevision = (MksVcsFileRevision) revision;
+            revisionsByRevNumber.put(revision.getRevisionNumber(), revision);
         }
         // first order the revisions, so we can simply process the list and be sure
         // parent revisions have been processed first
@@ -36,7 +36,7 @@ public class MksMemberHistoryAsTreeProvider implements HistoryAsTreeProvider {
         Collections.sort(orderedRevisions);
 
         for (VcsRevisionNumber revisionNumber : orderedRevisions) {
-            MksVcsFileRevision revision = revisionsByRevNumber.get(revisionNumber);
+            VcsFileRevision revision = revisionsByRevNumber.get(revisionNumber);
             TreeItem<VcsFileRevision> treeItem = new TreeItem<VcsFileRevision>(revision);
             treeItemMap.put(revisionNumber, treeItem);
             result.add(treeItem);
@@ -48,7 +48,7 @@ public class MksMemberHistoryAsTreeProvider implements HistoryAsTreeProvider {
                     final TreeItem<VcsFileRevision> parentItem;
                     parentItem = treeItemMap.get(MksRevisionNumber.createRevision(parentRevString));
                     if (parentItem == null) {
-                        LOGGER.warn("missing parent revision " + parentRevString + " for " + revision.getMyFile() + " !! ");
+                        LOGGER.warn("missing parent revision " + parentRevString);
                     } else {
 //					parentItem.addChild(treeItem);
                         // we want to keep newer revisions on top, thus reverse the order
@@ -61,7 +61,6 @@ public class MksMemberHistoryAsTreeProvider implements HistoryAsTreeProvider {
                     }
                 }
             } catch (VcsException e) {
-
                 LOGGER.error("should not happen", e);
             } catch (RuntimeException e) {
                 LOGGER.error(e);
