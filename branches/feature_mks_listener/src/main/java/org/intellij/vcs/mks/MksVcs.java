@@ -2,7 +2,6 @@ package org.intellij.vcs.mks;
 
 import com.intellij.ProjectTopics;
 import com.intellij.openapi.application.ApplicationManager;
-import com.intellij.openapi.components.ProjectComponent;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.fileTypes.FileTypeManager;
 import com.intellij.openapi.options.Configurable;
@@ -18,7 +17,6 @@ import com.intellij.openapi.vcs.diff.DiffProvider;
 import com.intellij.openapi.vcs.history.VcsHistoryProvider;
 import com.intellij.openapi.vcs.update.UpdateEnvironment;
 import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.openapi.vfs.VirtualFileManager;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowAnchor;
 import com.intellij.openapi.wm.ToolWindowManager;
@@ -42,37 +40,39 @@ import javax.swing.table.TableCellRenderer;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.StyleContext;
-import java.awt.BorderLayout;
-import java.awt.Component;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
-public class MksVcs extends AbstractVcs implements ProjectComponent, EncodingProvider {
+public class MksVcs extends AbstractVcs implements EncodingProvider {
 	static final Logger LOGGER = Logger.getInstance(MksVcs.class.getName());
 	public static final String TOOL_WINDOW_ID = "MKS";
-	private JTextPane mksTextArea;
-	private MksVirtualFileAdapter myVirtualFileAdapter;
 	static final boolean DEBUG = false;
 	public static final String DATA_CONTEXT_PROJECT = "project";
 	public static final String DATA_CONTEXT_MODULE = "module";
 	public static final String DATA_CONTEXT_VIRTUAL_FILE_ARRAY = "virtualFileArray";
+	private static final String MKS_PROJECT_PJ = "project.pj";
+
+	private JTextPane mksTextArea;
+	private final SandboxCache sandboxCache;
+	private MessageBusConnection myMessageBusConnection;
+	private MksVcs.TasksModel tasksModel;
+
 	private MKSChangeProvider myChangeProvider = new MKSChangeProvider(this);
 	private final MksCheckinEnvironment mksCheckinEnvironment = new MksCheckinEnvironment(this);
 	//private final MksRollbackEnvironment rollbackEnvironment= new MksRollbackEnvironment(this);
 	private final MksChangeListAdapter changeListAdapter = new MksChangeListAdapter(this);
 	private final EditFileProvider editFileProvider = new _EditFileProvider(this);
 	private final MksDiffProvider diffProvider = new MksDiffProvider(this);
-	private final SandboxCache sandboxCache;
-	private MessageBusConnection myMessageBusConnection;
-	private MksVcs.TasksModel tasksModel;
-	private static final String MKS_PROJECT_PJ = "project.pj";
 	private final VcsHistoryProvider vcsHistoryProvider = new MksVcsHistoryProvider(this);
-	private static ResourceBundle bundle;
 	private final MksUpdateEnvironment updateEnvironment = new MksUpdateEnvironment(this);
 
 	public MksVcs(Project project) {
@@ -83,13 +83,6 @@ public class MksVcs extends AbstractVcs implements ProjectComponent, EncodingPro
 	@NotNull
 	public String getComponentName() {
 		return "MKS";
-	}
-
-	public void initComponent() {
-		MKSHelper.startClient();
-	}
-
-	public void disposeComponent() {
 	}
 
 	@Override
@@ -131,7 +124,7 @@ public class MksVcs extends AbstractVcs implements ProjectComponent, EncodingPro
 	}
 
 	public void showErrors(java.util.List<VcsException> list, String action) {
-		if (list.size() > 0) {
+		if (!list.isEmpty()) {
 			StringBuffer buffer = new StringBuffer(mksTextArea.getText());
 			buffer.append("\n");
 			buffer.append(action).append(" Error: ");
@@ -254,7 +247,6 @@ public class MksVcs extends AbstractVcs implements ProjectComponent, EncodingPro
 	}
 
 	private Component createTasksPanel() {
-		// todo create the panel : a table with (description, stop button, restart button)
 		JTable tasksTable = new JTable();
 
 		JPanel jPanel = new JPanel();
@@ -331,7 +323,7 @@ public class MksVcs extends AbstractVcs implements ProjectComponent, EncodingPro
 	}
 
 	public static MksVcs getInstance(Project project) {
-		return project.getComponent(MksVcs.class);
+		return (MksVcs) ProjectLevelVcsManager.getInstance(project).findVcsByName("MKS");
 	}
 
 	public static synchronized String getMksErrorMessage() {
@@ -413,7 +405,7 @@ public class MksVcs extends AbstractVcs implements ProjectComponent, EncodingPro
 			DispatchBySandboxCommand dispatchCommand = new DispatchBySandboxCommand(mksVcs, errors, virtualFiles);
 			dispatchCommand.execute();
 			if (!dispatchCommand.errors.isEmpty()) {
-				Messages.showErrorDialog("Unable to find the sandbox(es) for the file(s)", "Could Not Start checkout");
+				Messages.showErrorDialog(MksBundle.message("unable.to.find.the.sandboxes.for.the.files.title"), MksBundle.message("could.not.start.checkout"));
 				return;
 			}
 			for (Map.Entry<MksSandboxInfo, ArrayList<VirtualFile>> entry : dispatchCommand.filesBySandbox.entrySet()) {
@@ -425,14 +417,14 @@ public class MksVcs extends AbstractVcs implements ProjectComponent, EncodingPro
 					command.execute();
 				}
 				if (!command.errors.isEmpty()) {
-					Messages.showErrorDialog(errors.get(0).getLocalizedMessage(), "Could Not Start checkout");
+					Messages.showErrorDialog(errors.get(0).getLocalizedMessage(), MksBundle.message("could.not.start.checkout"));
 					return;
 				}
 			}
 		}
 
 		public String getRequestText() {
-			return "Would you like to invoke 'CheckOut' command?";
+			return MksBundle.message("edit.file.provider.request.text");
 		}
 	}
 
@@ -473,32 +465,8 @@ public class MksVcs extends AbstractVcs implements ProjectComponent, EncodingPro
 		return dispatchCommand.filesBySandbox;
 	}
 
-	public void projectOpened() {
-		// todo MksVirtualFileAdapter
-//		if (myVirtualFileAdapter == null) {
-//			myVirtualFileAdapter = new MksVirtualFileAdapter(this);
-//
-//			VirtualFileManager.getInstance().addVirtualFileListener(myVirtualFileAdapter);
-//		}
-		ChangeListManager changeListManager = ChangeListManager.getInstance(getProject());
-		changeListManager.addChangeListListener(changeListAdapter);
-		addIgnoredFiles();
-	}
-
-	public void projectClosed() {
-		if (myVirtualFileAdapter != null) {
-			VirtualFileManager.getInstance().removeVirtualFileListener(myVirtualFileAdapter);
-		}
-		ChangeListManager changeListManager = ChangeListManager.getInstance(getProject());
-		changeListManager.removeChangeListListener(changeListAdapter);
-		sandboxCache.release();
-
-	}
-
 	/**
-	 * returns the list of available si commands
-	 *
-	 * @return
+	 * @return the list of available si commands, used for encoding settings
 	 */
 	public static String[] getCommands() {
 		return new String[]{
@@ -530,6 +498,10 @@ public class MksVcs extends AbstractVcs implements ProjectComponent, EncodingPro
 	@Override
 	public void activate() {
 		super.activate();
+		MKSHelper.startClient();
+		ChangeListManager changeListManager = ChangeListManager.getInstance(getProject());
+		changeListManager.addChangeListListener(changeListAdapter);
+		addIgnoredFiles();
 		final SandboxListSynchronizer synchronizer = ApplicationManager.getApplication().getComponent(SandboxListSynchronizer.class);
 		if (synchronizer == null) {
 			LOGGER.error("SandboxSynchronizer applicationComponent is not running, MKS vcs will not be loaded");
@@ -555,6 +527,10 @@ public class MksVcs extends AbstractVcs implements ProjectComponent, EncodingPro
 
 	@Override
 	public void deactivate() {
+		ChangeListManager changeListManager = ChangeListManager.getInstance(getProject());
+		changeListManager.removeChangeListListener(changeListAdapter);
+		sandboxCache.release();
+
 		ApplicationManager.getApplication().getComponent(SandboxListSynchronizer.class).removeListener(getSandboxCache());
 		if (myMessageBusConnection != null) {
 			myMessageBusConnection.disconnect();
@@ -598,13 +574,6 @@ public class MksVcs extends AbstractVcs implements ProjectComponent, EncodingPro
 	@Nullable
 	public VcsHistoryProvider getVcsHistoryProvider() {
 		return vcsHistoryProvider;
-	}
-
-	public static ResourceBundle getBundle() {
-		if (bundle == null) {
-			bundle = ResourceBundle.getBundle("/org/intellij/vcs/mks/mksBundle");
-		}
-		return bundle;
 	}
 
 	@Override

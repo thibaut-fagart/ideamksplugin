@@ -1,10 +1,9 @@
 package org.intellij.vcs.mks;
 
 import com.intellij.openapi.application.ApplicationManager;
-import com.intellij.openapi.components.AbstractProjectComponent;
-import com.intellij.openapi.components.ProjectComponent;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProgressIndicator;
+import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.vcs.FilePath;
 import com.intellij.openapi.vcs.FileStatus;
@@ -36,7 +35,7 @@ import java.util.*;
  * @see com.intellij.openapi.vcs.changes.VcsDirtyScopeManager allows to notify
  *      idea if files should be marked dirty
  */
-class MKSChangeProvider extends AbstractProjectComponent implements ChangeProvider, ProjectComponent, ChangeListDecorator {
+class MKSChangeProvider implements ChangeProvider, ChangeListDecorator {
 	private final Logger logger = Logger.getInstance(getClass().getName());
 	private final Logger BUILDER_PROXY_LOGGER = Logger.getInstance(getClass().getName() + ".ChangelistBuilder");
 	@NotNull
@@ -45,8 +44,13 @@ class MKSChangeProvider extends AbstractProjectComponent implements ChangeProvid
 	private static final String MODIFIED_WITHOUT_CHECKOUT_LIST = "Modified without checkout";
 
 	public MKSChangeProvider(@NotNull MksVcs mksvcs) {
-		super(mksvcs.getProject());
 		this.mksvcs = mksvcs;
+	}
+
+	private
+	@NotNull
+	Project getProject() {
+		return mksvcs.getProject();
 	}
 
 
@@ -55,12 +59,12 @@ class MKSChangeProvider extends AbstractProjectComponent implements ChangeProvid
 		logger.debug("start getChanges");
 		final JLabel statusLabel = new JLabel();
 		try {
-			WindowManager.getInstance().getStatusBar(myProject).addCustomIndicationComponent(statusLabel);
+			WindowManager.getInstance().getStatusBar(getProject()).addCustomIndicationComponent(statusLabel);
 			Set<MksSandboxInfo> sandboxesToRefresh = collectSandboxesToRefresh(dirtyScope, statusLabel);
-			setStatusInfo(statusLabel, "collecting servers");
+			setStatusInfo(statusLabel, MksBundle.message("collecting.servers"));
 			ArrayList<MksServerInfo> servers = getMksServers(progress, errors);
 			checkNeededServersAreOnlineAndReconnectIfNeeded(sandboxesToRefresh, servers);
-			setStatusInfo(statusLabel, "collecting change packages");
+			setStatusInfo(statusLabel, MksBundle.message("collecting.change.packages"));
 			// collect affected sandboxes
 //			if (MksVcs.DEBUG) {
 //				builder = createBuilderLoggingProxy(builder);
@@ -76,14 +80,13 @@ class MKSChangeProvider extends AbstractProjectComponent implements ChangeProvid
 					logger.warn("sandbox [" + sandbox.sandboxPath + "] bound to unknown or not connected server[" + sandbox.hostAndPort + "], skipping");
 					continue;
 				}
-				final String message = "requesting mks sandbox "
-						+ sandbox.sandboxPath + " (" + (++refreshedSandbox) + "/" + sandboxCountToRefresh + ") ";
+				final String message = MksBundle.message("requesting.mks.sandbox.name.index.total", sandbox.sandboxPath, ++refreshedSandbox, sandboxCountToRefresh);
 				setStatusInfo(statusLabel, message);
 				processDirtySandbox(builder, changePackagesPerServer.get(sandboxServer), getSandboxState(sandbox, errors, sandboxServer));
 			}
 			final ChangelistBuilder finalBuilder = builder;
 			// iterate over the local dirty scope to flag unversioned files
-			setStatusInfo(statusLabel, "processing unversioned files");
+			setStatusInfo(statusLabel, MksBundle.message("processing.unversioned.files"));
 			dirtyScope.iterate(new Processor<FilePath>() {
 				public boolean process(FilePath filePath) {
 					if (filePath.isDirectory()) {
@@ -101,7 +104,7 @@ class MKSChangeProvider extends AbstractProjectComponent implements ChangeProvid
 				}
 			});
 		} finally {
-			WindowManager.getInstance().getStatusBar(myProject).removeCustomIndicationComponent(statusLabel);
+			WindowManager.getInstance().getStatusBar(getProject()).removeCustomIndicationComponent(statusLabel);
 			logger.debug("end getChanges");
 		}
 		if (!errors.isEmpty()) {
@@ -136,8 +139,9 @@ class MKSChangeProvider extends AbstractProjectComponent implements ChangeProvid
 			try {
 				SwingUtilities.invokeAndWait(new Runnable() {
 					public void run() {
-						userAndPassword.user = Messages.showInputDialog(mksvcs.getProject(), "user", "MKS : reconnect to " + hostAndPort, null);
-						userAndPassword.password = Messages.showInputDialog(mksvcs.getProject(), "password", "MKS : reconnect to " + hostAndPort, null);
+						final String message = MksBundle.message("mks.reconnect.to.server", hostAndPort);
+						userAndPassword.user = Messages.showInputDialog(mksvcs.getProject(), "user", message, null);
+						userAndPassword.password = Messages.showInputDialog(mksvcs.getProject(), "password", message, null);
 
 					}
 				});
@@ -161,7 +165,7 @@ class MKSChangeProvider extends AbstractProjectComponent implements ChangeProvid
 	}
 
 	private Set<MksSandboxInfo> collectSandboxesToRefresh(VcsDirtyScope dirtyScope, JLabel statusLabel) {
-		setStatusInfo(statusLabel, "collecting relevant sandboxes");
+		setStatusInfo(statusLabel, MksBundle.message("collecting.relevant.sandboxes"));
 		Set<MksSandboxInfo> sandboxesToRefresh = new HashSet<MksSandboxInfo>();
 		for (FilePath dir : dirtyScope.getRecursivelyDirtyDirectories()) {
 			mksvcs.debug("VcsDirtyScope : recursivelyDirtyDir " + dir);
@@ -197,13 +201,13 @@ class MKSChangeProvider extends AbstractProjectComponent implements ChangeProvid
 	private ChangelistBuilder createBuilderLoggingProxy(final ChangelistBuilder myBuilder) {
 		return (ChangelistBuilder) Proxy.newProxyInstance(getClass().getClassLoader(), new Class[]{ChangelistBuilder.class}, new InvocationHandler() {
 			public Object invoke(final Object o, final Method method, final Object[] args) throws Throwable {
-				StringBuffer buf = new StringBuffer("(");
+				StringBuffer buffer = new StringBuffer("(");
 				for (Object arg : args) {
-					buf.append(arg).append(",");
+					buffer.append(arg).append(",");
 				}
-				buf.setLength(buf.length() - 1);
-				buf.append(")");
-				BUILDER_PROXY_LOGGER.debug(method.getName() + buf);
+				buffer.setLength(buffer.length() - 1);
+				buffer.append(")");
+				BUILDER_PROXY_LOGGER.debug(method.getName() + buffer);
 				return method.invoke(myBuilder, args);
 			}
 		});
@@ -219,7 +223,7 @@ class MKSChangeProvider extends AbstractProjectComponent implements ChangeProvid
 
 	private void processDirtySandbox(final ChangelistBuilder builder, final Map<String, MksChangePackage> changePackages,
 									 final Map<String, MksMemberState> states) {
-		final ChangeListManager listManager = ChangeListManager.getInstance(myProject);
+		final ChangeListManager listManager = ChangeListManager.getInstance(getProject());
 		for (Map.Entry<String, MksMemberState> entry : states.entrySet()) {
 			MksMemberState state = entry.getValue();
 			FilePath filePath = VcsUtil.getFilePath(entry.getKey());
@@ -393,9 +397,9 @@ class MKSChangeProvider extends AbstractProjectComponent implements ChangeProvid
 	}
 
 	/**
-	 * @param progress
-	 * @param errors
-	 * @param servers
+	 * @param progress the progress bar to report progress with
+	 * @param errors   container to store encountered errors
+	 * @param servers  the si servers to query change packages for
 	 * @return Map <MksServerInfo, Map<MksChangePackage.id,MksChangePackage>>
 	 */
 	private Map<MksServerInfo, Map<String, MksChangePackage>> getChangePackages(final ProgressIndicator progress, final ArrayList<VcsException> errors, final ArrayList<MksServerInfo> servers) {
