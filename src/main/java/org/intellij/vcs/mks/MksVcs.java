@@ -31,6 +31,7 @@ import org.intellij.vcs.mks.history.MksVcsHistoryProvider;
 import org.intellij.vcs.mks.realtime.*;
 import org.intellij.vcs.mks.sicommands.*;
 import org.intellij.vcs.mks.update.MksUpdateEnvironment;
+import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -40,7 +41,8 @@ import javax.swing.table.TableCellRenderer;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.StyleContext;
-import java.awt.*;
+import java.awt.BorderLayout;
+import java.awt.Component;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
@@ -66,7 +68,6 @@ public class MksVcs extends AbstractVcs implements EncodingProvider {
 	private MessageBusConnection myMessageBusConnection;
 	private MksVcs.TasksModel tasksModel;
 
-	private MKSChangeProvider myChangeProvider = new MKSChangeProvider(this);
 	private final MksCheckinEnvironment mksCheckinEnvironment = new MksCheckinEnvironment(this);
 	//private final MksRollbackEnvironment rollbackEnvironment= new MksRollbackEnvironment(this);
 	private final MksChangeListAdapter changeListAdapter = new MksChangeListAdapter(this);
@@ -74,15 +75,12 @@ public class MksVcs extends AbstractVcs implements EncodingProvider {
 	private final MksDiffProvider diffProvider = new MksDiffProvider(this);
 	private final VcsHistoryProvider vcsHistoryProvider = new MksVcsHistoryProvider(this);
 	private final MksUpdateEnvironment updateEnvironment = new MksUpdateEnvironment(this);
+	@NonNls
+	public static final String VCS_NAME = "MKS";
 
 	public MksVcs(Project project) {
 		super(project);
 		sandboxCache = new SandboxCacheImpl(project);
-	}
-
-	@NotNull
-	public String getComponentName() {
-		return "MKS";
 	}
 
 	@Override
@@ -92,13 +90,13 @@ public class MksVcs extends AbstractVcs implements EncodingProvider {
 
 	@Override
 	public String getDisplayName() {
-		return "MKS";
+		return VCS_NAME;
 	}
 
 
 	@Override
 	public String getName() {
-		return "MKS";
+		return VCS_NAME;
 	}
 
 	@Override
@@ -323,7 +321,7 @@ public class MksVcs extends AbstractVcs implements EncodingProvider {
 	}
 
 	public static MksVcs getInstance(Project project) {
-		return (MksVcs) ProjectLevelVcsManager.getInstance(project).findVcsByName("MKS");
+		return (MksVcs) ProjectLevelVcsManager.getInstance(project).findVcsByName(VCS_NAME);
 	}
 
 	public static synchronized String getMksErrorMessage() {
@@ -384,8 +382,7 @@ public class MksVcs extends AbstractVcs implements EncodingProvider {
 	@Override
 	@NotNull
 	public ChangeProvider getChangeProvider() {
-
-		return myChangeProvider;
+		return myProject.getComponent(MKSChangeProvider.class);
 	}
 
 	@NotNull
@@ -541,16 +538,16 @@ public class MksVcs extends AbstractVcs implements EncodingProvider {
 	private static void addIgnoredFiles() {
 		String patterns = FileTypeManager.getInstance().getIgnoredFilesList();
 
-		String newPattern = patterns;
+		StringBuffer newPattern = new StringBuffer(patterns);
 		if (patterns.indexOf(MKS_PROJECT_PJ) == -1) {
-			newPattern += ((newPattern.charAt(newPattern.length() - 1) == ';') ? "" : ";") + MKS_PROJECT_PJ;
+			newPattern.append((newPattern.charAt(newPattern.length() - 1) == ';') ? "" : ";").append(MKS_PROJECT_PJ);
 		}
 
-		if (!newPattern.equals(patterns)) {
-			final String newPat = newPattern;
+		final String newPatternString = newPattern.toString();
+		if (!newPatternString.equals(patterns)) {
 			ApplicationManager.getApplication().runWriteAction(new Runnable() {
 				public void run() {
-					FileTypeManager.getInstance().setIgnoredFilesList(newPat);
+					FileTypeManager.getInstance().setIgnoredFilesList(newPatternString);
 				}
 			}
 			);
