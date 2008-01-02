@@ -21,6 +21,7 @@ import java.util.List;
 public abstract class SiCLICommand extends AbstractMKSCommand implements Runnable {
 	protected static final String DEFERRED_ADD = "deferred-add";
 	protected static final String DEFERRED_DROP = "deferred-drop";
+	protected static final String DEFERRED_CHECKIN = "deferred-check-in";
 	protected static final String revisionPattern = "(\\d+(?:\\.\\d+)*)?";
 	protected static final String changePackageIdPattern = "(\\d+:\\d+)?";
 	protected static final String deferredPattern = "(deferred)?";
@@ -150,7 +151,10 @@ public abstract class SiCLICommand extends AbstractMKSCommand implements Runnabl
 		} else if (DEFERRED_DROP.equals(type)) {
 			return new MksMemberState(null, (MksRevisionNumber.createRevision(memberRev)), workingCpid,
 					MksMemberState.Status.DROPPED, memberTimestamp);
-		} else /*if (DEFERRED_CHECKIN.equals(type)) */ {
+		} else if (DEFERRED_CHECKIN.equals(type))  {
+			return new MksMemberState(null, (MksRevisionNumber.createRevision(memberRev)), workingCpid,
+					MksMemberState.Status.CHECKED_OUT, memberTimestamp);
+		} else {
 			LOGGER.warn(this + " : deferred operation (" + type + ") not supported at moment, returning 'unknown'");
 			return new MksMemberState((MksRevisionNumber.createRevision(workingRev)), (MksRevisionNumber.createRevision(memberRev)), workingCpid,
 					MksMemberState.Status.UNKNOWN, memberTimestamp);
