@@ -1,12 +1,15 @@
 package org.intellij.vcs.mks;
 
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.components.AbstractProjectComponent;
+import com.intellij.openapi.components.ProjectComponent;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.vcs.FilePath;
 import com.intellij.openapi.vcs.FileStatus;
+import com.intellij.openapi.vcs.ProjectLevelVcsManager;
 import com.intellij.openapi.vcs.VcsException;
 import com.intellij.openapi.vcs.changes.*;
 import com.intellij.openapi.vfs.VirtualFile;
@@ -35,22 +38,20 @@ import java.util.*;
  * @see com.intellij.openapi.vcs.changes.VcsDirtyScopeManager allows to notify
  *      idea if files should be marked dirty
  */
-class MKSChangeProvider implements ChangeProvider, ChangeListDecorator {
+class MKSChangeProvider extends AbstractProjectComponent implements ChangeProvider, ChangeListDecorator, ProjectComponent {
 	private final Logger logger = Logger.getInstance(getClass().getName());
 	private final Logger BUILDER_PROXY_LOGGER = Logger.getInstance(getClass().getName() + ".ChangelistBuilder");
-	@NotNull
-	private final MksVcs mksvcs;
 	private static final String UNVERSIONED_LIST = "Unversioned";
 	private static final String MODIFIED_WITHOUT_CHECKOUT_LIST = "Modified without checkout";
 
-	public MKSChangeProvider(@NotNull MksVcs mksvcs) {
-		this.mksvcs = mksvcs;
+	public MKSChangeProvider(@NotNull Project project) {
+		super(project);
 	}
 
 	private
 	@NotNull
 	Project getProject() {
-		return mksvcs.getProject();
+		return getMksvcs().getProject();
 	}
 
 
@@ -94,7 +95,7 @@ class MKSChangeProvider implements ChangeProvider, ChangeListDecorator {
 					} else if (filePath.getVirtualFile() == null) {
 						logger.warn("no VirtualFile for " + filePath.getPath() + ", ignoring");
 						return true;
-					} else if (mksvcs.getSandboxCache().isSandboxProject(filePath.getVirtualFile())) {
+					} else if (getMksvcs().getSandboxCache().isSandboxProject(filePath.getVirtualFile())) {
 						finalBuilder.processIgnoredFile(filePath.getVirtualFile());
 						//                        System.err.println("ignoring project.pj file");
 						return true;
@@ -108,7 +109,7 @@ class MKSChangeProvider implements ChangeProvider, ChangeListDecorator {
 			logger.debug("end getChanges");
 		}
 		if (!errors.isEmpty()) {
-			mksvcs.showErrors(errors, "ChangeProvider");
+			getMksvcs().showErrors(errors, "ChangeProvider");
 		}
 
 
@@ -140,8 +141,8 @@ class MKSChangeProvider implements ChangeProvider, ChangeListDecorator {
 				SwingUtilities.invokeAndWait(new Runnable() {
 					public void run() {
 						final String message = MksBundle.message("mks.reconnect.to.server", hostAndPort);
-						userAndPassword.user = Messages.showInputDialog(mksvcs.getProject(), "user", message, null);
-						userAndPassword.password = Messages.showInputDialog(mksvcs.getProject(), "password", message, null);
+						userAndPassword.user = Messages.showInputDialog(getMksvcs().getProject(), "user", message, null);
+						userAndPassword.password = Messages.showInputDialog(getMksvcs().getProject(), "password", message, null);
 
 					}
 				});
@@ -154,7 +155,7 @@ class MKSChangeProvider implements ChangeProvider, ChangeListDecorator {
 			if (userAndPassword.user == null || userAndPassword.password == null) {
 				continue;
 			}
-			SiConnectCommand command = new SiConnectCommand(mksvcs, host, port, userAndPassword.user, userAndPassword.password);
+			SiConnectCommand command = new SiConnectCommand(getMksvcs(), host, port, userAndPassword.user, userAndPassword.password);
 			command.execute();
 			if (!command.foundError() && (command.getServer() != null)) {
 				servers.add(command.getServer());
@@ -168,25 +169,25 @@ class MKSChangeProvider implements ChangeProvider, ChangeListDecorator {
 		setStatusInfo(statusLabel, MksBundle.message("collecting.relevant.sandboxes"));
 		Set<MksSandboxInfo> sandboxesToRefresh = new HashSet<MksSandboxInfo>();
 		for (FilePath dir : dirtyScope.getRecursivelyDirtyDirectories()) {
-			mksvcs.debug("VcsDirtyScope : recursivelyDirtyDir " + dir);
+			getMksvcs().debug("VcsDirtyScope : recursivelyDirtyDir " + dir);
 			VirtualFile vFile = dir.getVirtualFile();
 			if (vFile != null) {
-				Set<MksSandboxInfo> sandboxes = mksvcs.getSandboxCache().getSandboxesIntersecting(vFile);
+				Set<MksSandboxInfo> sandboxes = getMksvcs().getSandboxCache().getSandboxesIntersecting(vFile);
 				StringBuffer log = new StringBuffer("=> dirtySandbox : ");
 				for (MksSandboxInfo sandbox : sandboxes) {
 					log.append(sandbox.sandboxPath).append(", ");
 				}
-				mksvcs.debug(log.substring(0, log.length() - 2));
+				getMksvcs().debug(log.substring(0, log.length() - 2));
 				sandboxesToRefresh.addAll(sandboxes);
 			}
 		}
 		for (FilePath path : dirtyScope.getDirtyFiles()) {
-			mksvcs.debug("VcsDirtyScope : dirtyFile " + path);
+			getMksvcs().debug("VcsDirtyScope : dirtyFile " + path);
 			VirtualFile vFile = path.getVirtualFile();
 			if (vFile != null) {
-				final MksSandboxInfo mksSandboxInfo = mksvcs.getSandboxCache().getSandboxInfo(vFile);
+				final MksSandboxInfo mksSandboxInfo = getMksvcs().getSandboxCache().getSandboxInfo(vFile);
 				if (mksSandboxInfo != null) {
-					mksvcs.debug("=> dirtySandbox : " + mksSandboxInfo.sandboxPath);
+					getMksvcs().debug("=> dirtySandbox : " + mksSandboxInfo.sandboxPath);
 					sandboxesToRefresh.add(mksSandboxInfo);
 				}
 			}
@@ -228,7 +229,7 @@ class MKSChangeProvider implements ChangeProvider, ChangeListDecorator {
 			MksMemberState state = entry.getValue();
 			FilePath filePath = VcsUtil.getFilePath(entry.getKey());
 			VirtualFile virtualFile = VcsUtil.getVirtualFile(entry.getKey());
-			if (null != virtualFile && mksvcs.getSandboxCache().isSandboxProject(virtualFile)) {
+			if (null != virtualFile && getMksvcs().getSandboxCache().isSandboxProject(virtualFile)) {
 				continue;
 			}
 			switch (state.status) {
@@ -241,7 +242,7 @@ class MKSChangeProvider implements ChangeProvider, ChangeListDecorator {
 					if (changePackage == null) {
 						builder.processChange(change);
 					} else {
-						ChangeList changeList = mksvcs.getChangeListAdapter().trackMksChangePackage(changePackage);
+						ChangeList changeList = getMksvcs().getChangeListAdapter().trackMksChangePackage(changePackage);
 						builder.processChangeInList(change, changeList);
 					}
 					break;
@@ -249,20 +250,20 @@ class MKSChangeProvider implements ChangeProvider, ChangeListDecorator {
 				case CHECKED_OUT: {
 					MksChangePackage changePackage = getChangePackage(changePackages, state);
 					Change change = new Change(
-							new MksContentRevision(mksvcs, filePath, state.memberRevision),
+							new MksContentRevision(getMksvcs(), filePath, state.memberRevision),
 							CurrentContentRevision.create(filePath),
 							FileStatus.MODIFIED);
 					if (changePackage == null) {
 						builder.processChange(change);
 					} else {
-						ChangeList changeList = mksvcs.getChangeListAdapter().trackMksChangePackage(changePackage);
+						ChangeList changeList = getMksvcs().getChangeListAdapter().trackMksChangePackage(changePackage);
 						builder.processChangeInList(change, changeList);
 					}
 					break;
 				}
 				case MODIFIED_WITHOUT_CHECKOUT: {
 					ChangeList userChangeList = getUserChangelist(filePath, listManager);
-					builder.processChangeInList(new Change(new MksContentRevision(mksvcs, filePath, state.memberRevision),
+					builder.processChangeInList(new Change(new MksContentRevision(getMksvcs(), filePath, state.memberRevision),
 							CurrentContentRevision.create(filePath),
 							FileStatus.HIJACKED), (userChangeList == null) ? MODIFIED_WITHOUT_CHECKOUT_LIST : userChangeList.getName());
 
@@ -273,8 +274,8 @@ class MKSChangeProvider implements ChangeProvider, ChangeListDecorator {
 					// todo some of those changes belong to the Incoming tab
 					ChangeList userChangeList = getUserChangelist(filePath, listManager);
 					builder.processChangeInList(new Change(
-							new MksContentRevision(mksvcs, filePath, state.memberRevision),
-							new MksContentRevision(mksvcs, filePath, state.workingRevision),
+							new MksContentRevision(getMksvcs(), filePath, state.memberRevision),
+							new MksContentRevision(getMksvcs(), filePath, state.workingRevision),
 							FileStatus.DELETED_FROM_FS), (userChangeList == null) ? UNVERSIONED_LIST : userChangeList.getName());
 //					builder.processLocallyDeletedFile(filePath);
 					break;
@@ -282,20 +283,20 @@ class MKSChangeProvider implements ChangeProvider, ChangeListDecorator {
 				case SYNC:
 					// todo some of those changes belong to the Incoming tab
 					builder.processChange(new Change(
-							new MksContentRevision(mksvcs, filePath, state.workingRevision),
-							new MksContentRevision(mksvcs, filePath, state.memberRevision),
+							new MksContentRevision(getMksvcs(), filePath, state.workingRevision),
+							new MksContentRevision(getMksvcs(), filePath, state.memberRevision),
 							FileStatus.OBSOLETE));
 					break;
 				case DROPPED: {
 					MksChangePackage changePackage = getChangePackage(changePackages, state);
 					Change change = new Change(
-							new MksContentRevision(mksvcs, filePath, state.memberRevision),
+							new MksContentRevision(getMksvcs(), filePath, state.memberRevision),
 							CurrentContentRevision.create(filePath),
 							FileStatus.DELETED);
 					if (changePackage == null) {
 						builder.processChange(change);
 					} else {
-						ChangeList changeList = mksvcs.getChangeListAdapter().trackMksChangePackage(changePackage);
+						ChangeList changeList = getMksvcs().getChangeListAdapter().trackMksChangePackage(changePackage);
 						builder.processChangeInList(change, changeList);
 					}
 					break;
@@ -314,9 +315,10 @@ class MKSChangeProvider implements ChangeProvider, ChangeListDecorator {
 				}
 				case UNKNOWN: {
 					builder.processChange(new Change(
-							new MksContentRevision(mksvcs, filePath, state.memberRevision),
-							new MksContentRevision(mksvcs, filePath, state.workingRevision),
+							new MksContentRevision(getMksvcs(), filePath, state.memberRevision),
+							new MksContentRevision(getMksvcs(), filePath, state.workingRevision),
 							FileStatus.UNKNOWN));
+					break;
 				}
 				default: {
 					logger.info("unhandled MKS status " + state.status);
@@ -337,15 +339,15 @@ class MKSChangeProvider implements ChangeProvider, ChangeListDecorator {
 	private Map<String, MksMemberState> getSandboxState(@NotNull final MksSandboxInfo sandbox, final ArrayList<VcsException> errors, @NotNull final MksServerInfo server) {
 		Map<String, MksMemberState> states = new HashMap<String, MksMemberState>();
 
-		ViewSandboxWithoutChangesCommand fullSandboxCommand = new ViewSandboxWithoutChangesCommand(errors, mksvcs, sandbox.sandboxPath);
+		ViewSandboxWithoutChangesCommand fullSandboxCommand = new ViewSandboxWithoutChangesCommand(errors, getMksvcs(), sandbox.sandboxPath);
 		fullSandboxCommand.execute();
 		addNonExcludedStates(states, fullSandboxCommand.getMemberStates());
 
-		ViewSandboxLocalChangesOrLockedCommand localChangesCommand = new ViewSandboxLocalChangesOrLockedCommand(errors, mksvcs, server.user, sandbox.sandboxPath);
+		ViewSandboxLocalChangesOrLockedCommand localChangesCommand = new ViewSandboxLocalChangesOrLockedCommand(errors, getMksvcs(), server.user, sandbox.sandboxPath);
 		localChangesCommand.execute();
 		addNonExcludedStates(states, localChangesCommand.getMemberStates());
 
-		ViewNonMembersCommand nonMembersCommand = new ViewNonMembersCommand(errors, mksvcs, sandbox);
+		ViewNonMembersCommand nonMembersCommand = new ViewNonMembersCommand(errors, getMksvcs(), sandbox);
 		nonMembersCommand.execute();
 /*
 		for (Map.Entry<String, MksMemberState> entry : nonMembersCommand.getMemberStates().entrySet()) {
@@ -387,7 +389,7 @@ class MKSChangeProvider implements ChangeProvider, ChangeListDecorator {
 	private void addNonExcludedStates(Map<String, MksMemberState> collectingMap, Map<String, MksMemberState> source) {
 		for (Map.Entry<String, MksMemberState> entry : source.entrySet()) {
 			final FilePath path = VcsUtil.getFilePath(entry.getKey());
-			if (path.getVirtualFile() != null && mksvcs.getProject().getProjectScope().contains(path.getVirtualFile())) {
+			if (path.getVirtualFile() != null && myProject.getProjectScope().contains(path.getVirtualFile())) {
 				collectingMap.put(entry.getKey(), entry.getValue());
 			} else if (logger.isDebugEnabled()) {
 				logger.debug("skipping " + path.getPath());
@@ -407,10 +409,10 @@ class MKSChangeProvider implements ChangeProvider, ChangeListDecorator {
 		final MksConfiguration config = ApplicationManager.getApplication().getComponent(MksConfiguration.class);
 		for (MksServerInfo server : servers) {
 			if (!config.isServerSiServer(server)) {
-				mksvcs.debug("ignoring " + server.host + ":" + server.port + " when querying changepackages");
+				getMksvcs().debug("ignoring " + server.host + ":" + server.port + " when querying changepackages");
 				continue;
 			}
-			final ListChangePackages listCpsAction = new ListChangePackages(errors, mksvcs, server);
+			final ListChangePackages listCpsAction = new ListChangePackages(errors, getMksvcs(), server);
 			if (progress != null) {
 				progress.setIndeterminate(true);
 				progress.setText("Querying change packages for " + server + "...");
@@ -431,7 +433,7 @@ class MKSChangeProvider implements ChangeProvider, ChangeListDecorator {
 	}
 
 	private ArrayList<MksServerInfo> getMksServers(final ProgressIndicator progress, final ArrayList<VcsException> errors) {
-		final ListServers listServersAction = new ListServers(errors, mksvcs);
+		final ListServers listServersAction = new ListServers(errors, getMksvcs());
 		if (progress != null) {
 			progress.setIndeterminate(true);
 			progress.setText("Querying mks servers ...");
@@ -449,7 +451,7 @@ class MKSChangeProvider implements ChangeProvider, ChangeListDecorator {
 
 	@NotNull
 	public MksChangeListAdapter getChangeListAdapter() {
-		return mksvcs.getChangeListAdapter();
+		return getMksvcs().getChangeListAdapter();
 	}
 
 
@@ -464,5 +466,9 @@ class MKSChangeProvider implements ChangeProvider, ChangeListDecorator {
 			cellRenderer.append(" - MKS #" + aPackage.getId(), SimpleTextAttributes.GRAY_ATTRIBUTES);
 		}
 	}
-}
 
+	@NotNull
+	private MksVcs getMksvcs() {
+		return (MksVcs) ProjectLevelVcsManager.getInstance(myProject).findVcsByName(MksVcs.VCS_NAME);
+	}
+}
