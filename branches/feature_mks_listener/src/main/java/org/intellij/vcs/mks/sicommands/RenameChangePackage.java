@@ -3,6 +3,7 @@ package org.intellij.vcs.mks.sicommands;
 import com.intellij.openapi.vcs.VcsException;
 import org.intellij.vcs.mks.MksVcs;
 import org.intellij.vcs.mks.model.MksChangePackage;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -16,11 +17,12 @@ import java.util.List;
  * @author Thibaut Fagart
  */
 public class RenameChangePackage extends SiCLICommand {
+	@NotNull
 	private final MksChangePackage changePackage;
 	@org.jetbrains.annotations.NonNls
 	public static final String COMMAND = "editcp";
 
-	public RenameChangePackage(List<VcsException> errors, MksVcs mksvcs, MksChangePackage changePackage, String newName) {
+	public RenameChangePackage(@NotNull List<VcsException> errors, @NotNull MksVcs mksvcs, @NotNull MksChangePackage changePackage, @NotNull String newName) {
 		super(errors, mksvcs, COMMAND, "--summary=" + newName, "--hostname=" + changePackage.server, changePackage.getId());
 		this.changePackage = changePackage;
 	}
@@ -53,7 +55,8 @@ public class RenameChangePackage extends SiCLICommand {
 				String line;
 				while (((line = reader.readLine()) != null) && shouldIgnore(line)) {
 				}
-				if (!changePackage.getId().equals(line)) {
+
+				if (line == null || !line.startsWith(changePackage.getId())) {
 					String message = "unexpected command error output {" + errorOutput + "}, expected {" + changePackage.getId() + "}";
 					LOGGER.error(message);
 					//noinspection ThrowableInstanceNeverThrown

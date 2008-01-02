@@ -3,15 +3,16 @@ package org.intellij.vcs.mks;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.vcs.VcsException;
 import com.intellij.openapi.vcs.changes.*;
+import com.intellij.openapi.vfs.VirtualFile;
 import org.intellij.vcs.mks.model.MksChangePackage;
 import org.intellij.vcs.mks.sicommands.RenameChangePackage;
+import org.intellij.vcs.mks.sicommands.UnlockMemberCommand;
+import org.intellij.vcs.mks.sicommands.LockMemberCommand;
+import org.intellij.vcs.mks.realtime.MksSandboxInfo;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 /**
  * @author Thibaut Fagart
@@ -20,15 +21,18 @@ class MksChangeListAdapter extends ChangeListAdapter {
 	private final Logger logger = Logger.getInstance(getClass().getName());
 	@NotNull
 	private final MksVcs mksVcs;
+	private boolean isUpdating = false;
+	private final Map<String, String> changeListNameByChangePackageId = new HashMap<String, String>();
+	private final Map<String, MksChangePackage> changePackageById = new HashMap<String, MksChangePackage>();
+	private final Map<String, String> changePackageIdByChangeListName = new HashMap<String, String>();
 
 	public MksChangeListAdapter(@NotNull MksVcs mksVcs) {
 		this.mksVcs = mksVcs;
 	}
 
-	private final Map<String, String> changeListNameByChangePackageId = new HashMap<String, String>();
-	private final Map<String, String> changePackageIdByChangeListName = new HashMap<String, String>();
-	private final Map<String, MksChangePackage> changePackageById = new HashMap<String, MksChangePackage>();
-
+	void setUpdating(boolean b) {
+		isUpdating = b;
+	}
 	/**
 	 * registers the changePackage as a changeList and start keeping the two of them in sync
 	 *
@@ -86,8 +90,9 @@ class MksChangeListAdapter extends ChangeListAdapter {
 				changeListNameByChangePackageId.put(mksChangePackage.getId(), list.getName());
 				changePackageIdByChangeListName.put(list.getName(), mksChangePackage.getId());
 			}
-
-			renameChangePackage(mksChangePackage, list.getName());
+			if (!isUpdating) {
+				renameChangePackage(mksChangePackage, list.getName());
+			}
 		}
 	}
 
@@ -112,32 +117,135 @@ class MksChangeListAdapter extends ChangeListAdapter {
 	 */
 	@Override
 	public void changesMoved(Collection<Change> changes, ChangeList fromList, ChangeList toList) {
-		// need to check the changes are controlled by mks
-		if (isChangeListMksControlled(fromList.getName()) && isChangeListMksControlled(toList.getName()  /* todo changelist*/)) {
-			// unlock then lock the changes
-			// todo dispatch changes by sandbox
-			// todo create and execute unlock command for each sandbox
-			// todo create and execute lock command for each sandbox
-//			new UnlockMemberCommand(new ArrayList<VcsException>(), mksVcs,
-//					getMksChangePackage(fromList.getName()), ChangesUtil.getPaths(changes).to)
-		} else if (isChangeListMksControlled(fromList.getName())) {
-			// unlock the changes
-			// todo dispatch changes by sandbox
-			// todo create and execute unlock command for each sandbox
-		} else if (isChangeListMksControlled(toList.getName())) {
-			// lock the changes
-			// todo dispatch changes by sandbox
-			// todo create and execute lock command for each sandbox
+		if (isUpdating) return;
+		if (true) {
+			// todo remove when change moving is definitely supported
+			return;
+		}
+		if (isChangeListMksControlled(fromList.getName()) || isChangeListMksControlled(toList.getName())) {
+
+			Map<MksSandboxInfo, ArrayList<VirtualFile>> filesBysandbox = dispatchBySandbox(changes);
+			// need to check the changes are controlled by mks
+			if (isChangeListMksControlled(fromList.getName()) && isChangeListMksControlled(toList.getName()  /* todo changelist*/)) {
+				// unlock then lock the changes
+				final MksChangePackage aPackage = getMksChangePackage(toList.getName());
+				if (aPackage == null) {
+					logger.warn("unable to find the change package for [" + toList.getName() + "]");
+					return;
+				}
+				for (Map.Entry<MksSandboxInfo, ArrayList<VirtualFile>> entry : filesBysandbox.entrySet()) {
+					final String[] paths = getPaths(entry);
+					unlock(entry.getKey(), paths);
+					lock(entry.getKey(), aPackage, paths);
+				}
+			} else if (isChangeListMksControlled(fromList.getName())) {
+				// unlock the changes
+				// todo
+				// changes for which beforeRevision == null are newly created, and if they appear in a controlled list
+				// they have been added (defeferred)
+				// changes for which beforeRevision != null were regularly checked out and should be unlocked
+				final MksChangePackage aPackage = getMksChangePackage(fromList.getName());
+				if (aPackage == null) {
+					logger.warn("unable to find the change package for [" + fromList.getName() + "]");
+					return;
+				}
+				for (Map.Entry<MksSandboxInfo, ArrayList<VirtualFile>> entry : filesBysandbox.entrySet()) {
+					final String[] paths = getPaths(entry);
+					removeDeferred(entry.getKey(), aPackage, paths);
+				}
+			} else if (isChangeListMksControlled(toList.getName())) {
+				// lock the changes
+				// if change.beforeRevision == null , this is a new file, and should be added (deferred= true)
+				// if change.beforeRevision != null ... shouldn't be possible
+				final MksChangePackage aPackage = getMksChangePackage(toList.getName());
+				if (aPackage == null) {
+					logger.warn("unable to find the change package for [" + toList.getName() + "]");
+					return;
+				}
+				for (Map.Entry<MksSandboxInfo, ArrayList<VirtualFile>> entry : filesBysandbox.entrySet()) {
+					final String[] paths = getPaths(entry);
+//					lock(entry.getKey(), aPackage, paths);
+					addDeferred(entry.getKey(), aPackage, paths);
+				}
+			}
 		} else {
 			super.changesMoved(changes, fromList, toList);
-			return;
+		}
+		if (isChangeListMksControlled(fromList.getName()) !=  isChangeListMksControlled( toList.getName())) {
+			for (Change change : changes) {
+				final ContentRevision afterRevision = change.getAfterRevision();
+				final ContentRevision beforeRevision = change.getBeforeRevision();
+				if (afterRevision != null) {
+					VcsDirtyScopeManager.getInstance(mksVcs.getProject()).fileDirty(afterRevision.getFile());
+				}
+				if (beforeRevision != null) {
+					VcsDirtyScopeManager.getInstance(mksVcs.getProject()).fileDirty(beforeRevision.getFile());
+				}
+			}
 		}
 	}
 
+	private void addDeferred(MksSandboxInfo sandboxInfo, MksChangePackage aPackage, String[] paths) {
+		throw new UnsupportedOperationException("TODO : not yet implemented");
+	}
 
+	private void removeDeferred(MksSandboxInfo sandboxInfo, MksChangePackage aPackage, String[] paths) {
+		throw new UnsupportedOperationException("TODO : not yet implemented");
+	}
+
+	private String[] getPaths(Map.Entry<MksSandboxInfo, ArrayList<VirtualFile>> entry) {
+		final ArrayList<VirtualFile> files = entry.getValue();
+		final String[] paths = new String[files.size()];
+		for (int i = 0, max = paths.length; i < max; i++) {
+			paths[i] = files.get(i).getPath();
+		}
+		return paths;
+	}
+
+	private Map<MksSandboxInfo, ArrayList<VirtualFile>> dispatchBySandbox(Collection<Change> changes) {
+		DispatchBySandboxCommand dispatchAction = new DispatchBySandboxCommand(mksVcs, new ArrayList<VcsException>(), ChangesUtil.getFilesFromChanges(changes));
+		dispatchAction.execute();
+
+		List<VcsException> exceptions = dispatchAction.errors;
+		if (!exceptions.isEmpty()) {
+			for (VcsException exception : exceptions) {
+				logger.warn(exception);
+			}
+		}
+
+		Map<MksSandboxInfo, ArrayList<VirtualFile>> filesBysandbox = dispatchAction.getFilesBySandbox();
+		return filesBysandbox;
+	}
+
+	private void lock(MksSandboxInfo sandbox, MksChangePackage aPackage, String[] pathsToUnlock) {
+		final LockMemberCommand lockCmd = new LockMemberCommand(new ArrayList<VcsException>(), mksVcs, sandbox, 
+				aPackage, pathsToUnlock);
+		lockCmd.execute();
+	}
+
+	private void unlock(MksSandboxInfo sandbox, String[] pathsToUnlock) {
+		final UnlockMemberCommand unlockCmd = new UnlockMemberCommand(new ArrayList<VcsException>(), mksVcs, sandbox, pathsToUnlock);
+		unlockCmd.execute();
+	}
+
+	/**
+	 * Lookup is done using the cpid, not the cp name.
+	 * This allows looking up a changelist even the change package has been renamed
+	 * @param cp
+	 * @return the changelist mapped to the given change package if any
+	 */
+	@Nullable
+	public ChangeList getChangeList(@NotNull MksChangePackage cp) {
+		final String changeListName = this.changeListNameByChangePackageId.get(cp.getId());
+		if (changeListName == null) {
+			return null;
+		} else{
+			return ChangeListManager.getInstance(mksVcs.getProject()).findChangeList(changeListName);
+		}
+	}
 	@Override
 	public void changeListRemoved(ChangeList list) {
-		if (isChangeListMksControlled(list.getName())) {
+		if (!isUpdating && isChangeListMksControlled(list.getName())) {
 			String cpId = changePackageIdByChangeListName.remove(list.getName());
 			changeListNameByChangePackageId.remove(cpId);
 			changePackageById.remove(cpId);

@@ -59,7 +59,10 @@ class MKSChangeProvider extends AbstractProjectComponent implements ChangeProvid
 		ArrayList<VcsException> errors = new ArrayList<VcsException>();
 		logger.debug("start getChanges");
 		final JLabel statusLabel = new JLabel();
+		final MksChangeListAdapter adapter = getMksvcs().getChangeListAdapter();
 		try {
+
+			adapter.setUpdating(true);
 			WindowManager.getInstance().getStatusBar(getProject()).addCustomIndicationComponent(statusLabel);
 			Set<MksSandboxInfo> sandboxesToRefresh = collectSandboxesToRefresh(dirtyScope, statusLabel);
 			setStatusInfo(statusLabel, MksBundle.message("collecting.servers"));
@@ -75,6 +78,16 @@ class MKSChangeProvider extends AbstractProjectComponent implements ChangeProvid
 			int sandboxCountToRefresh = sandboxesToRefresh.size();
 			int refreshedSandbox = 0;
 			final Map<MksServerInfo, Map<String, MksChangePackage>> changePackagesPerServer = getChangePackages(progress, errors, servers);
+			for (Map<String, MksChangePackage> packageMap : changePackagesPerServer.values()) {
+				for (Map.Entry<String, MksChangePackage> entry : packageMap.entrySet()) {
+					final ChangeList changeList = adapter.getChangeList(entry.getValue());
+					if (changeList != null && !entry.getValue().getSummary().equals(changeList.getName())) {
+						if (changeList instanceof LocalChangeList) {
+							((LocalChangeList)changeList).setName(entry.getValue().getSummary());
+						}
+					}
+				}
+			}
 			for (MksSandboxInfo sandbox : sandboxesToRefresh) {
 				@Nullable MksServerInfo sandboxServer = serversByHostAndPort.get(sandbox.hostAndPort);
 				if (sandboxServer == null) {
@@ -105,6 +118,7 @@ class MKSChangeProvider extends AbstractProjectComponent implements ChangeProvid
 				}
 			});
 		} finally {
+			adapter.setUpdating(false);
 			WindowManager.getInstance().getStatusBar(getProject()).removeCustomIndicationComponent(statusLabel);
 			logger.debug("end getChanges");
 		}
@@ -230,6 +244,14 @@ class MKSChangeProvider extends AbstractProjectComponent implements ChangeProvid
 			FilePath filePath = VcsUtil.getFilePath(entry.getKey());
 			VirtualFile virtualFile = VcsUtil.getVirtualFile(entry.getKey());
 			if (null != virtualFile && getMksvcs().getSandboxCache().isSandboxProject(virtualFile)) {
+				continue;
+			}
+			if (!myProject.getAllScope().contains(virtualFile)) {
+				logger.warn("project excluded file, skipping "+virtualFile);
+				continue;
+			}
+			if (listManager.isIgnoredFile(virtualFile)) {
+				builder.processIgnoredFile(virtualFile);
 				continue;
 			}
 			switch (state.status) {
@@ -375,11 +397,11 @@ class MKSChangeProvider extends AbstractProjectComponent implements ChangeProvid
 */
 		addNonExcludedStates(states, nonMembersCommand.getMemberStates());
 // todo the below belong to incoming changes
-//		ViewSandboxOutOfSyncCommand outOfSyncCommand = new ViewSandboxOutOfSyncCommand(errors, mksvcs, sandbox.sandboxPath);
-//		outOfSyncCommand.execute();
-//		states.putAll(outOfSyncCommand.getMemberStates());
+		ViewSandboxOutOfSyncCommand outOfSyncCommand = new ViewSandboxOutOfSyncCommand(errors, getMksvcs(), sandbox.sandboxPath);
+		outOfSyncCommand.execute();
+		states.putAll(outOfSyncCommand.getMemberStates());
 
-//		ViewSandboxRemoteChangesCommand missingCommand = new ViewSandboxRemoteChangesCommand(errors, mksvcs, sandbox.sandboxPath);
+//		ViewSandboxRemoteChangesCommand missingCommand = new ViewSandboxRemoteChangesCommand(errors, getMksvcs(), sandbox.sandboxPath);
 //		missingCommand.execute();
 //		states.putAll(missingCommand.getMemberStates());
 
