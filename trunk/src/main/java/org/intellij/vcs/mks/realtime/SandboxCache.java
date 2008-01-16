@@ -1,20 +1,25 @@
 package org.intellij.vcs.mks.realtime;
 
-import com.intellij.openapi.vfs.VirtualFile;
-import mks.integrations.common.TriclopsSiSandbox;
+import java.io.PrintWriter;
+import java.util.Set;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import com.intellij.openapi.roots.ModuleRootListener;
+import com.intellij.openapi.vfs.VirtualFile;
 
 /**
  * @author Thibaut Fagart
  */
-public interface SandboxCache {
+public interface SandboxCache extends ModuleRootListener, SandboxListListener {
+
 	/**
 	 * @param virtualFile the file that needs a sandbox
-	 * @return the sandbox this file belongs to, or null if it isn't inside a sandbox
+	 * @return the sandbox this file belongs to, or null if it isn't inside a
+	 *         sandbox. this is the "closest" sandbox, eg, the first one found while crawling up the
+	 *         file system
 	 */
 	@Nullable
-	TriclopsSiSandbox findSandbox(@NotNull VirtualFile virtualFile);
+	MksSandboxInfo getSandboxInfo(@NotNull VirtualFile virtualFile);
 
 	/**
 	 * @param virtualFile the file
@@ -23,7 +28,35 @@ public interface SandboxCache {
 	boolean isSandboxProject(@NotNull VirtualFile virtualFile);
 
 
-	void clear();
+	// for mks monitoring
+	void dumpStateOn(@NotNull PrintWriter pw);
 
-	void addSandboxPath(@NotNull String sandboxPath);
+	/**
+	 * returns all in project sandboxes that either contain the given directory,
+	 * or are contained by it
+	 *
+	 * @param directory a directory for which we want to find the relevant sandboxes
+	 * @return a non null collection of sandboxes whose content intersect the directory
+	 */
+	@NotNull
+	Set<MksSandboxInfo> getSandboxesIntersecting(@NotNull VirtualFile directory);
+
+	/**
+	 * @param file the file to test for sandbox inclusion
+	 * @return true if the given file belongs to a sandbox (which would be the one returned by findsandbox).
+	 *         This is false if file has only been locally created (eg not added to mks)
+	 */
+	boolean isPartOfSandbox(@NotNull VirtualFile file);
+
+	/**
+	 * called when the project is unloaded, should clean up the cache
+	 */
+	void release();
+
+	/**
+	 * @param virtualFile the file we need the sandbox for
+	 * @return the closest existing subsandbox containing the supplied virtualFile
+	 */
+	@Nullable
+	MksSandboxInfo getSubSandbox(@NotNull VirtualFile virtualFile);
 }

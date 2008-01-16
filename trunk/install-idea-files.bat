@@ -1,6 +1,6 @@
 rem complete your IDEA Home folder here
-set IDEA_HOME=C:\Documents and Settings\A6253567.HBEU\Progs\JetBrains\IntelliJ IDEA 7.0M1b
-set IDEA_VERSION=7.0.6833
+set IDEA_HOME=H:\developpement\IntelliJ IDEA 7.0M2
+set IDEA_VERSION=7.0.7126
 set MKS_VERSION=8.3.2392
 
 call mvn install:install-file -DgroupId=com.intellij.idea -Dpackaging=jar -Dfile="%IDEA_HOME%\lib\openapi.jar" -DartifactId=openapi -Dversion=%IDEA_VERSION%

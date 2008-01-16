@@ -12,425 +12,591 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import javax.swing.*;
+import javax.swing.table.AbstractTableModel;
+import javax.swing.table.TableCellRenderer;
+import javax.swing.text.BadLocationException;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.StyleContext;
+import org.intellij.vcs.mks.history.MksVcsHistoryProvider;
+import org.intellij.vcs.mks.realtime.LongRunningTask;
+import org.intellij.vcs.mks.realtime.LongRunningTaskRepository;
+import org.intellij.vcs.mks.realtime.MksSandboxInfo;
+import org.intellij.vcs.mks.realtime.SandboxCache;
+import org.intellij.vcs.mks.realtime.SandboxCacheImpl;
+import org.intellij.vcs.mks.realtime.SandboxListSynchronizer;
+import org.intellij.vcs.mks.sicommands.AbstractViewSandboxCommand;
 import org.intellij.vcs.mks.sicommands.GetContentRevision;
-import org.intellij.vcs.mks.sicommands.ListChangePackageEntries;
+import org.intellij.vcs.mks.sicommands.GetRevisionInfo;
 import org.intellij.vcs.mks.sicommands.ListChangePackages;
+import org.intellij.vcs.mks.sicommands.ListSandboxes;
+import org.intellij.vcs.mks.sicommands.ListServers;
+import org.intellij.vcs.mks.sicommands.LockMemberCommand;
+import org.intellij.vcs.mks.sicommands.RenameChangePackage;
+import org.intellij.vcs.mks.sicommands.SiConnectCommand;
+import org.intellij.vcs.mks.sicommands.UnlockMemberCommand;
+import org.intellij.vcs.mks.sicommands.ViewMemberHistoryCommand;
+import org.intellij.vcs.mks.sicommands.ViewNonMembersCommand;
+import org.intellij.vcs.mks.update.MksUpdateEnvironment;
+import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import com.intellij.openapi.components.ProjectComponent;
-import com.intellij.openapi.components.ServiceManager;
+import com.intellij.ProjectTopics;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.module.Module;
-import com.intellij.openapi.module.ModuleUtil;
+import com.intellij.openapi.fileTypes.FileTypeManager;
 import com.intellij.openapi.options.Configurable;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.startup.StartupManager;
 import com.intellij.openapi.ui.Messages;
+import com.intellij.openapi.util.IconLoader;
 import com.intellij.openapi.vcs.AbstractVcs;
 import com.intellij.openapi.vcs.EditFileProvider;
 import com.intellij.openapi.vcs.FilePath;
+import com.intellij.openapi.vcs.ProjectLevelVcsManager;
 import com.intellij.openapi.vcs.VcsException;
 import com.intellij.openapi.vcs.changes.ChangeListManager;
 import com.intellij.openapi.vcs.changes.ChangeProvider;
 import com.intellij.openapi.vcs.checkin.CheckinEnvironment;
 import com.intellij.openapi.vcs.diff.DiffProvider;
+import com.intellij.openapi.vcs.history.VcsHistoryProvider;
+import com.intellij.openapi.vcs.update.UpdateEnvironment;
 import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.openapi.vfs.VirtualFileManager;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowAnchor;
 import com.intellij.openapi.wm.ToolWindowManager;
+import com.intellij.peer.PeerFactory;
+import com.intellij.ui.content.Content;
+import com.intellij.util.messages.MessageBusConnection;
+import com.intellij.util.ui.AbstractTableCellEditor;
 import mks.integrations.common.TriclopsException;
-import mks.integrations.common.TriclopsSiMember;
 import mks.integrations.common.TriclopsSiMembers;
 import mks.integrations.common.TriclopsSiSandbox;
 
-public class MksVcs extends AbstractVcs implements ProjectComponent, EncodingProvider {
-    static final Logger LOGGER = Logger.getInstance(MksVcs.class.getName());
-    public static final String TOOL_WINDOW_ID = "MKS";
-    private ToolWindow mksToolWindow;
-    private JTabbedPane mksContentPanel;
-    private JTextPane mksTextArea;
-    private MksVirtualFileAdapter myVirtualFileAdapter;
-    static final boolean DEBUG = false;
-    private static final int CHANGES_TAB_INDEX = 1;
-    public static final String DATA_CONTEXT_PROJECT = "project";
-    public static final String DATA_CONTEXT_MODULE = "module";
-    public static final String DATA_CONTEXT_VIRTUAL_FILE_ARRAY = "virtualFileArray";
-    private MKSChangeProvider myChangeProvider = new MKSChangeProvider(this);
-    private final MksCheckinEnvironment mksCheckinEnvironment = new MksCheckinEnvironment(this);
-    private final MksChangeListAdapter changeListAdapter = new MksChangeListAdapter(this);
-    private final EditFileProvider editFileProvider = new _EditFileProvider(this);
-    private final MksDiffProvider diffProvider = new MksDiffProvider(this);
+public class MksVcs extends AbstractVcs implements EncodingProvider {
+	static final Logger LOGGER = Logger.getInstance(MksVcs.class.getName());
+	public static final String TOOL_WINDOW_ID = "MKS";
+	static final boolean DEBUG = false;
+	public static final String DATA_CONTEXT_PROJECT = "project";
+	public static final String DATA_CONTEXT_MODULE = "module";
+	public static final String DATA_CONTEXT_VIRTUAL_FILE_ARRAY = "virtualFileArray";
+	private static final String MKS_PROJECT_PJ = "project.pj";
+
+	private JTextPane mksTextArea;
+	private final SandboxCache sandboxCache;
+	private MessageBusConnection myMessageBusConnection;
+	private MksVcs.TasksModel tasksModel;
+
+	private final MksCheckinEnvironment mksCheckinEnvironment = new MksCheckinEnvironment(this);
+	//private final MksRollbackEnvironment rollbackEnvironment= new MksRollbackEnvironment(this);
+	private final MksChangeListAdapter changeListAdapter = new MksChangeListAdapter(this);
+	private final EditFileProvider editFileProvider = new _EditFileProvider(this);
+	private final MksDiffProvider diffProvider = new MksDiffProvider(this);
+	private final VcsHistoryProvider vcsHistoryProvider = new MksVcsHistoryProvider(this);
+	private final MksUpdateEnvironment updateEnvironment = new MksUpdateEnvironment(this);
+	@NonNls
+	public static final String VCS_NAME = "MKS";
+	private static final String MKS_TOOLWINDOW = "MKS";
+
+	public MksVcs(Project project) {
+		super(project);
+		sandboxCache = new SandboxCacheImpl(project);
+	}
+
+	@Override
+	public Configurable getConfigurable() {
+		return new MksConfigurableForm(myProject);
+	}
+
+	@Override
+	public String getDisplayName() {
+		return VCS_NAME;
+	}
 
 
-    public MksVcs(Project project) {
-        super(project);
+	@Override
+	public String getName() {
+		return VCS_NAME;
+	}
 
-    }
+	@Override
+	public void start() throws VcsException {
+		LOGGER.debug("start ["+myProject+"]");
+		super.start();
+		StartupManager.getInstance(myProject).registerPostStartupActivity(new Runnable() {
+			public void run() {
+				if (!myProject.isDisposed()) {
+					initToolWindow();
+				}
+			}
+		});
+	}
 
-    @NotNull
-    public String getComponentName() {
-        return "MKS";
-    }
+	public MksChangeListAdapter getChangeListAdapter() {
+		return changeListAdapter;
+	}
 
-    public void initComponent() {
-        MKSHelper.startClient();
-    }
+	@Override
+	public void shutdown() throws VcsException {
+		super.shutdown();
+		unregisterToolWindow();
+	}
 
-    public void disposeComponent() {
-    }
+	public void showErrors(java.util.List<VcsException> list, String action) {
+		if (!list.isEmpty()) {
+			StringBuffer buffer = new StringBuffer(mksTextArea.getText());
+			buffer.append("\n");
+			buffer.append(action).append(" Error: ");
+			VcsException e;
+			for (Iterator<VcsException> iterator = list.iterator(); iterator.hasNext(); buffer.append(e.getMessage())) {
+				e = iterator.next();
+				buffer.append("\n");
+			}
+			mksTextArea.setText(buffer.toString());
+		}
+	}
 
-    @Override
-    public Configurable getConfigurable() {
-        return new MksConfigurableForm(myProject);
-    }
+	private void initToolWindow() {
+		ToolWindowManager toolWindowManager = ToolWindowManager.getInstance(myProject);
+		JToolBar toolbar = new JToolBar();
+		Action viewSandboxesAction = new AbstractAction("view sandboxes") {
+			public void actionPerformed(final ActionEvent event) {
+				StringWriter stringWriter = new StringWriter();
+				PrintWriter pw = new PrintWriter(stringWriter);
+				pw.println(mksTextArea.getText());
+				sandboxCache.dumpStateOn(pw);
+				mksTextArea.setText(stringWriter.toString());
+			}
+		};
+		toolbar.add(viewSandboxesAction);
+		JPanel mksPanel = new JPanel(new BorderLayout());
+		mksPanel.add(toolbar, BorderLayout.NORTH);
+		JTabbedPane tabbedPane = new JTabbedPane();
 
-    @Override
-    public String getDisplayName() {
-        return "MKS";
-    }
+		this.mksTextArea = createMksLogTextPane();
+		JPanel panelDebug = new JPanel(new BorderLayout());
+		panelDebug.add(new JScrollPane(mksTextArea), BorderLayout.CENTER);
+		tabbedPane.add(panelDebug, "Log", 0);
 
 
-    @Override
-    public String getName() {
-        return "MKS";
-    }
+		tabbedPane.add(createTasksPanel(), "Daemon processes");
+		mksPanel.add(tabbedPane, BorderLayout.CENTER);
+		registerToolWindow(toolWindowManager, mksPanel);
+		final JPopupMenu menu = new JPopupMenu();
+		JMenuItem item = new JMenuItem("Clear");
+		item.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				mksTextArea.setText("");
+			}
+		});
+		menu.add(item);
+		mksTextArea.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mousePressed(MouseEvent e) {
+				maybeShowPopup(e, menu);
+			}
 
-    @Override
-    public void start() throws VcsException {
-        super.start();
+			@Override
+			public void mouseReleased(MouseEvent e) {
+				maybeShowPopup(e, menu);
+			}
+		});
+	}
 
-        StartupManager.getInstance(myProject).registerPostStartupActivity(new Runnable() {
-            public void run() {
-                initToolWindow();
-            }
-        });
-    }
+	class TasksModel extends AbstractTableModel {
+		private final String[] COLUMNS = {"Name", "Running", "Restart"};
+		final int NAME = 0;
+		final int STATE = 1;
+		final int RESTART = 2;
 
-    public MksChangeListAdapter getChangeListAdapter() {
-        return changeListAdapter;
-    }
 
-    @Override
-    public void shutdown() throws VcsException {
-        super.shutdown();
-        unregisterToolWindow();
-        MKSHelper.disconnect();
-    }
+		public int getColumnCount() {
+			return COLUMNS.length;
+		}
 
-    public void showErrors(java.util.List<VcsException> list, String action) {
-        if (list.size() > 0) {
-            StringBuffer buffer = new StringBuffer(mksTextArea.getText());
-            buffer.append("\n");
-            buffer.append(action).append(" Error: ");
-            VcsException e;
-            for (Iterator<VcsException> iterator = list.iterator(); iterator.hasNext(); buffer.append(e.getMessage()))
-            {
-                e = iterator.next();
-                buffer.append("\n");
-            }
-            mksTextArea.setText(buffer.toString());
-        }
-    }
+		public int getRowCount() {
+			return myProject.getComponent(LongRunningTaskRepository.class).size();
+		}
 
-    private void initToolWindow() {
-        ToolWindowManager toolWindowManager = ToolWindowManager.getInstance(myProject);
-        mksContentPanel = new JTabbedPane();
-        //new JPanel(new java.awt.BorderLayout());
-        mksTextArea = new JTextPane();
-        mksTextArea.setEditable(false);
-        javax.swing.text.Style def = StyleContext.getDefaultStyleContext().getStyle("default");
-        javax.swing.text.Style regular = mksTextArea.addStyle("REGULAR", def);
-        StyleConstants.setFontFamily(def, "SansSerif");
-        javax.swing.text.Style s = mksTextArea.addStyle("ITALIC", regular);
-        StyleConstants.setItalic(s, true);
-        s = mksTextArea.addStyle("BOLD", regular);
-        StyleConstants.setBold(s, true);
+		public Object getValueAt(final int row, final int column) {
+			LongRunningTask task = myProject.getComponent(LongRunningTaskRepository.class).get(row);
+			if (task == null) {
+				return null;
+			}
+			switch (column) {
+				case NAME:
+					return task.getDescription();
+				case STATE:
+					return task.isAlive();
+				case RESTART:
+					return false;
+				default:
+					return null;
+			}
+		}
 
-        JPanel panelDebug = new JPanel(new BorderLayout());
-        mksContentPanel.add(panelDebug, "Log", 0);
-        panelDebug.add(new JScrollPane(mksTextArea), BorderLayout.CENTER);
+		@Override
+		public boolean isCellEditable(final int row, final int column) {
+			return RESTART == column;
+		}
 
-        mksToolWindow = toolWindowManager.registerToolWindow("MKS", mksContentPanel, ToolWindowAnchor.BOTTOM);
-        java.net.URL iconUrl = getClass().getResource("/icons/mks.gif");
-        javax.swing.Icon icn = new ImageIcon(iconUrl);
-        mksToolWindow.setIcon(icn);
-        final JPopupMenu menu = new JPopupMenu();
-        JMenuItem item = new JMenuItem("Clear");
-        item.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                mksTextArea.setText("");
-            }
-        });
-        menu.add(item);
-        mksTextArea.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mousePressed(MouseEvent e) {
-                maybeShowPopup(e, menu);
-            }
+		@Override
+		public Class<?> getColumnClass(final int column) {
+			switch (column) {
+				case NAME:
+					return String.class;
+				case STATE:
+					return Boolean.class;
+				case RESTART:
+					return Boolean.class;
+				default:
+					return Object.class;
+			}
+		}
 
-            @Override
-            public void mouseReleased(MouseEvent e) {
-                maybeShowPopup(e, menu);
-            }
-        });
-    }
+		@Override
+		public String getColumnName(final int column) {
+			return COLUMNS[column];
+		}
 
-    private void maybeShowPopup(MouseEvent e, JPopupMenu menu) {
-        if (e.isPopupTrigger()) {
-            menu.show(mksTextArea, e.getX(), e.getY());
-        }
-    }
+		public void refresh() {
+			fireTableDataChanged();
+		}
 
-    private void unregisterToolWindow() {
-        ToolWindowManager.getInstance(myProject).unregisterToolWindow("MKS");
-        mksToolWindow = null;
-    }
+	}
 
-    public static MksVcs getInstance(Project project) {
-        return project.getComponent(MksVcs.class);
-    }
+	private Component createTasksPanel() {
+		JTable tasksTable = new JTable();
 
-    @Override
-    public synchronized boolean fileExistsInVcs(FilePath filePath) {
-        if (DEBUG) {
-            debug("fileExistsInVcs : " + filePath.getPresentableUrl());
-        }
-        try {
+		JPanel jPanel = new JPanel();
+		jPanel.setLayout(new BorderLayout());
+		JPanel buttonsPanel = new JPanel();
+		buttonsPanel.add(new JButton(new AbstractAction("Refresh") {
+			public void actionPerformed(final ActionEvent event) {
+				tasksModel.refresh();
+			}
+		}));
+		tasksModel = new TasksModel();
+		jPanel.add(buttonsPanel, BorderLayout.NORTH);
+		jPanel.add(new JScrollPane(tasksTable), BorderLayout.CENTER);
+		tasksTable.setModel(tasksModel);
+		tasksTable.getColumnModel().
+				getColumn(tasksModel.RESTART).setCellRenderer(new TableCellRenderer() {
+			public Component getTableCellRendererComponent(final JTable jTable, final Object o, final boolean b, final boolean b1, final int i, final int i1) {
+				return new JButton("restart");
+			}
+		});
+		tasksTable.getColumnModel().getColumn(tasksModel.RESTART).setCellEditor(new AbstractTableCellEditor() {
+			public Object getCellEditorValue() {
+				return true;
+			}
 
-            TriclopsSiSandbox sandbox = MKSHelper.getSandbox(filePath.getVirtualFile(), this);
-            TriclopsSiMembers members = MKSHelper.createMembers(sandbox);
-            TriclopsSiMember triclopsSiMember = new TriclopsSiMember(filePath.getPresentableUrl());
-            members.addMember(triclopsSiMember);
-            try {
-                MKSHelper.getMembersStatus(members);
-            } catch (TriclopsException e) {
-                throw new MksVcsException("can't get MKS status for [" + filePath.getPath() + "]\n" + getMksErrorMessage(), e);
-            }
-            TriclopsSiMember returnedMember = members.getMember(0);
-            return returnedMember.isStatusControlled();
-        } catch (VcsException e) {
-            ArrayList<VcsException> l = new ArrayList<VcsException>();
-            l.add(e);
-            showErrors(l, "fileExistsInVcs for " + filePath.getPath());
-            return false;
-        }
-    }
+			public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, final int row, int column) {
+				JButton button = new JButton("restart");
+				button.addActionListener(new ActionListener() {
+					public void actionPerformed(final ActionEvent event) {
+						LongRunningTask task = myProject.getComponent(LongRunningTaskRepository.class).get(row);
+						LOGGER.debug("restarting task " + task);
+						task.restart();
+					}
+				});
+				return button;
+			}
+		});
+		return jPanel;
 
-    public static synchronized String getMksErrorMessage() {
-        return MKSHelper.getMksErrorMessage();
-    }
+	}
 
-    public void debug(String s) {
-        debug(s, null);
-    }
+	private JTextPane createMksLogTextPane() {
+		JTextPane mksTextArea = new JTextPane();
+		mksTextArea.setEditable(false);
+		javax.swing.text.Style def = StyleContext.getDefaultStyleContext().getStyle("default");
+		javax.swing.text.Style regular = mksTextArea.addStyle("REGULAR", def);
+		StyleConstants.setFontFamily(def, "SansSerif");
+		javax.swing.text.Style s = mksTextArea.addStyle("ITALIC", regular);
+		StyleConstants.setItalic(s, true);
+		s = mksTextArea.addStyle("BOLD", regular);
+		StyleConstants.setBold(s, true);
+		return mksTextArea;
+	}
 
-    /**
-     * checks if the file is in a directory controlled by mks
-     *
-     * @param filePath the file designation
-     * @return true if the file is in a directory controlled by mks
-     */
-    @Override
-    public synchronized boolean fileIsUnderVcs(FilePath filePath) {
-        if (!filePath.getName().equals("project.pj")) {
-            if (DEBUG) {
-                debug("fileIsUnderVcs : " + filePath.getPresentableUrl());
-            }
-            try {
-                MKSHelper.getSandbox(filePath.getVirtualFile(), this);
-                return true;
-            } catch (VcsException e) {
-                ArrayList<VcsException> l = new ArrayList<VcsException>();
-                l.add(e);
-                showErrors(l, "fileExistsInVcs[" + filePath.getPath() + "]");
-                return false;
-            }
-        } else {
-            return false;
-        }
-    }
+	private ToolWindow registerToolWindow(final ToolWindowManager toolWindowManager, final JPanel mksPanel) {
+		ToolWindow toolWindow = toolWindowManager.registerToolWindow(MKS_TOOLWINDOW, true, ToolWindowAnchor.BOTTOM);
+		PeerFactory pf = com.intellij.peer.PeerFactory.getInstance();
+		Content content = pf.getContentFactory().createContent(mksPanel, "", false); // first arg is a JPanel
+		content.setCloseable(false);
+		toolWindow.getContentManager().addContent(content);
 
-    private void debug(String s, Exception e) {
-        StringBuffer oldText = new StringBuffer((mksTextArea == null) ? "" : mksTextArea.getText());
-        oldText.append("\n").append(s);
-        if (e != null) {
-            LOGGER.info(s, e);
-            StringWriter sw = new StringWriter();
-            PrintWriter pw = new PrintWriter(sw);
-            e.printStackTrace(pw);
-            oldText.append(sw.toString());
-        } else {
-            LOGGER.info(s);
-        }
-        if (mksTextArea != null) {
-            mksTextArea.setText(oldText.toString());
-        }
-    }
+		toolWindow.setIcon(IconLoader.getIcon("/icons/mks.gif", getClass()));
+		return toolWindow;
+	}
 
-    @Override
-    public DiffProvider getDiffProvider() {
-        return diffProvider;
-    }
+	private void maybeShowPopup(MouseEvent e, JPopupMenu menu) {
+		if (e.isPopupTrigger()) {
+			menu.show(mksTextArea, e.getX(), e.getY());
+		}
+	}
 
-    public static boolean isLastCommandCancelled() {
-        return MKSHelper.isLastCommandCancelled();
-    }
+	private void unregisterToolWindow() {
+		ToolWindowManager.getInstance(myProject).unregisterToolWindow("MKS");
+	}
 
-    /**
-     * returns the module for
-     *
-     * @param child   the file we want to find the module
-     * @param project the current project
-     * @return the module if any, or null if none is found
-     */
-    @Nullable
-    public static Module findModule(@NotNull Project project, @NotNull VirtualFile child) {
-        // implementation for IDEA 5.1.x
-        // see http://www.intellij.net/forums/thread.jspa?messageID=3311171&#3311171
-        LOGGER.debug("findModule(project=" + project.getName() + ",file=" + child.getPresentableName() + ")");
-        return ModuleUtil.findModuleForFile(child, project);
+	public static MksVcs getInstance(Project project) {
+		return (MksVcs) ProjectLevelVcsManager.getInstance(project).findVcsByName(VCS_NAME);
+	}
 
-        //  for IDEA 6, could it also use same as 5.1.x ?
-        //		Module[] projectModules = ModuleManager.getInstance(project).getModules();
-        //		for (Module projectModule : projectModules) {
-        //			if (projectModule.getModuleScope().contains(child) /*|| projectModule.get*/) {
-        ////                System.out.println("found module " + projectModule.getName() + " for " + child);
-        //				return projectModule;
-        //			}
-        //			ModuleRootManager moduleRootManager = ModuleRootManager.getInstance(projectModule);
-        //			for (VirtualFile contentRoot : moduleRootManager.getContentRoots()) {
-        //				if (child.getPath().startsWith(contentRoot.getPath())) {
-        ////                    System.out.println("" + child.getPath() + " is under module content root " + contentRoot.getPath());
-        //					return projectModule;
-        //				}
-        //			}
-        //		}
-        //		LOGGER.info("could not find module for " + child);
-        //		return null;
-    }
+	public static synchronized String getMksErrorMessage() {
+		return MKSHelper.getMksErrorMessage();
+	}
 
-    public Project getProject() {
-        return myProject;
-    }
+	public void debug(String s) {
+		ProjectLevelVcsManager.getInstance(myProject).addMessageToConsoleWindow(s, null);
+		debug(s, null);
+	}
 
-    @Override
-    @NotNull
-    public ChangeProvider getChangeProvider() {
+	/**
+	 * checks if the file is in a directory controlled by mks and is not a mks project file
+	 *
+	 * @param filePath the file designation
+	 * @return true if the file is in a directory controlled by mks
+	 */
+	@Override
+	public synchronized boolean fileIsUnderVcs(FilePath filePath) {
+//		System.out.println("super.fileIsUnderVcs " + filePath + " = " + super.fileIsUnderVcs(filePath));
+		return super.fileIsUnderVcs(filePath)
+				&& !getSandboxCache().isSandboxProject(filePath.getVirtualFile());
+	}
 
-        return myChangeProvider;
-    }
+	private void debug(String s, Exception e) {
+		StringWriter sw = new StringWriter();
+		PrintWriter pw = new PrintWriter(sw);
+		pw.println(s);
+		if (e != null) {
+			LOGGER.debug(s, e);
+			e.printStackTrace(pw);
+		} else {
+			LOGGER.debug(s);
+		}
+		if (mksTextArea != null) {
+			pw.flush();
+			try {
+				mksTextArea.getDocument().insertString(mksTextArea.getDocument().getLength(), sw.toString(), null);
+			} catch (BadLocationException e1) {
+				LOGGER.warn(e1);
+			}
+		}
+	}
 
-    public String getMksSiEncoding(String command) {
-        MksConfiguration configuration = ServiceManager.getService(myProject, MksConfiguration.class);
-        Map<String, String> encodings = configuration.SI_ENCODINGS.getMap();
-        return (encodings.containsKey(command)) ? encodings.get(command) : configuration.defaultEncoding;
+	@Override
+	public DiffProvider getDiffProvider() {
+		return diffProvider;
+	}
 
-    }
+	public static boolean isLastCommandCancelled() {
+		return MKSHelper.isLastCommandCancelled();
+	}
 
-    private class _EditFileProvider implements EditFileProvider {
-        private final MksVcs mksVcs;
+	public Project getProject() {
+		return myProject;
+	}
 
-        public _EditFileProvider(MksVcs mksVcs) {
-            this.mksVcs = mksVcs;
-        }
+	@Override
+	@NotNull
+	public ChangeProvider getChangeProvider() {
+		return myProject.getComponent(MKSChangeProvider.class);
+	}
 
-        public void editFiles(VirtualFile[] virtualFiles) throws VcsException {
-            List<VcsException> errors = new ArrayList<VcsException>();
-            DispatchBySandboxCommand dispatchCommand = new DispatchBySandboxCommand(mksVcs, errors, virtualFiles);
-            dispatchCommand.execute();
-            if (!dispatchCommand.errors.isEmpty()) {
-                Messages.showErrorDialog("Unable to find the sandbox(es) for the file(s)", "Could Not Start checkout");
-                return;
-            }
-            for (Map.Entry<TriclopsSiSandbox, ArrayList<VirtualFile>> entry : dispatchCommand.filesBySandbox.entrySet()) {
-                TriclopsSiSandbox sandbox = entry.getKey();
-                ArrayList<VirtualFile> files = entry.getValue();
-                errors = new ArrayList<VcsException>();
-                CheckoutFilesCommand command = new CheckoutFilesCommand(errors, sandbox, files);
-                synchronized (MksVcs.this) {
-                    command.execute();
-                }
-                if (!command.errors.isEmpty()) {
-                    Messages.showErrorDialog(errors.get(0).getLocalizedMessage(), "Could Not Start checkout");
-                    return;
-                }
-            }
-        }
+	@NotNull
+	public String getMksSiEncoding(String command) {
+		return ApplicationManager.getApplication().getComponent(MksConfiguration.class).getMksSiEncoding(command);
+	}
 
-        public String getRequestText() {
-            return "Would you like to invoke 'CheckOut' command?";
-        }
-    }
+	private class _EditFileProvider implements EditFileProvider {
+		private final MksVcs mksVcs;
 
-    private static class CheckoutFilesCommand extends AbstractMKSCommand {
-        private TriclopsSiSandbox sandbox;
-        private ArrayList<VirtualFile> files;
+		public _EditFileProvider(MksVcs mksVcs) {
+			this.mksVcs = mksVcs;
+		}
 
-        public CheckoutFilesCommand(List<VcsException> errors, TriclopsSiSandbox sandbox,
-                                    ArrayList<VirtualFile> files) {
-            super(errors);
-            this.sandbox = sandbox;
-            this.files = files;
-        }
+		public void editFiles(VirtualFile[] virtualFiles) throws VcsException {
+			List<VcsException> errors = new ArrayList<VcsException>();
+			DispatchBySandboxCommand dispatchCommand = new DispatchBySandboxCommand(mksVcs, errors, virtualFiles);
+			dispatchCommand.execute();
+			if (!dispatchCommand.errors.isEmpty()) {
+				Messages.showErrorDialog(MksBundle.message("unable.to.find.the.sandboxes.for.the.files.title"), MksBundle.message("could.not.start.checkout"));
+				return;
+			}
+			for (Map.Entry<MksSandboxInfo, ArrayList<VirtualFile>> entry : dispatchCommand.filesBySandbox.entrySet()) {
+				MksSandboxInfo sandbox = entry.getKey();
+				ArrayList<VirtualFile> files = entry.getValue();
+				errors = new ArrayList<VcsException>();
+				CheckoutFilesCommand command = new CheckoutFilesCommand(errors, sandbox.getSiSandbox(), files);
+				synchronized (MksVcs.this) {
+					command.execute();
+				}
+				if (!command.errors.isEmpty()) {
+					Messages.showErrorDialog(errors.get(0).getLocalizedMessage(), MksBundle.message("could.not.start.checkout"));
+					return;
+				}
+			}
+		}
 
-        @Override
-        public void execute() {
-            try {
-                TriclopsSiMembers members = queryMksMemberStatus(files, sandbox);
-                MKSHelper.checkoutMembers(members, 0);
-            } catch (TriclopsException e) {
-                //noinspection ThrowableInstanceNeverThrown
-                errors.add(new MksVcsException("unable to checkout" + "\n" + getMksErrorMessage(), e));
-            }
-        }
+		public String getRequestText() {
+			return MksBundle.message("edit.file.provider.request.text");
+		}
+	}
 
-    }
+	private static class CheckoutFilesCommand extends AbstractMKSCommand {
+		private TriclopsSiSandbox sandbox;
+		private ArrayList<VirtualFile> files;
 
-    @Override
-    @Nullable
-    public EditFileProvider getEditFileProvider() {
-        return editFileProvider;
-    }
+		public CheckoutFilesCommand(List<VcsException> errors, TriclopsSiSandbox sandbox,
+									ArrayList<VirtualFile> files) {
+			super(errors);
+			this.sandbox = sandbox;
+			this.files = files;
+		}
 
-    public Map<TriclopsSiSandbox, ArrayList<VirtualFile>> dispatchBySandbox(VirtualFile[] files) {
-        ArrayList<VcsException> dispatchErrors = new ArrayList<VcsException>();
-        DispatchBySandboxCommand dispatchCommand = new DispatchBySandboxCommand(this, dispatchErrors, files);
-        dispatchCommand.execute();
-        return dispatchCommand.filesBySandbox;
-    }
+		@Override
+		public void execute() {
+			try {
+				TriclopsSiMembers members = queryMksMemberStatus(files, sandbox);
+				MKSHelper.checkoutMembers(members, 0);
+			} catch (TriclopsException e) {
+				//noinspection ThrowableInstanceNeverThrown
+				errors.add(new MksVcsException("unable to checkout" + "\n" + getMksErrorMessage(), e));
+			}
+		}
 
-    public void projectOpened() {
-        // todo MksVirtualFileAdapter
-//		if (myVirtualFileAdapter == null) {
-//			myVirtualFileAdapter = new MksVirtualFileAdapter(this);
-//
-//			VirtualFileManager.getInstance().addVirtualFileListener(myVirtualFileAdapter);
-//		}
-        ChangeListManager changeListManager = ChangeListManager.getInstance(getProject());
-        changeListManager.addChangeListListener(changeListAdapter);
-    }
+	}
 
-    public void projectClosed() {
-        if (myVirtualFileAdapter != null) {
-            VirtualFileManager.getInstance().removeVirtualFileListener(myVirtualFileAdapter);
-        }
-        ChangeListManager changeListManager = ChangeListManager.getInstance(getProject());
-        changeListManager.removeChangeListListener(changeListAdapter);
+	@Override
+	@Nullable
+	public EditFileProvider getEditFileProvider() {
+		return editFileProvider;
+	}
 
-    }
+	public Map<MksSandboxInfo, ArrayList<VirtualFile>> dispatchBySandbox(VirtualFile[] files) {
+		ArrayList<VcsException> dispatchErrors = new ArrayList<VcsException>();
+		DispatchBySandboxCommand dispatchCommand = new DispatchBySandboxCommand(this, dispatchErrors, files);
+		dispatchCommand.execute();
+		return dispatchCommand.filesBySandbox;
+	}
 
-    public static String[] getCommands() {
-        return new String[]{
-            GetContentRevision.COMMAND, ListChangePackageEntries.COMMAND, ListChangePackages.COMMAND
-        };
-    }
+	/**
+	 * @return the list of available si commands, used for encoding settings
+	 */
+	public static String[] getCommands() {
+		return new String[]{
+				AbstractViewSandboxCommand.COMMAND,
+				GetContentRevision.COMMAND,
+				GetRevisionInfo.COMMAND,
+				ListChangePackages.COMMAND,
+				ListSandboxes.COMMAND,
+				ListServers.COMMAND,
+				LockMemberCommand.COMMAND,
+				RenameChangePackage.COMMAND,
+				SiConnectCommand.COMMAND,
+				UnlockMemberCommand.COMMAND,
+				ViewMemberHistoryCommand.COMMAND,
+				ViewNonMembersCommand.COMMAND
+		};
+	}
 
-    @Override
-    @Nullable
-    public CheckinEnvironment getCheckinEnvironment() {
-        return mksCheckinEnvironment;
-    }
+	@Override
+	@Nullable
+	public CheckinEnvironment getCheckinEnvironment() {
+		return mksCheckinEnvironment;
+	}
+
+	public SandboxCache getSandboxCache() {
+		return sandboxCache;
+	}
+
+	@Override
+	public void activate() {
+		LOGGER.debug("activate ["+myProject+"]");
+		super.activate();
+		MKSHelper.startClient();
+		ChangeListManager changeListManager = ChangeListManager.getInstance(getProject());
+		changeListManager.addChangeListListener(changeListAdapter);
+		addIgnoredFiles();
+		final SandboxListSynchronizer synchronizer = ApplicationManager.getApplication().getComponent(SandboxListSynchronizer.class);
+		if (synchronizer == null) {
+			LOGGER.error("SandboxSynchronizer applicationComponent is not running, MKS vcs will not be loaded");
+			return;
+		}
+		if (!myProject.isInitialized()) {
+			StartupManager.getInstance(myProject).registerPostStartupActivity(new Runnable() {
+				public void run() {
+					if (!myProject.isDisposed()) {
+						myProject.getComponent(LongRunningTaskRepository.class).add(synchronizer);
+						synchronizer.addListener(getSandboxCache());
+					}
+				}
+			});
+		} else {
+			myProject.getComponent(LongRunningTaskRepository.class).add(synchronizer);
+			synchronizer.addListener(getSandboxCache());
+		}
+		myMessageBusConnection = getProject().getMessageBus().connect();
+		myMessageBusConnection.subscribe(ProjectTopics.PROJECT_ROOTS, sandboxCache);
+	}
+
+
+	@Override
+	public void deactivate() {
+		ChangeListManager changeListManager = ChangeListManager.getInstance(getProject());
+		changeListManager.removeChangeListListener(changeListAdapter);
+		sandboxCache.release();
+
+		ApplicationManager.getApplication().getComponent(SandboxListSynchronizer.class).removeListener(getSandboxCache());
+		if (myMessageBusConnection != null) {
+			myMessageBusConnection.disconnect();
+		}
+		super.deactivate();
+	}
+
+	private static void addIgnoredFiles() {
+		String patterns = FileTypeManager.getInstance().getIgnoredFilesList();
+
+		StringBuffer newPattern = new StringBuffer(patterns);
+		if (patterns.indexOf(MKS_PROJECT_PJ) == -1) {
+			newPattern.append((newPattern.charAt(newPattern.length() - 1) == ';') ? "" : ";").append(MKS_PROJECT_PJ);
+		}
+
+		final String newPatternString = newPattern.toString();
+		if (!newPatternString.equals(patterns)) {
+			ApplicationManager.getApplication().runWriteAction(new Runnable() {
+				public void run() {
+					FileTypeManager.getInstance().setIgnoredFilesList(newPatternString);
+				}
+			}
+			);
+		}
+	}
+
+	/**
+	 * used for the "Show History for Class/Method/Field/Selection..."
+	 * The action is not available if getVcsBlockHistoryProvider() returns
+	 * null.
+	 *
+	 * @return
+	 */
+	@Override
+	@Nullable
+	public VcsHistoryProvider getVcsBlockHistoryProvider() {
+		return getVcsHistoryProvider();
+	}
+
+	@Override
+	@Nullable
+	public VcsHistoryProvider getVcsHistoryProvider() {
+		return vcsHistoryProvider;
+	}
+
+	@Override
+	@Nullable
+	public UpdateEnvironment getStatusEnvironment() {
+		return updateEnvironment;
+	}
 }
