@@ -1,5 +1,9 @@
 package org.intellij.vcs.mks;
 
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import org.jetbrains.annotations.NotNull;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.vcs.VcsException;
 import com.intellij.openapi.vfs.VirtualFile;
@@ -7,11 +11,6 @@ import mks.integrations.common.TriclopsException;
 import mks.integrations.common.TriclopsSiMember;
 import mks.integrations.common.TriclopsSiMembers;
 import mks.integrations.common.TriclopsSiSandbox;
-import org.jetbrains.annotations.NotNull;
-
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
 
 /**
  * Command pattern, also feeds the {@link #errors} attribute with errors happening during execution
@@ -21,7 +20,7 @@ import java.util.List;
 public abstract class AbstractMKSCommand {
 	protected final Logger LOGGER = Logger.getInstance(getClass().getName());
 	//		Logger.getInstance(getClass().getName());
-	protected List<VcsException> errors;
+	public final List<VcsException> errors;
 	protected final int previousErrorCount;
 
 	public boolean foundError() {

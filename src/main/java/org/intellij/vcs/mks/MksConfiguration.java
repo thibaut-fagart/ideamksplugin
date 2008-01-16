@@ -1,21 +1,35 @@
 package org.intellij.vcs.mks;
 
-import com.intellij.openapi.components.ProjectComponent;
+import java.nio.charset.Charset;
+import java.util.HashMap;
+import java.util.Map;
+import org.intellij.vcs.mks.model.MksServerInfo;
+import org.jdom.Element;
+import org.jetbrains.annotations.NonNls;
+import org.jetbrains.annotations.NotNull;
+import com.intellij.openapi.components.ApplicationComponent;
 import com.intellij.openapi.util.DefaultJDOMExternalizer;
 import com.intellij.openapi.util.InvalidDataException;
 import com.intellij.openapi.util.JDOMExternalizable;
 import com.intellij.openapi.util.WriteExternalException;
-import org.jdom.Element;
-import org.jetbrains.annotations.NonNls;
-import org.jetbrains.annotations.NotNull;
-
-import java.nio.charset.Charset;
-import java.util.HashMap;
-import java.util.Map;
 
 public class MksConfiguration
-	implements JDOMExternalizable, ProjectComponent {
+		implements JDOMExternalizable, ApplicationComponent, EncodingProvider {
 	public static final String DEFAULT_ENCODING = Charset.defaultCharset().name();
+
+	public String SERVER;
+	public int PORT;
+	public String USER;
+	public String PASSWORD;
+	public String SANDBOX;
+	public String PROJECT;
+	public StringMap SI_ENCODINGS;
+	public String defaultEncoding;
+	/**
+	 * (host:port(,host:port)*)?
+	 */
+	public String nonSiServers = "";
+
 
 	public MksConfiguration() {
 		SERVER = "";
@@ -25,13 +39,12 @@ public class MksConfiguration
 		SANDBOX = "";
 		PROJECT = "";
 		SI_ENCODINGS = new StringMap();
-		defaultEncoding = Charset.defaultCharset().name();
+		initDefaultEncoding();
 	}
 
-	public void projectClosed() {
-	}
-
-	public void projectOpened() {
+	private void initDefaultEncoding() {
+		String defaultEncodingName = MksBundle.message("defaultEncoding");
+		defaultEncoding = (defaultEncodingName == null) ? DEFAULT_ENCODING : defaultEncodingName;
 	}
 
 	public void disposeComponent() {
@@ -46,23 +59,57 @@ public class MksConfiguration
 	}
 
 	public void readExternal(Element element)
-		throws InvalidDataException {
+			throws InvalidDataException {
 		DefaultJDOMExternalizer.readExternal(this, element);
+		if (defaultEncoding == null) {
+			initDefaultEncoding();
+		}
 	}
 
 	public void writeExternal(Element element)
-		throws WriteExternalException {
+			throws WriteExternalException {
 		DefaultJDOMExternalizer.writeExternal(this, element);
 	}
 
-	public String SERVER;
-	public int PORT;
-	public String USER;
-	public String PASSWORD;
-	public String SANDBOX;
-	public String PROJECT;
-	public StringMap SI_ENCODINGS;
-	public String defaultEncoding;
+	public boolean isServerSiServer(MksServerInfo aServer) {
+		return !nonSiServers.contains(toStorableString(aServer));
+	}
+
+	public void serverIsSiServer(MksServerInfo aServer, boolean yesOrNo) {
+		if (!yesOrNo) {
+			if (!nonSiServers.contains(toStorableString(aServer))) {
+				synchronized (this) {
+					if (nonSiServers.length() > 0) {
+						nonSiServers = nonSiServers + "," + toStorableString(aServer);
+					} else {
+						nonSiServers = toStorableString(aServer);
+					}
+				}
+			}
+		} else {
+			if (nonSiServers.contains(toStorableString(aServer))) {
+				synchronized (this) {
+					if (nonSiServers.equals(toStorableString(aServer))) {
+						nonSiServers = "";
+					} else {
+						nonSiServers = nonSiServers.replace(toStorableString(aServer), "");
+						nonSiServers = nonSiServers.replace(",,", ",");
+					}
+				}
+			}
+
+		}
+	}
+
+	private String toStorableString(MksServerInfo aServer) {
+		return aServer.host + ":" + aServer.port;
+	}
+
+	@NotNull
+	public String getMksSiEncoding(String command) {
+		Map<String, String> encodings = SI_ENCODINGS.getMap();
+		return (encodings.containsKey(command)) ? encodings.get(command) : defaultEncoding;
+	}
 
 	public static class StringMap implements JDOMExternalizable {
 		@NonNls
@@ -89,7 +136,7 @@ public class MksConfiguration
 			// Read in all elements in the proper order.
 			for (int index = 0; index < size; index++) {
 				this.map.put(element.getAttributeValue('k' + Integer.toString(index)),
-					element.getAttributeValue('v' + Integer.toString(index))
+						element.getAttributeValue('v' + Integer.toString(index))
 				);
 			}
 		}

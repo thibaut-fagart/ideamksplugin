@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import org.intellij.vcs.mks.sicommands.GetRevisionInfo;
 import org.jetbrains.annotations.Nullable;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.vcs.VcsException;
 import com.intellij.openapi.vcs.changes.ContentRevision;
 import com.intellij.openapi.vcs.diff.DiffProvider;
@@ -38,7 +39,15 @@ public class MksDiffProvider implements DiffProvider {
     private GetRevisionInfo getRevisionInfo(final VirtualFile virtualFile, final ArrayList<VcsException> errors) {
         GetRevisionInfo command = new GetRevisionInfo(errors, mksVcs, virtualFile.getPath(), VfsUtil.virtualToIoFile(virtualFile.getParent()));
         command.execute();
+		if (command.errors.isEmpty()) {
         return command;
+		} else if (errors.size() == 1 && errors.get(0).getMessage().equals(GetRevisionInfo.NOT_A_MEMBER)){
+			Messages.showMessageDialog("Not (or not any more) a member", "title", Messages.getInformationIcon());
+			return command;
+		} else {
+			LOGGER.warn("error occurred retrieving version info for "+virtualFile.getPresentableName());
+			return command;
+        }
     }
 
     @Nullable
@@ -55,6 +64,10 @@ public class MksDiffProvider implements DiffProvider {
 
     @Nullable
     public ContentRevision createFileContent(final VcsRevisionNumber vcsRevisionNumber, final VirtualFile virtualFile) {
-        return new MksContentRevision(mksVcs, PeerFactory.getInstance().getVcsContextFactory().createFilePathOn(virtualFile), (MksRevisionNumber) vcsRevisionNumber);
+	    if (VcsRevisionNumber.NULL.equals(vcsRevisionNumber)) {
+		    Messages.showWarningDialog("This revision is not mks controlled", "Error");
+		    return null;
+	    }
+        return new MksContentRevision(mksVcs, PeerFactory.getInstance().getVcsContextFactory().createFilePathOn(virtualFile), vcsRevisionNumber);
     }
 }
