@@ -4,11 +4,13 @@ import java.util.ArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.intellij.vcs.mks.MksConfiguration;
+import org.intellij.vcs.mks.MKSHelper;
 import org.intellij.vcs.mks.sicommands.ListSandboxes;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.ApplicationComponent;
+import com.intellij.openapi.fileTypes.FileTypeManager;
 
 /**
  * @author Thibaut Fagart
@@ -24,6 +26,7 @@ public class SandboxListSynchronizerImpl extends AbstractMKSSynchronizer impleme
 	private static final int PROJECT_TYPE_GROUP_IDX = 3;
 	private static final int PROJECT_VERSION_GROUP_IDX = 4;
 	private static final int SERVER_GROUP_IDX = 5;
+	private static final String MKS_PROJECT_PJ = "project.pj";
 
 	private SandboxInfo currentTopSandbox = null;
 
@@ -54,6 +57,8 @@ public class SandboxListSynchronizerImpl extends AbstractMKSSynchronizer impleme
 	}
 
 	public void initComponent() {
+		MKSHelper.startClient();
+		addIgnoredFiles();
 		start();
 	}
 
@@ -62,6 +67,24 @@ public class SandboxListSynchronizerImpl extends AbstractMKSSynchronizer impleme
 	}
 
 	private final ArrayList<SandboxInfo> currentBatch = new ArrayList<SandboxInfo>();
+	private static void addIgnoredFiles() {
+		String patterns = FileTypeManager.getInstance().getIgnoredFilesList();
+
+		StringBuffer newPattern = new StringBuffer(patterns);
+		if (patterns.indexOf(MKS_PROJECT_PJ) == -1) {
+			newPattern.append((newPattern.charAt(newPattern.length() - 1) == ';') ? "" : ";").append(MKS_PROJECT_PJ);
+		}
+
+		final String newPatternString = newPattern.toString();
+		if (!newPatternString.equals(patterns)) {
+			ApplicationManager.getApplication().runWriteAction(new Runnable() {
+				public void run() {
+					FileTypeManager.getInstance().setIgnoredFilesList(newPatternString);
+				}
+			}
+			);
+		}
+	}
 
 	@Override
 	protected void handleLine(String line) {
