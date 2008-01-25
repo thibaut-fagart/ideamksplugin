@@ -43,7 +43,6 @@ import org.jetbrains.annotations.Nullable;
 import com.intellij.ProjectTopics;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.fileTypes.FileTypeManager;
 import com.intellij.openapi.options.Configurable;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.startup.StartupManager;
@@ -79,7 +78,6 @@ public class MksVcs extends AbstractVcs implements EncodingProvider {
 	public static final String DATA_CONTEXT_PROJECT = "project";
 	public static final String DATA_CONTEXT_MODULE = "module";
 	public static final String DATA_CONTEXT_VIRTUAL_FILE_ARRAY = "virtualFileArray";
-	private static final String MKS_PROJECT_PJ = "project.pj";
 
 	private JTextPane mksTextArea;
 	private final SandboxCache sandboxCache;
@@ -118,27 +116,8 @@ public class MksVcs extends AbstractVcs implements EncodingProvider {
 		return VCS_NAME;
 	}
 
-	@Override
-	public void start() throws VcsException {
-		LOGGER.debug("start ["+myProject+"]");
-		super.start();
-		StartupManager.getInstance(myProject).registerPostStartupActivity(new Runnable() {
-			public void run() {
-				if (!myProject.isDisposed()) {
-					initToolWindow();
-				}
-			}
-		});
-	}
-
 	public MksChangeListAdapter getChangeListAdapter() {
 		return changeListAdapter;
-	}
-
-	@Override
-	public void shutdown() throws VcsException {
-		super.shutdown();
-		unregisterToolWindow();
 	}
 
 	public void showErrors(java.util.List<VcsException> list, String action) {
@@ -516,30 +495,34 @@ public class MksVcs extends AbstractVcs implements EncodingProvider {
 	public void activate() {
 		LOGGER.debug("activate ["+myProject+"]");
 		super.activate();
-		MKSHelper.startClient();
 		ChangeListManager changeListManager = ChangeListManager.getInstance(getProject());
 		changeListManager.addChangeListListener(changeListAdapter);
-		addIgnoredFiles();
-		final SandboxListSynchronizer synchronizer = ApplicationManager.getApplication().getComponent(SandboxListSynchronizer.class);
-		if (synchronizer == null) {
-			LOGGER.error("SandboxSynchronizer applicationComponent is not running, MKS vcs will not be loaded");
-			return;
-		}
+		// the 2 cases need to be handled, as postStartup is not run if the vcs with the project after project loading
+		// (eg when the user chooses a vcs for the project)
 		if (!myProject.isInitialized()) {
 			StartupManager.getInstance(myProject).registerPostStartupActivity(new Runnable() {
 				public void run() {
-					if (!myProject.isDisposed()) {
-						myProject.getComponent(LongRunningTaskRepository.class).add(synchronizer);
-						synchronizer.addListener(getSandboxCache());
-					}
+					postProjectLoadInit();
 				}
 			});
 		} else {
-			myProject.getComponent(LongRunningTaskRepository.class).add(synchronizer);
-			synchronizer.addListener(getSandboxCache());
+			postProjectLoadInit();
 		}
 		myMessageBusConnection = getProject().getMessageBus().connect();
 		myMessageBusConnection.subscribe(ProjectTopics.PROJECT_ROOTS, sandboxCache);
+	}
+
+	private void postProjectLoadInit() {
+		if (!myProject.isDisposed()) {
+			final SandboxListSynchronizer synchronizer = ApplicationManager.getApplication().getComponent(SandboxListSynchronizer.class);
+			if (synchronizer == null) {
+				LOGGER.error("SandboxSynchronizer applicationComponent is not running, MKS vcs will not be loaded");
+				return;
+			}
+			myProject.getComponent(LongRunningTaskRepository.class).add(synchronizer);
+			synchronizer.addListener(getSandboxCache());
+			initToolWindow();
+		}
 	}
 
 
@@ -553,27 +536,10 @@ public class MksVcs extends AbstractVcs implements EncodingProvider {
 		if (myMessageBusConnection != null) {
 			myMessageBusConnection.disconnect();
 		}
+		unregisterToolWindow();
 		super.deactivate();
 	}
 
-	private static void addIgnoredFiles() {
-		String patterns = FileTypeManager.getInstance().getIgnoredFilesList();
-
-		StringBuffer newPattern = new StringBuffer(patterns);
-		if (patterns.indexOf(MKS_PROJECT_PJ) == -1) {
-			newPattern.append((newPattern.charAt(newPattern.length() - 1) == ';') ? "" : ";").append(MKS_PROJECT_PJ);
-		}
-
-		final String newPatternString = newPattern.toString();
-		if (!newPatternString.equals(patterns)) {
-			ApplicationManager.getApplication().runWriteAction(new Runnable() {
-				public void run() {
-					FileTypeManager.getInstance().setIgnoredFilesList(newPatternString);
-				}
-			}
-			);
-		}
-	}
 
 	/**
 	 * used for the "Show History for Class/Method/Field/Selection..."
