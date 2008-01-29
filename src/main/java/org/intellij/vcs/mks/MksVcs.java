@@ -55,6 +55,7 @@ import com.intellij.openapi.vcs.ProjectLevelVcsManager;
 import com.intellij.openapi.vcs.VcsException;
 import com.intellij.openapi.vcs.changes.ChangeListManager;
 import com.intellij.openapi.vcs.changes.ChangeProvider;
+import com.intellij.openapi.vcs.changes.VcsDirtyScopeManager;
 import com.intellij.openapi.vcs.checkin.CheckinEnvironment;
 import com.intellij.openapi.vcs.diff.DiffProvider;
 import com.intellij.openapi.vcs.history.VcsHistoryProvider;
@@ -521,6 +522,7 @@ public class MksVcs extends AbstractVcs implements EncodingProvider {
 			}
 			myProject.getComponent(LongRunningTaskRepository.class).add(synchronizer);
 			synchronizer.addListener(getSandboxCache());
+			VcsDirtyScopeManager.getInstance(myProject).markEverythingDirty();
 			initToolWindow();
 		}
 	}
