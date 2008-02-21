@@ -1,6 +1,8 @@
 package org.intellij.vcs.mks;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
+import javax.swing.*;
 import org.intellij.vcs.mks.sicommands.GetRevisionInfo;
 import org.jetbrains.annotations.Nullable;
 import com.intellij.openapi.diagnostic.Logger;
@@ -65,7 +67,18 @@ public class MksDiffProvider implements DiffProvider {
     @Nullable
     public ContentRevision createFileContent(final VcsRevisionNumber vcsRevisionNumber, final VirtualFile virtualFile) {
 	    if (VcsRevisionNumber.NULL.equals(vcsRevisionNumber)) {
-		    Messages.showWarningDialog("This revision is not mks controlled", "Error");
+		    try {
+			    SwingUtilities.invokeAndWait( new Runnable() {
+				    public void run() {
+					    Messages.showWarningDialog("This revision is not mks controlled", "Error");
+				    }
+			    });
+		    } catch (InterruptedException e) {
+			    Thread.currentThread().interrupt();
+		    } catch (InvocationTargetException e) {
+			    LOGGER.error(e.getTargetException());
+		    }
+
 		    return null;
 	    }
         return new MksContentRevision(mksVcs, PeerFactory.getInstance().getVcsContextFactory().createFilePathOn(virtualFile), vcsRevisionNumber);
