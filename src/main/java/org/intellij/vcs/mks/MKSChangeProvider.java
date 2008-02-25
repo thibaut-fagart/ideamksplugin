@@ -301,22 +301,11 @@ class MKSChangeProvider extends AbstractProjectComponent implements ChangeProvid
 					break;
 				}
 				case MODIFIED_WITHOUT_CHECKOUT: {
-					ChangeList userChangeList = getUserChangelist(filePath, listManager);
-					builder.processChangeInList(new Change(new MksContentRevision(getMksvcs(), filePath, state.memberRevision),
-							CurrentContentRevision.create(filePath),
-							FileStatus.HIJACKED), (userChangeList == null) ? MODIFIED_WITHOUT_CHECKOUT_LIST : userChangeList.getName());
-
-//					builder.processModifiedWithoutCheckout(virtualFile);
+					builder.processModifiedWithoutCheckout(virtualFile);
 					break;
 				}
 				case MISSISNG: {
-					// todo some of those changes belong to the Incoming tab
-					ChangeList userChangeList = getUserChangelist(filePath, listManager);
-					builder.processChangeInList(new Change(
-							new MksContentRevision(getMksvcs(), filePath, state.memberRevision),
-							new MksContentRevision(getMksvcs(), filePath, state.workingRevision),
-							FileStatus.DELETED_FROM_FS), (userChangeList == null) ? UNVERSIONED_LIST : userChangeList.getName());
-//					builder.processLocallyDeletedFile(filePath);
+					builder.processLocallyDeletedFile(filePath);
 					break;
 				}
 				case SYNC:
@@ -343,13 +332,7 @@ class MKSChangeProvider extends AbstractProjectComponent implements ChangeProvid
 				case NOT_CHANGED:
 					break;
 				case UNVERSIONED: {
-					ChangeList userChangeList = getUserChangelist(filePath, listManager);
-
-					Change change = new Change(
-							null,
-							CurrentContentRevision.create(filePath),
-							FileStatus.UNKNOWN);
-					builder.processChangeInList(change, (userChangeList == null) ? UNVERSIONED_LIST : userChangeList.getName());
+					builder.processUnversionedFile(virtualFile);
 					break;
 				}
 				case REMOTELY_DROPPED: {
