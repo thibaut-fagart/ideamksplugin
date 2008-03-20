@@ -1,16 +1,18 @@
 package org.intellij.vcs.mks.realtime;
 
-import java.util.ArrayList;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import org.intellij.vcs.mks.MksConfiguration;
-import org.intellij.vcs.mks.MKSHelper;
-import org.intellij.vcs.mks.sicommands.ListSandboxes;
-import org.jetbrains.annotations.NonNls;
-import org.jetbrains.annotations.NotNull;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.ApplicationComponent;
 import com.intellij.openapi.fileTypes.FileTypeManager;
+import org.intellij.vcs.mks.MKSHelper;
+import org.intellij.vcs.mks.MksConfiguration;
+import org.intellij.vcs.mks.sicommands.ListSandboxes;
+import org.jetbrains.annotations.NonNls;
+import org.jetbrains.annotations.NotNull;
+
+import java.util.ArrayList;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * @author Thibaut Fagart
@@ -30,6 +32,9 @@ public class SandboxListSynchronizerImpl extends AbstractMKSSynchronizer impleme
 
 	private SandboxInfo currentTopSandbox = null;
 
+	private final ArrayList<SandboxInfo> currentBatch = new ArrayList<SandboxInfo>();
+	private final ReentrantLock sandboxCacheLock = new ReentrantLock();
+
 	public SandboxListSynchronizerImpl() {
 		super(ListSandboxes.COMMAND, ApplicationManager.getApplication().getComponent(MksConfiguration.class), "--displaySubs");
 		pattern = Pattern.compile(patternString);
@@ -39,9 +44,14 @@ public class SandboxListSynchronizerImpl extends AbstractMKSSynchronizer impleme
 		if (this.listeners.contains(listener)) {
 			return;
 		}
-		this.listeners.add(listener);
-		for (SandboxInfo sandbox : currentBatch) {
-			listener.addSandboxPath(sandbox.sandboxPath, sandbox.serverHostAndPort, sandbox.projectPath, sandbox.projectVersion, sandbox.subSandbox);
+		sandboxCacheLock.lock();
+		try {
+			this.listeners.add(listener);
+			for (SandboxInfo sandbox : currentBatch) {
+				listener.addSandboxPath(sandbox.sandboxPath, sandbox.serverHostAndPort, sandbox.projectPath, sandbox.projectVersion, sandbox.subSandbox);
+			}
+		} finally {
+			sandboxCacheLock.unlock();
 		}
 	}
 
@@ -66,7 +76,6 @@ public class SandboxListSynchronizerImpl extends AbstractMKSSynchronizer impleme
 		stop();
 	}
 
-	private final ArrayList<SandboxInfo> currentBatch = new ArrayList<SandboxInfo>();
 	private static void addIgnoredFiles() {
 		String patterns = FileTypeManager.getInstance().getIgnoredFilesList();
 
@@ -166,16 +175,26 @@ public class SandboxListSynchronizerImpl extends AbstractMKSSynchronizer impleme
 	}
 
 	private void fireSandboxAdded(SandboxInfo sandbox) {
-		currentBatch.add(sandbox);
-		for (SandboxListListener listener : listeners) {
-			listener.addSandboxPath(sandbox.sandboxPath, sandbox.serverHostAndPort, sandbox.projectPath, sandbox.projectVersion, sandbox.subSandbox);
+		sandboxCacheLock.lock();
+		try {
+			currentBatch.add(sandbox);
+			for (SandboxListListener listener : listeners) {
+				listener.addSandboxPath(sandbox.sandboxPath, sandbox.serverHostAndPort, sandbox.projectPath, sandbox.projectVersion, sandbox.subSandbox);
+			}
+		} finally {
+			sandboxCacheLock.unlock();
 		}
 	}
 
 	private void fireSandboxReset() {
-		currentBatch.clear();
-		for (SandboxListListener listener : listeners) {
-			listener.clear();
+		sandboxCacheLock.lock();
+		try {
+			currentBatch.clear();
+			for (SandboxListListener listener : listeners) {
+				listener.clear();
+			}
+		} finally {
+			sandboxCacheLock.unlock();
 		}
 	}
 

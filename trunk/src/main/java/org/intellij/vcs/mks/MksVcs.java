@@ -1,45 +1,5 @@
 package org.intellij.vcs.mks;
 
-import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import javax.swing.*;
-import javax.swing.table.AbstractTableModel;
-import javax.swing.table.TableCellRenderer;
-import javax.swing.text.BadLocationException;
-import javax.swing.text.StyleConstants;
-import javax.swing.text.StyleContext;
-import org.intellij.vcs.mks.history.MksVcsHistoryProvider;
-import org.intellij.vcs.mks.realtime.LongRunningTask;
-import org.intellij.vcs.mks.realtime.LongRunningTaskRepository;
-import org.intellij.vcs.mks.realtime.MksSandboxInfo;
-import org.intellij.vcs.mks.realtime.SandboxCache;
-import org.intellij.vcs.mks.realtime.SandboxCacheImpl;
-import org.intellij.vcs.mks.realtime.SandboxListSynchronizer;
-import org.intellij.vcs.mks.sicommands.AbstractViewSandboxCommand;
-import org.intellij.vcs.mks.sicommands.GetContentRevision;
-import org.intellij.vcs.mks.sicommands.GetRevisionInfo;
-import org.intellij.vcs.mks.sicommands.ListChangePackages;
-import org.intellij.vcs.mks.sicommands.ListSandboxes;
-import org.intellij.vcs.mks.sicommands.ListServers;
-import org.intellij.vcs.mks.sicommands.LockMemberCommand;
-import org.intellij.vcs.mks.sicommands.RenameChangePackage;
-import org.intellij.vcs.mks.sicommands.SiConnectCommand;
-import org.intellij.vcs.mks.sicommands.UnlockMemberCommand;
-import org.intellij.vcs.mks.sicommands.ViewMemberHistoryCommand;
-import org.intellij.vcs.mks.sicommands.ViewNonMembersCommand;
-import org.intellij.vcs.mks.update.MksUpdateEnvironment;
-import org.jetbrains.annotations.NonNls;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import com.intellij.ProjectTopics;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
@@ -48,11 +8,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.startup.StartupManager;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.util.IconLoader;
-import com.intellij.openapi.vcs.AbstractVcs;
-import com.intellij.openapi.vcs.EditFileProvider;
-import com.intellij.openapi.vcs.FilePath;
-import com.intellij.openapi.vcs.ProjectLevelVcsManager;
-import com.intellij.openapi.vcs.VcsException;
+import com.intellij.openapi.vcs.*;
 import com.intellij.openapi.vcs.changes.ChangeListManager;
 import com.intellij.openapi.vcs.changes.ChangeProvider;
 import com.intellij.openapi.vcs.changes.VcsDirtyScopeManager;
@@ -71,6 +27,31 @@ import com.intellij.util.ui.AbstractTableCellEditor;
 import mks.integrations.common.TriclopsException;
 import mks.integrations.common.TriclopsSiMembers;
 import mks.integrations.common.TriclopsSiSandbox;
+import org.intellij.vcs.mks.history.MksVcsHistoryProvider;
+import org.intellij.vcs.mks.realtime.*;
+import org.intellij.vcs.mks.sicommands.*;
+import org.intellij.vcs.mks.update.MksUpdateEnvironment;
+import org.jetbrains.annotations.NonNls;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import javax.swing.*;
+import javax.swing.table.AbstractTableModel;
+import javax.swing.table.TableCellRenderer;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.StyleConstants;
+import javax.swing.text.StyleContext;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
 public class MksVcs extends AbstractVcs implements EncodingProvider {
 	static final Logger LOGGER = Logger.getInstance(MksVcs.class.getName());
@@ -262,7 +243,13 @@ public class MksVcs extends AbstractVcs implements EncodingProvider {
 		tasksTable.getColumnModel().
 				getColumn(tasksModel.RESTART).setCellRenderer(new TableCellRenderer() {
 			public Component getTableCellRendererComponent(final JTable jTable, final Object o, final boolean b, final boolean b1, final int i, final int i1) {
-				return new JButton("restart");
+				return new JButton(new AbstractAction("restart") {
+					public void actionPerformed(ActionEvent e) {
+						System.err.println("restarting sandbox list listener");
+						final SandboxListSynchronizer synchronizer = ApplicationManager.getApplication().getComponent(SandboxListSynchronizer.class);
+						synchronizer.restart();
+					}
+				});
 			}
 		});
 		tasksTable.getColumnModel().getColumn(tasksModel.RESTART).setCellEditor(new AbstractTableCellEditor() {
