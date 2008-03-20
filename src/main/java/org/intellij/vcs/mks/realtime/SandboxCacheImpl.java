@@ -1,21 +1,5 @@
 package org.intellij.vcs.mks.realtime;
 
-import java.io.File;
-import java.io.PrintWriter;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import org.intellij.vcs.mks.MKSHelper;
-import org.intellij.vcs.mks.MksRevisionNumber;
-import org.intellij.vcs.mks.MksVcs;
-import org.intellij.vcs.mks.model.MksMemberState;
-import org.intellij.vcs.mks.sicommands.AbstractViewSandboxCommand;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
@@ -29,6 +13,17 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.peer.PeerFactory;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.vcsUtil.VcsUtil;
+import org.intellij.vcs.mks.MKSHelper;
+import org.intellij.vcs.mks.MksRevisionNumber;
+import org.intellij.vcs.mks.MksVcs;
+import org.intellij.vcs.mks.model.MksMemberState;
+import org.intellij.vcs.mks.sicommands.AbstractViewSandboxCommand;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import java.io.File;
+import java.io.PrintWriter;
+import java.util.*;
 
 /**
  * @author Thibaut Fagart
@@ -71,7 +66,7 @@ public class SandboxCacheImpl implements SandboxCache {
 				}
 				for (MksSandboxInfo sandbox : tempList) {
 					LOGGER.debug("re-adding" + sandbox);
-					addSandbox(sandbox);
+					addSandboxBelongingToProject(sandbox);
 				}
 			}
 		}
@@ -95,21 +90,26 @@ public class SandboxCacheImpl implements SandboxCache {
 
 		VirtualFile sandboxVFile = VcsUtil.getVirtualFile(sandboxPath);
 		MksSandboxInfo sandboxInfo = new MksSandboxInfo(sandboxPath, mksHostAndPort, mksProject, devPath, sandboxVFile, isSubSandbox);
-		if (doesSandboxIntersectProject(new File(sandboxPath))) {
-			addSandbox(sandboxInfo);
-		} else {
-			outOfScopeSandboxes.add(sandboxInfo);
-			LOGGER.debug("ignoring out of project sandbox [" + sandboxPath + "]");
-		}
+		addSandbox(sandboxInfo);
 
 	}
 
+	private void addSandbox(MksSandboxInfo sandboxInfo) {
+		if (doesSandboxIntersectProject(new File(sandboxInfo.sandboxPath))) {
+			addSandboxBelongingToProject(sandboxInfo);
+		} else {
+			outOfScopeSandboxes.add(sandboxInfo);
+			LOGGER.debug("ignoring out of project sandbox [" + sandboxInfo.sandboxPath + "]");
+		}
+	}
+
 	/**
-	 * Should only be called for sandbox relevant for the project (eg : sandbox content and project content intersect)
+	 * Should only be called for sandbox relevant for the project (eg : sandbox
+	 * content and project content intersect)
 	 *
 	 * @param sandboxInfo
 	 */
-	private void addSandbox(@NotNull MksSandboxInfo sandboxInfo) {
+	private void addSandboxBelongingToProject(@NotNull MksSandboxInfo sandboxInfo) {
 		String sandboxPath;
 		VirtualFile sandboxVFile;
 		sandboxPath = sandboxInfo.sandboxPath;
@@ -156,7 +156,7 @@ public class SandboxCacheImpl implements SandboxCache {
 			VirtualFile sandboxPjFile = VcsUtil.getVirtualFile(sandboxPath);
 			if (sandboxPjFile != null) {
 				sandboxInfo = new MksSandboxInfo(sandboxInfo.sandboxPath, sandboxInfo.hostAndPort, sandboxInfo.mksProject,
-						sandboxInfo.devPath, sandboxPjFile, sandboxInfo.isSubSandbox);
+					sandboxInfo.devPath, sandboxPjFile, sandboxInfo.isSubSandbox);
 			}
 			addRejected(sandboxInfo);
 		}
@@ -164,8 +164,9 @@ public class SandboxCacheImpl implements SandboxCache {
 
 	/**
 	 * @param sandboxFile the sandbox file (aka project.pj)
-	 * @return true if the sandbox is either UNDER the current project or above it, eg if at least part of the files controlled by the sandbox
-	 *         should be monitored
+	 * @return true if the sandbox is either UNDER the current project or above it,
+	 *         eg if at least part of the files controlled by the sandbox should be
+	 *         monitored
 	 */
 	private boolean doesSandboxIntersectProject(@NotNull File sandboxFile) {
 		File sandboxFolder = sandboxFile.getParentFile();
@@ -188,7 +189,7 @@ public class SandboxCacheImpl implements SandboxCache {
 	private void addRejected(final MksSandboxInfo sandbox) {
 		sandbox.retries++;
 		if (sandbox.retries > MAX_RETRY) {
-			LOGGER.warn("giving up sandbox after too many retries " + sandbox.sandboxPath);
+			LOGGER.debug("giving up sandbox after too many retries " + sandbox.sandboxPath);
 		}
 		synchronized (pendingUpdates) {
 			pendingUpdates.add(sandbox);
@@ -280,14 +281,12 @@ public class SandboxCacheImpl implements SandboxCache {
 						infoList.remove(sandboxInfo);
 						addRejected(sandboxInfo);
 					}
+				} else if (VfsUtil.isAncestor(directory, sandboxFile, false)) {
+					result.add(sandboxInfo);
 				} else {
-					if (VfsUtil.isAncestor(directory, sandboxFile, false)) {
+					final VirtualFile sandboxParentFile = sandboxFile.getParent();
+					if (sandboxParentFile != null && VfsUtil.isAncestor(sandboxParentFile, directory, false)) {
 						result.add(sandboxInfo);
-					} else {
-						final VirtualFile sandboxParentFile = sandboxFile.getParent();
-						if (sandboxParentFile != null && VfsUtil.isAncestor(sandboxParentFile, directory, false)) {
-							result.add(sandboxInfo);
-						}
 					}
 				}
 			}
@@ -367,8 +366,8 @@ public class SandboxCacheImpl implements SandboxCache {
 
 
 	/**
-	 * THis only works when sandbox is the bottom most subsandbox including virtualfile. Thus this is not supported
-	 * when subsandboxes are not monitored
+	 * THis only works when sandbox is the bottom most subsandbox including
+	 * virtualfile. Thus this is not supported when subsandboxes are not monitored
 	 *
 	 * @param sandbox
 	 * @param virtualFile
@@ -382,7 +381,7 @@ public class SandboxCacheImpl implements SandboxCache {
 		final FilePath sandboxFolderFilePath = PeerFactory.getInstance().getVcsContextFactory().createFilePathOn(sandbox.sandboxPjFile.getParent());
 
 		AbstractViewSandboxCommand command = new AbstractViewSandboxCommand(new ArrayList<VcsException>(), project.getComponent(MksVcs.class),
-				sandbox.sandboxPath, "--filter=file:" + MKSHelper.getRelativePath(filePath, sandboxFolderFilePath)) {
+			sandbox.sandboxPath, "--filter=file:" + MKSHelper.getRelativePath(filePath, sandboxFolderFilePath)) {
 			@Override
 			protected MksMemberState createState(String workingRev, String memberRev, String workingCpid, String locker, String lockedSandbox, String type, String deferred) throws VcsException {
 				return new MksMemberState(MksRevisionNumber.createRevision(workingRev), MksRevisionNumber.createRevision(memberRev), workingCpid, MksMemberState.Status.UNKNOWN);
