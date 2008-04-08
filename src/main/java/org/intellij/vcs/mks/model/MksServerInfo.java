@@ -29,7 +29,7 @@ public final class MksServerInfo {
 			return false;
 		}
 
-		MksServerInfo that = (MksServerInfo) o;
+		final MksServerInfo that = (MksServerInfo) o;
 
 		return host.equals(that.host) && port.equals(that.port);
 
@@ -46,9 +46,14 @@ public final class MksServerInfo {
 	@Override
 	public String toString() {
 		return "MksServerInfo{" +
-				"host='" + host + '\'' +
-				", user='" + user + '\'' +
-				", port='" + port + '\'' +
+				"host='" + this.host + '\'' +
+				", user='" + this.user + '\'' +
+				", port='" + this.port + '\'' +
 				'}';
 	}
+
+	public String toHostAndPort() {
+		return this.host + ":" + this.port;
+	}
+
 }
