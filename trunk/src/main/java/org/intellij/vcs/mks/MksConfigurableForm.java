@@ -1,91 +1,91 @@
 package org.intellij.vcs.mks;
 
-import java.nio.charset.Charset;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
-import javax.swing.*;
-import javax.swing.table.DefaultTableModel;
-import org.jetbrains.annotations.Nls;
-import org.jetbrains.annotations.NonNls;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.options.Configurable;
 import com.intellij.openapi.options.ConfigurationException;
 import com.intellij.openapi.project.Project;
+import org.intellij.vcs.mks.model.MksServerInfo;
+import org.jetbrains.annotations.Nls;
+import org.jetbrains.annotations.NonNls;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+import java.nio.charset.Charset;
+import java.util.*;
 
 /**
  * @author Thibaut Fagart
  */
 public class MksConfigurableForm implements Configurable {
-	private JTextField serverTextField;
 	private JPanel mainPanel;
-	private JTextField portTextField;
-	private JTextField userTextField;
 	private JTable MKSSICommandLineTable;
-	private JPasswordField passwordField;
+	private JTextArea ignoredServersTA;
 	private DefaultTableModel tableModel;
 	private MksConfiguration configuration;
 	private JComboBox charsetEditorCombo = new JComboBox();
 	private static final String DEFAULT_ENCODING_VALUE = "<DEFAULT>";
 
-	/**
-	 * for design only
-	 */
-	public MksConfigurableForm() {
-		this(null);
+	public MksConfigurableForm(final Project myProject) {
+		this(ApplicationManager.getApplication().getComponent(MksConfiguration.class));
 	}
 
-	public MksConfigurableForm(Project myProject) {
-		this.configuration = ApplicationManager.getApplication().getComponent(MksConfiguration.class);
+	public MksConfigurableForm(@NotNull final MksConfiguration configuration) {
+		this.configuration = configuration;
 
-		String[] charSetNames = Charset.availableCharsets().keySet().toArray(new String[0]);
-		Arrays.sort(charSetNames);
-		String[] charSetNamesWithDefault = new String[charSetNames.length + 1];
-		charSetNamesWithDefault[0] = DEFAULT_ENCODING_VALUE;
-		System.arraycopy(charSetNames, 0, charSetNamesWithDefault, 1, charSetNames.length);
-		charsetEditorCombo.setModel(new DefaultComboBoxModel(charSetNamesWithDefault));
+		initSupportedCharsets();
+		reset();
+	}
+
+	private void initIgnoredServers() {
+		final String ignoredServers = configuration.getIgnoredServers();
+		ignoredServersTA.setText(ignoredServers);
+	}
+
+	private void initCommands() {
 		setTableModel(createTableModel());
 	}
 
-	private MksConfiguration getDesignTimeConfiguration() {
-		MksConfiguration configuration1 = new MksConfiguration();
-		configuration1.SI_ENCODINGS.getMap().put("viewrevision", "ISO-8859-1");
-
-		return configuration1;
-
+	private void initSupportedCharsets() {
+		final Set<String> stringSet = Charset.availableCharsets().keySet();
+		final String[] charSetNames = stringSet.toArray(new String[stringSet.size()]);
+		Arrays.sort(charSetNames);
+		final String[] charSetNamesWithDefault = new String[charSetNames.length + 1];
+		charSetNamesWithDefault[0] = MksConfigurableForm.DEFAULT_ENCODING_VALUE;
+		System.arraycopy(charSetNames, 0, charSetNamesWithDefault, 1, charSetNames.length);
+		charsetEditorCombo.setModel(new DefaultComboBoxModel(charSetNamesWithDefault));
 	}
 
-	private void setTableModel(@NotNull DefaultTableModel model) {
-		tableModel = model;
-		MKSSICommandLineTable.setModel(tableModel);
-		MKSSICommandLineTable.getColumn("Encoding").setCellEditor(new DefaultCellEditor(charsetEditorCombo));
+	private void setTableModel(@NotNull final DefaultTableModel model) {
+		this.tableModel = model;
+		MKSSICommandLineTable.setModel(this.tableModel);
+		MKSSICommandLineTable.getColumn("Encoding").setCellEditor(new DefaultCellEditor(this.charsetEditorCombo));
 	}
 
 	@NotNull
 	@Nls
 	private DefaultTableModel createTableModel() {
 
-		@Nls String commandColumnName = "Command";
-		@Nls String EncodingCommandName = "Encoding";
+		@Nls final String commandColumnName = "Command";
+		@Nls final String EncodingCommandName = "Encoding";
 		return new DefaultTableModel(createTableData(getConfiguration()), new String[]{commandColumnName, EncodingCommandName}) {
 			@Override
-			public boolean isCellEditable(int row, int column) {
+			public boolean isCellEditable(final int row, final int column) {
 				return column == 1;
 			}
 		};
 	}
 
-	private Object[][] createTableData(MksConfiguration configuration) {
-		String[] knownCommands = MksVcs.getCommands();
+	private Object[][] createTableData(final MksConfiguration configuration) {
+		final String[] knownCommands = MksVcs.getCommands();
 
-		Object[][] result = new Object[knownCommands.length + 1][];
+		final Object[][] result = new Object[knownCommands.length + 1][];
 		result[0] = new String[]{"Default", configuration.defaultEncoding};
 		int i = 1;
-		for (String command : knownCommands) {
-			String commandEncoding = configuration.SI_ENCODINGS.getMap().get(command);
-			result[i++] = new String[]{command, (commandEncoding == null) ? DEFAULT_ENCODING_VALUE : commandEncoding};
+		for (final String command : knownCommands) {
+			final String commandEncoding = configuration.SI_ENCODINGS.getMap().get(command);
+			result[i++] = new String[]{command, (commandEncoding == null) ? MksConfigurableForm.DEFAULT_ENCODING_VALUE : commandEncoding};
 		}
 		return result;
 	}
@@ -107,14 +107,42 @@ public class MksConfigurableForm implements Configurable {
 	}
 
 	public void apply() throws ConfigurationException {
-		MksConfiguration configuration = getConfiguration();
-		configuration.SERVER = serverTextField.getText();
-		configuration.PORT = Integer.parseInt(portTextField.getText());
-		configuration.USER = userTextField.getText();
-		configuration.PASSWORD = new String(passwordField.getPassword());
+		final MksConfiguration configuration = getConfiguration();
 //		configuration.PROJECT = myFldProject.getText();
 		configuration.SI_ENCODINGS.setMap(getEncodingMap());
 		configuration.defaultEncoding = getDefaultEncoding();
+		final List<MksServerInfo> ignoredServersListOld = parseIgnoredServers(configuration.getIgnoredServers());
+		final List<MksServerInfo> ignoredServersListNew;
+		try {
+			ignoredServersListNew = parseIgnoredServers(ignoredServersTA.getText());
+		} catch (IllegalArgumentException e) {
+			throw new ConfigurationException(e.getMessage());
+		}
+
+		for (final MksServerInfo serverInfo : ignoredServersListOld) {
+			if (!ignoredServersListNew.contains(serverInfo)) {
+				configuration.serverIsSiServer(serverInfo, true);
+			}
+		}
+		for (final MksServerInfo serverInfo : ignoredServersListNew) {
+			if (!ignoredServersListOld.contains(serverInfo)) {
+				configuration.serverIsSiServer(serverInfo, false);
+			}
+		}
+	}
+
+	private List<MksServerInfo> parseIgnoredServers(final String serverList) {
+		final StringTokenizer tok = new StringTokenizer(serverList, ",", false);
+		final ArrayList<MksServerInfo> ret = new ArrayList<MksServerInfo>();
+		while (tok.hasMoreTokens()) {
+			final StringTokenizer tok2 = new StringTokenizer(tok.nextToken(), ":");
+			if (tok2.countTokens() != 2) {
+				throw new IllegalArgumentException("bad server list, it has to be a comma separated list of <host:port>, example \"myServer1:7001,myServer2:7001\"");
+			}
+			ret.add(new MksServerInfo("anon", tok2.nextToken(), tok2.nextToken()));
+		}
+		return ret;
+
 	}
 
 	private String getDefaultEncoding() {
@@ -122,11 +150,11 @@ public class MksConfigurableForm implements Configurable {
 	}
 
 	private Map<String, String> getEncodingMap() {
-		Map<String, String> result = new HashMap<String, String>();
+		final Map<String, String> result = new HashMap<String, String>();
 		for (int row = 1, max = tableModel.getRowCount(); row < max; row++) {
-			String command = (String) tableModel.getValueAt(row, 0);
-			String encoding = (String) tableModel.getValueAt(row, 1);
-			if (!encoding.equals(DEFAULT_ENCODING_VALUE)) {
+			final String command = (String) tableModel.getValueAt(row, 0);
+			final String encoding = (String) tableModel.getValueAt(row, 1);
+			if (!encoding.equals(MksConfigurableForm.DEFAULT_ENCODING_VALUE)) {
 				result.put(command, encoding);
 			} else {
 				// ignoring as it is the default value
@@ -139,42 +167,36 @@ public class MksConfigurableForm implements Configurable {
 	}
 
 	public JComponent createComponent() {
-		return mainPanel;
+		return this.mainPanel;
 	}
 
-	public void reset() {
-		MksConfiguration configuration = getConfiguration();
-		serverTextField.setText(configuration.SERVER);
-		portTextField.setText(String.valueOf(configuration.PORT));
-		userTextField.setText(configuration.USER);
-		passwordField.setText(configuration.PASSWORD);
-//		pro.setText(configuration.PROJECT);
-		setTableModel(createTableModel());
+	public final void reset() {
+		initCommands();
+		initIgnoredServers();
 	}
 
 	private MksConfiguration getConfiguration() {
-		return configuration;
+		return this.configuration;
 	}
 
 	public boolean isModified() {
-		MksConfiguration configuration = getConfiguration();
-		boolean equals = configuration.SERVER.equals(serverTextField.getText())
-				&& configuration.PORT == Integer.parseInt(portTextField.getText())
-				&& configuration.USER.equals(userTextField.getText())
-				&& configuration.PASSWORD.equals(new String(passwordField.getPassword()))
+		final MksConfiguration configuration = getConfiguration();
+		return isEncodingsModified(configuration)
+				|| (!configuration.getIgnoredServers().equals(ignoredServersTA.getText()))
 //			&& configuration.PROJECT.equals(.getText())
-				&& !isEncodingsModified(configuration);
-		return !equals;
+				;
 	}
 
-	private boolean isEncodingsModified(MksConfiguration configuration) {
+	private boolean isEncodingsModified(final MksConfiguration configuration) {
 		// todo
 		return true;
 	}
 
-	public static void main(String[] args) {
-		JFrame frame = new JFrame("MksConfigurableForm");
-		frame.setContentPane(new MksConfigurableForm().mainPanel);
+	public static void main(final String[] args) {
+		final JFrame frame = new JFrame("MksConfigurableForm");
+		final MksConfiguration config = new MksConfiguration();
+		config.serverIsSiServer(new MksServerInfo("anon", "ignoredServer", "7001"), false);
+		frame.setContentPane(new MksConfigurableForm(config).mainPanel);
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frame.pack();
 		frame.setVisible(true);

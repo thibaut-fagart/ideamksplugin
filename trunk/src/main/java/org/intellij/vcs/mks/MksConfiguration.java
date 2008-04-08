@@ -1,28 +1,24 @@
 package org.intellij.vcs.mks;
 
-import java.nio.charset.Charset;
-import java.util.HashMap;
-import java.util.Map;
-import org.intellij.vcs.mks.model.MksServerInfo;
-import org.jdom.Element;
-import org.jetbrains.annotations.NonNls;
-import org.jetbrains.annotations.NotNull;
 import com.intellij.openapi.components.ApplicationComponent;
 import com.intellij.openapi.util.DefaultJDOMExternalizer;
 import com.intellij.openapi.util.InvalidDataException;
 import com.intellij.openapi.util.JDOMExternalizable;
 import com.intellij.openapi.util.WriteExternalException;
+import org.intellij.vcs.mks.model.MksServerInfo;
+import org.jdom.Element;
+import org.jetbrains.annotations.NonNls;
+import org.jetbrains.annotations.NotNull;
+
+import java.nio.charset.Charset;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.StringTokenizer;
 
 public class MksConfiguration
 		implements JDOMExternalizable, ApplicationComponent, EncodingProvider {
 	public static final String DEFAULT_ENCODING = Charset.defaultCharset().name();
 
-	public String SERVER;
-	public int PORT;
-	public String USER;
-	public String PASSWORD;
-	public String SANDBOX;
-	public String PROJECT;
 	public StringMap SI_ENCODINGS;
 	public String defaultEncoding;
 	/**
@@ -32,19 +28,13 @@ public class MksConfiguration
 
 
 	public MksConfiguration() {
-		SERVER = "";
-		PORT = 7001;
-		USER = "";
-		PASSWORD = "";
-		SANDBOX = "";
-		PROJECT = "";
-		SI_ENCODINGS = new StringMap();
+		this.SI_ENCODINGS = new StringMap();
 		initDefaultEncoding();
 	}
 
 	private void initDefaultEncoding() {
-		String defaultEncodingName = MksBundle.message("defaultEncoding");
-		defaultEncoding = (defaultEncodingName == null) ? DEFAULT_ENCODING : defaultEncodingName;
+		final String defaultEncodingName = MksBundle.message("defaultEncoding");
+		this.defaultEncoding = (defaultEncodingName == null) ? MksConfiguration.DEFAULT_ENCODING : defaultEncodingName;
 	}
 
 	public void disposeComponent() {
@@ -58,57 +48,77 @@ public class MksConfiguration
 	public void initComponent() {
 	}
 
-	public void readExternal(Element element)
+	public void readExternal(final Element element)
 			throws InvalidDataException {
 		DefaultJDOMExternalizer.readExternal(this, element);
-		if (defaultEncoding == null) {
+		if (this.defaultEncoding == null) {
 			initDefaultEncoding();
 		}
+		simplifyIgnoredServers();
 	}
 
-	public void writeExternal(Element element)
+	private void simplifyIgnoredServers() {
+		final StringTokenizer tok = new StringTokenizer(this.nonSiServers, ",", false);
+		final StringBuffer newIgnoredServers = new StringBuffer();
+		while (tok.hasMoreTokens()) {
+			final String token = tok.nextToken().trim();
+			if (token.length() > 0) {
+				newIgnoredServers.append(token);
+				if (tok.hasMoreTokens()) {
+					newIgnoredServers.append(',');
+				}
+			}
+		}
+		if (!newIgnoredServers.toString().equals(this.nonSiServers)) {
+			this.nonSiServers = newIgnoredServers.toString();
+		}
+
+	}
+
+	public void writeExternal(final Element element)
 			throws WriteExternalException {
 		DefaultJDOMExternalizer.writeExternal(this, element);
 	}
 
-	public boolean isServerSiServer(MksServerInfo aServer) {
-		return !nonSiServers.contains(toStorableString(aServer));
+	public boolean isServerSiServer(final MksServerInfo aServer) {
+		return !nonSiServers.contains(aServer.toHostAndPort());
 	}
 
-	public void serverIsSiServer(MksServerInfo aServer, boolean yesOrNo) {
+	public void serverIsSiServer(final MksServerInfo aServer, final boolean yesOrNo) {
 		if (!yesOrNo) {
-			if (!nonSiServers.contains(toStorableString(aServer))) {
+			if (!nonSiServers.contains(aServer.toHostAndPort())) {
 				synchronized (this) {
 					if (nonSiServers.length() > 0) {
-						nonSiServers = nonSiServers + "," + toStorableString(aServer);
+						this.nonSiServers = this.nonSiServers + "," + aServer.toHostAndPort();
 					} else {
-						nonSiServers = toStorableString(aServer);
+						this.nonSiServers = aServer.toHostAndPort();
 					}
 				}
 			}
 		} else {
-			if (nonSiServers.contains(toStorableString(aServer))) {
+			if (nonSiServers.contains(aServer.toHostAndPort())) {
 				synchronized (this) {
-					if (nonSiServers.equals(toStorableString(aServer))) {
-						nonSiServers = "";
+					if (nonSiServers.equals(aServer.toHostAndPort())) {
+						this.nonSiServers = "";
 					} else {
-						nonSiServers = nonSiServers.replace(toStorableString(aServer), "");
-						nonSiServers = nonSiServers.replace(",,", ",");
+						this.nonSiServers = nonSiServers.replace(aServer.toHostAndPort(), "");
+						this.nonSiServers = nonSiServers.replace(",,", ",");
 					}
 				}
 			}
 
 		}
+		simplifyIgnoredServers();
 	}
 
-	private String toStorableString(MksServerInfo aServer) {
-		return aServer.host + ":" + aServer.port;
+	public String getIgnoredServers() {
+		return this.nonSiServers;
 	}
 
 	@NotNull
-	public String getMksSiEncoding(String command) {
-		Map<String, String> encodings = SI_ENCODINGS.getMap();
-		return (encodings.containsKey(command)) ? encodings.get(command) : defaultEncoding;
+	public String getMksSiEncoding(final String command) {
+		final Map<String, String> encodings = SI_ENCODINGS.getMap();
+		return (encodings.containsKey(command)) ? encodings.get(command) : this.defaultEncoding;
 	}
 
 	public static class StringMap implements JDOMExternalizable {
@@ -122,16 +132,16 @@ public class MksConfiguration
 		}
 
 		public Map<String, String> getMap() {
-			return map;
+			return this.map;
 		}
 
-		public void setMap(Map<String, String> map) {
+		public void setMap(final Map<String, String> map) {
 			this.map = map;
 		}
 
-		public void readExternal(Element element) throws InvalidDataException {
+		public void readExternal(final Element element) throws InvalidDataException {
 			// Read in map size
-			int size = Integer.parseInt(element.getAttributeValue(LEN_STRING));
+			final int size = Integer.parseInt(element.getAttributeValue(StringMap.LEN_STRING));
 
 			// Read in all elements in the proper order.
 			for (int index = 0; index < size; index++) {
@@ -142,9 +152,9 @@ public class MksConfiguration
 		}
 
 
-		public void writeExternal(Element element) throws WriteExternalException {
+		public void writeExternal(final Element element) throws WriteExternalException {
 			// Write out map size
-			element.setAttribute(LEN_STRING, Integer.toString(this.map.size()));
+			element.setAttribute(StringMap.LEN_STRING, Integer.toString(this.map.size()));
 
 			// Write out all elements in the proper order.
 			int index = 0;
