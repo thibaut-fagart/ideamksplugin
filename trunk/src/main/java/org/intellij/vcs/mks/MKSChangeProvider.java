@@ -1,28 +1,5 @@
 package org.intellij.vcs.mks;
 
-import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.lang.reflect.Proxy;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import javax.swing.*;
-import org.intellij.vcs.mks.model.MksChangePackage;
-import org.intellij.vcs.mks.model.MksMemberState;
-import org.intellij.vcs.mks.model.MksServerInfo;
-import org.intellij.vcs.mks.realtime.MksSandboxInfo;
-import org.intellij.vcs.mks.sicommands.ListChangePackages;
-import org.intellij.vcs.mks.sicommands.ListServers;
-import org.intellij.vcs.mks.sicommands.SiConnectCommand;
-import org.intellij.vcs.mks.sicommands.ViewNonMembersCommand;
-import org.intellij.vcs.mks.sicommands.ViewSandboxLocalChangesOrLockedCommand;
-import org.intellij.vcs.mks.sicommands.ViewSandboxOutOfSyncCommand;
-import org.intellij.vcs.mks.sicommands.ViewSandboxWithoutChangesCommand;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.AbstractProjectComponent;
 import com.intellij.openapi.components.ProjectComponent;
@@ -34,21 +11,27 @@ import com.intellij.openapi.vcs.FilePath;
 import com.intellij.openapi.vcs.FileStatus;
 import com.intellij.openapi.vcs.ProjectLevelVcsManager;
 import com.intellij.openapi.vcs.VcsException;
-import com.intellij.openapi.vcs.changes.Change;
-import com.intellij.openapi.vcs.changes.ChangeList;
-import com.intellij.openapi.vcs.changes.ChangeListDecorator;
-import com.intellij.openapi.vcs.changes.ChangeListManager;
-import com.intellij.openapi.vcs.changes.ChangeProvider;
-import com.intellij.openapi.vcs.changes.ChangelistBuilder;
-import com.intellij.openapi.vcs.changes.CurrentContentRevision;
-import com.intellij.openapi.vcs.changes.LocalChangeList;
-import com.intellij.openapi.vcs.changes.VcsDirtyScope;
+import com.intellij.openapi.vcs.changes.*;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.wm.WindowManager;
 import com.intellij.ui.ColoredTreeCellRenderer;
 import com.intellij.ui.SimpleTextAttributes;
 import com.intellij.util.Processor;
 import com.intellij.vcsUtil.VcsUtil;
+import org.intellij.vcs.mks.model.MksChangePackage;
+import org.intellij.vcs.mks.model.MksMemberState;
+import org.intellij.vcs.mks.model.MksServerInfo;
+import org.intellij.vcs.mks.realtime.MksSandboxInfo;
+import org.intellij.vcs.mks.sicommands.*;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import javax.swing.*;
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
+import java.util.*;
 
 /**
  * @author Thibaut Fagart
@@ -58,8 +41,6 @@ import com.intellij.vcsUtil.VcsUtil;
 class MKSChangeProvider extends AbstractProjectComponent implements ChangeProvider, ChangeListDecorator, ProjectComponent {
 	private final Logger logger = Logger.getInstance(getClass().getName());
 	private final Logger BUILDER_PROXY_LOGGER = Logger.getInstance(getClass().getName() + ".ChangelistBuilder");
-	private static final String UNVERSIONED_LIST = "Unversioned";
-	private static final String MODIFIED_WITHOUT_CHECKOUT_LIST = "Modified without checkout";
 
 	public MKSChangeProvider(@NotNull Project project) {
 		super(project);
@@ -100,7 +81,7 @@ class MKSChangeProvider extends AbstractProjectComponent implements ChangeProvid
 					final ChangeList changeList = adapter.getChangeList(entry.getValue());
 					if (changeList != null && !entry.getValue().getSummary().equals(changeList.getName())) {
 						if (changeList instanceof LocalChangeList) {
-							((LocalChangeList)changeList).setName(entry.getValue().getSummary());
+							((LocalChangeList) changeList).setName(entry.getValue().getSummary());
 						}
 					}
 				}
@@ -113,7 +94,11 @@ class MKSChangeProvider extends AbstractProjectComponent implements ChangeProvid
 				}
 				final String message = MksBundle.message("requesting.mks.sandbox.name.index.total", sandbox.sandboxPath, ++refreshedSandbox, sandboxCountToRefresh);
 				setStatusInfo(statusLabel, message);
-				processDirtySandbox(builder, changePackagesPerServer.get(sandboxServer), getSandboxState(sandbox, errors, sandboxServer));
+				Map<String, MksChangePackage> changePackageMap = changePackagesPerServer.get(sandboxServer);
+				if (changePackageMap == null) {
+					changePackageMap = Collections.emptyMap();
+				}
+				processDirtySandbox(builder, changePackageMap, getSandboxState(sandbox, errors, sandboxServer));
 			}
 			final ChangelistBuilder finalBuilder = builder;
 			// iterate over the local dirty scope to flag unversioned files
@@ -164,8 +149,8 @@ class MKSChangeProvider extends AbstractProjectComponent implements ChangeProvid
 			String host = hostAndPort.substring(0, colonIndex);
 			String port = hostAndPort.substring(colonIndex + 1);
 			class UserAndPassword {
-				String user;
-				String password;
+				String user = null;
+				String password = null;
 			}
 			final UserAndPassword userAndPassword = new UserAndPassword();
 			try {
@@ -253,18 +238,18 @@ class MKSChangeProvider extends AbstractProjectComponent implements ChangeProvid
 		return result;
 	}
 
-	private void processDirtySandbox(final ChangelistBuilder builder, final Map<String, MksChangePackage> changePackages,
+	private void processDirtySandbox(final ChangelistBuilder builder, @NotNull final Map<String, MksChangePackage> changePackages,
 									 final Map<String, MksMemberState> states) {
 		final ChangeListManager listManager = ChangeListManager.getInstance(getProject());
 		for (Map.Entry<String, MksMemberState> entry : states.entrySet()) {
 			MksMemberState state = entry.getValue();
 			FilePath filePath = VcsUtil.getFilePath(entry.getKey());
 			VirtualFile virtualFile = VcsUtil.getVirtualFile(entry.getKey());
-			if (null == virtualFile  || getMksvcs().getSandboxCache().isSandboxProject(virtualFile)) {
+			if (null == virtualFile || getMksvcs().getSandboxCache().isSandboxProject(virtualFile)) {
 				continue;
 			}
 			if (!myProject.getAllScope().contains(virtualFile)) {
-				logger.warn("project excluded file, skipping "+virtualFile);
+				logger.warn("project excluded file, skipping " + virtualFile);
 				continue;
 			}
 			if (listManager.isIgnoredFile(virtualFile)) {
@@ -356,12 +341,8 @@ class MKSChangeProvider extends AbstractProjectComponent implements ChangeProvid
 		}
 	}
 
-	private ChangeList getUserChangelist(FilePath filePath, ChangeListManager changeListManager) {
-		final Change change = changeListManager.getChange(filePath);
-		return (change == null) ? null : changeListManager.getChangeList(change);
-	}
-
-	private MksChangePackage getChangePackage(final Map<String, MksChangePackage> changePackages, final MksMemberState state) {
+	@Nullable
+	private MksChangePackage getChangePackage(@NotNull final Map<String, MksChangePackage> changePackages, @NotNull final MksMemberState state) {
 		return state.workingChangePackageId == null ? null : changePackages.get(state.workingChangePackageId);
 	}
 
@@ -378,30 +359,6 @@ class MKSChangeProvider extends AbstractProjectComponent implements ChangeProvid
 
 		ViewNonMembersCommand nonMembersCommand = new ViewNonMembersCommand(errors, getMksvcs(), sandbox);
 		nonMembersCommand.execute();
-/*
-		for (Map.Entry<String, MksMemberState> entry : nonMembersCommand.getMemberStates().entrySet()) {
-			VirtualFile virtualFile = VcsUtil.getVirtualFile(entry.getKey());
-			if (null == virtualFile) {
-//				logger.warn("no virtual file for filepath " + entry.getKey() + ", trying refreshing");
-				final HashSet<FilePath> set = new HashSet<FilePath>();
-				set.add(VcsUtil.getFilePath(entry.getKey()));
-				VcsUtil.refreshFiles(myProject, set);
-				virtualFile = VcsUtil.getVirtualFile(entry.getKey());
-				if (null == virtualFile) {
-//					logger.warn("refreshing did not help");
-					continue;
-				}
-			}
-			if (myProject.getProjectScope().contains(virtualFile)) {
-				states.put(entry.getKey(), entry.getValue());
-			}
-//				System.err.println("adding "+entry.getKey());
-//			} else {
-//				System.err.println("ignoring "+entry.getKey());
-
-
-		}
-*/
 		addNonExcludedStates(states, nonMembersCommand.getMemberStates());
 // todo the below belong to incoming changes
 		ViewSandboxOutOfSyncCommand outOfSyncCommand = new ViewSandboxOutOfSyncCommand(errors, getMksvcs(), sandbox.sandboxPath);
@@ -419,11 +376,6 @@ class MKSChangeProvider extends AbstractProjectComponent implements ChangeProvid
 		for (Map.Entry<String, MksMemberState> entry : source.entrySet()) {
 			final FilePath path = VcsUtil.getFilePath(entry.getKey());
 			if (path.getVirtualFile() != null && myProject.getProjectScope().contains(path.getVirtualFile())) {
-/*
-				if (collectingMap.containsKey(entry.getKey())) {
-					System.out.println("overriding " + path.getPath()+ " ("+collectingMap.get(entry.getKey()).status+ " -> "+entry.getValue().status);	
-				}
-*/
 				collectingMap.put(entry.getKey(), entry.getValue());
 			} else if (logger.isDebugEnabled()) {
 				logger.debug("skipping " + path.getPath());
