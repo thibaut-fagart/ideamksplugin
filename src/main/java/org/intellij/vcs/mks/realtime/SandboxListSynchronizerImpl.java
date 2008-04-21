@@ -36,7 +36,11 @@ public class SandboxListSynchronizerImpl extends AbstractMKSSynchronizer impleme
 	private final ReentrantLock sandboxCacheLock = new ReentrantLock();
 
 	public SandboxListSynchronizerImpl() {
-		super(ListSandboxes.COMMAND, ApplicationManager.getApplication().getComponent(MksConfiguration.class), "--displaySubs");
+		this(ApplicationManager.getApplication().getComponent(MksConfiguration.class));
+	}
+
+	protected SandboxListSynchronizerImpl(MksConfiguration config) {
+		super(ListSandboxes.COMMAND, config, "--displaySubs");
 		pattern = Pattern.compile(patternString);
 	}
 
@@ -199,7 +203,15 @@ public class SandboxListSynchronizerImpl extends AbstractMKSSynchronizer impleme
 	}
 
 	private boolean isSubSandbox(String projectPath) {
-		return !(projectPath.charAt(0) == '/');
+		return !(isUnixAbsolutePath(projectPath) || isWindowAbsolutePath(projectPath));
+	}
+
+	private boolean isWindowAbsolutePath(String projectPath) {
+		return projectPath.length() > 1 && projectPath.charAt(1) == ':' && projectPath.charAt(2) == '/';
+	}
+
+	private boolean isUnixAbsolutePath(String projectPath) {
+		return projectPath.charAt(0) == '/';
 	}
 
 	public String getDescription() {
