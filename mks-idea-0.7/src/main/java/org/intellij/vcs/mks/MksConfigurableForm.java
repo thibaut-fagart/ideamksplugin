@@ -1,9 +1,7 @@
 package org.intellij.vcs.mks;
 
-import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.options.Configurable;
 import com.intellij.openapi.options.ConfigurationException;
-import com.intellij.openapi.project.Project;
 import org.intellij.vcs.mks.model.MksServerInfo;
 import org.jetbrains.annotations.Nls;
 import org.jetbrains.annotations.NonNls;
@@ -13,6 +11,8 @@ import org.jetbrains.annotations.Nullable;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.nio.charset.Charset;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.*;
 
 /**
@@ -22,14 +22,11 @@ public class MksConfigurableForm implements Configurable {
 	private JPanel mainPanel;
 	private JTable MKSSICommandLineTable;
 	private JTextArea ignoredServersTA;
+	private JTextField datePatternString;
 	private DefaultTableModel tableModel;
 	private MksConfiguration configuration;
 	private JComboBox charsetEditorCombo = new JComboBox();
 	private static final String DEFAULT_ENCODING_VALUE = "<DEFAULT>";
-
-	public MksConfigurableForm(final Project myProject) {
-		this(ApplicationManager.getApplication().getComponent(MksConfiguration.class));
-	}
 
 	public MksConfigurableForm(@NotNull final MksConfiguration configuration) {
 		this.configuration = configuration;
@@ -111,6 +108,13 @@ public class MksConfigurableForm implements Configurable {
 //		configuration.PROJECT = myFldProject.getText();
 		configuration.SI_ENCODINGS.setMap(getEncodingMap());
 		configuration.defaultEncoding = getDefaultEncoding();
+		try {
+			configuration.setDatePattern(validateDatePattern());
+		} catch (Exception e) {
+			throw new ConfigurationException("Bad date pattern " + this.datePatternString.getText() + ", must be a valid" +
+					" java dateFormat pattern");
+
+		}
 		final List<MksServerInfo> ignoredServersListOld = parseIgnoredServers(configuration.getIgnoredServers());
 		final List<MksServerInfo> ignoredServersListNew;
 		try {
@@ -129,6 +133,12 @@ public class MksConfigurableForm implements Configurable {
 				configuration.serverIsSiServer(serverInfo, false);
 			}
 		}
+	}
+
+	private String validateDatePattern() {
+		DateFormat format = new SimpleDateFormat(this.datePatternString.getText());
+		format.format(new Date());
+		return this.datePatternString.getText();
 	}
 
 	private List<MksServerInfo> parseIgnoredServers(final String serverList) {
@@ -173,6 +183,11 @@ public class MksConfigurableForm implements Configurable {
 	public final void reset() {
 		initCommands();
 		initIgnoredServers();
+		initDatePattern();
+	}
+
+	private void initDatePattern() {
+		this.datePatternString.setText(configuration.getDatePattern());
 	}
 
 	private MksConfiguration getConfiguration() {
@@ -181,14 +196,20 @@ public class MksConfigurableForm implements Configurable {
 
 	public boolean isModified() {
 		final MksConfiguration configuration = getConfiguration();
+		boolean isDateChanged;
+		try {
+			isDateChanged = !validateDatePattern().equals(configuration.getDatePattern());
+		} catch (Exception e) {
+			isDateChanged = true;
+		}
 		return isEncodingsModified(configuration)
 				|| (!configuration.getIgnoredServers().equals(ignoredServersTA.getText()))
+				|| isDateChanged
 //			&& configuration.PROJECT.equals(.getText())
 				;
 	}
 
 	private boolean isEncodingsModified(final MksConfiguration configuration) {
-		// todo
 		return true;
 	}
 
