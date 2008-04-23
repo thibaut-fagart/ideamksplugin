@@ -10,9 +10,9 @@
 		<idea.version>7.0.7361</idea.version>
 	</properties>
 	<scm>
-		<connection>scm:svn:http://ideamksplugin.googlecode.com/svn/tags/mks-idea-0.7</connection>
-		<developerConnection>scm:svn:https://ideamksplugin.googlecode.com/svn/tags/mks-idea-0.7</developerConnection>
-		<url>http://ideamksplugin.googlecode.com/svn/tags/mks-idea-0.7</url>
+		<connection>scm:svn:http://ideamksplugin.googlecode.com/svn/branches/IDEA 7.x/mks-idea-0.7</connection>
+		<developerConnection>scm:svn:https://ideamksplugin.googlecode.com/svn/branches/IDEA 7.x/mks-idea-0.7</developerConnection>
+		<url>http://ideamksplugin.googlecode.com/svn/branches/IDEA 7.x/mks-idea-0.7</url>
 	</scm>
 	<dependencies>
 		<dependency>
@@ -102,7 +102,6 @@
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
 				<configuration>
-					<!--<verbose>false</verbose>-->
 					<fork>false</fork>
 					<source>1.5</source>
 					<target>1.5</target>
