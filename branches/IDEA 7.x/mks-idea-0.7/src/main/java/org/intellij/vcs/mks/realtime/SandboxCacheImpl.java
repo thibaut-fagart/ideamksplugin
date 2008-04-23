@@ -1,5 +1,23 @@
 package org.intellij.vcs.mks.realtime;
 
+import java.io.File;
+import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+import org.intellij.vcs.mks.MKSHelper;
+import org.intellij.vcs.mks.MksRevisionNumber;
+import org.intellij.vcs.mks.MksVcs;
+import org.intellij.vcs.mks.model.MksMemberState;
+import org.intellij.vcs.mks.sicommands.AbstractViewSandboxCommand;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
@@ -13,17 +31,6 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.peer.PeerFactory;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.vcsUtil.VcsUtil;
-import org.intellij.vcs.mks.MKSHelper;
-import org.intellij.vcs.mks.MksRevisionNumber;
-import org.intellij.vcs.mks.MksVcs;
-import org.intellij.vcs.mks.model.MksMemberState;
-import org.intellij.vcs.mks.sicommands.AbstractViewSandboxCommand;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
-import java.io.File;
-import java.io.PrintWriter;
-import java.util.*;
 
 /**
  * @author Thibaut Fagart
@@ -271,7 +278,11 @@ public class SandboxCacheImpl implements SandboxCache {
 	public Set<MksSandboxInfo> getSandboxesIntersecting(@NotNull final VirtualFile directory) {
 		Set<MksSandboxInfo> result = new HashSet<MksSandboxInfo>();
 
-		for (List<MksSandboxInfo> infoList : new ArrayList<List<MksSandboxInfo>>(sandboxByFolder.values())) {
+        final ArrayList<List<MksSandboxInfo>> sandboxInfoListOfList;
+        synchronized (lock) {
+            sandboxInfoListOfList = new ArrayList<List<MksSandboxInfo>>(sandboxByFolder.values());
+        }
+        for (List<MksSandboxInfo> infoList : sandboxInfoListOfList) {
 			for (MksSandboxInfo sandboxInfo : infoList) {
 				if (sandboxInfo.isSubSandbox) continue;
 				VirtualFile sandboxFile = sandboxInfo.sandboxPjFile;
