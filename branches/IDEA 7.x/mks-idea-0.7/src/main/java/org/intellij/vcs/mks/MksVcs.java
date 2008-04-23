@@ -53,7 +53,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-public class MksVcs extends AbstractVcs implements EncodingProvider {
+public class MksVcs extends AbstractVcs implements MksCLIConfiguration {
 	static final Logger LOGGER = Logger.getInstance(MksVcs.class.getName());
 	public static final String TOOL_WINDOW_ID = "MKS";
 	static final boolean DEBUG = false;
@@ -84,7 +84,7 @@ public class MksVcs extends AbstractVcs implements EncodingProvider {
 
 	@Override
 	public Configurable getConfigurable() {
-		return new MksConfigurableForm(myProject);
+		return new MksConfigurableForm(ApplicationManager.getApplication().getComponent(MksConfiguration.class));
 	}
 
 	@Override
@@ -377,6 +377,11 @@ public class MksVcs extends AbstractVcs implements EncodingProvider {
 		return ApplicationManager.getApplication().getComponent(MksConfiguration.class).getMksSiEncoding(command);
 	}
 
+	@NotNull
+	public String getDatePattern() {
+		return ApplicationManager.getApplication().getComponent(MksConfiguration.class).getDatePattern();
+	}
+
 	private class _EditFileProvider implements EditFileProvider {
 		private final MksVcs mksVcs;
 
@@ -481,7 +486,7 @@ public class MksVcs extends AbstractVcs implements EncodingProvider {
 
 	@Override
 	public void activate() {
-		LOGGER.debug("activate ["+myProject+"]");
+		LOGGER.debug("activate [" + myProject + "]");
 		super.activate();
 		ChangeListManager changeListManager = ChangeListManager.getInstance(getProject());
 		changeListManager.addChangeListListener(changeListAdapter);
