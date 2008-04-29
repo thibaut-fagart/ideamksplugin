@@ -1,18 +1,15 @@
 package org.intellij.vcs.mks.realtime;
 
-import com.intellij.openapi.application.ApplicationManager;
-import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.project.Project;
-import com.intellij.openapi.roots.ModuleRootEvent;
-import com.intellij.openapi.roots.ProjectRootManager;
-import com.intellij.openapi.vcs.FilePath;
-import com.intellij.openapi.vcs.VcsException;
-import com.intellij.openapi.vcs.changes.VcsDirtyScopeManager;
-import com.intellij.openapi.vfs.VfsUtil;
-import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.peer.PeerFactory;
-import com.intellij.psi.search.GlobalSearchScope;
-import com.intellij.vcsUtil.VcsUtil;
+import java.io.File;
+import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
 import org.intellij.vcs.mks.MKSHelper;
 import org.intellij.vcs.mks.MksRevisionNumber;
 import org.intellij.vcs.mks.MksVcs;
@@ -21,9 +18,20 @@ import org.intellij.vcs.mks.sicommands.AbstractViewSandboxCommand;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.File;
-import java.io.PrintWriter;
-import java.util.*;
+import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.project.Project;
+import com.intellij.openapi.roots.ModuleRootEvent;
+import com.intellij.openapi.roots.ProjectRootManager;
+import com.intellij.openapi.vcs.FilePath;
+import com.intellij.openapi.vcs.VcsException;
+import com.intellij.openapi.vcs.actions.VcsContextFactory;
+import com.intellij.openapi.vcs.changes.VcsDirtyScopeManager;
+import com.intellij.openapi.vfs.VfsUtil;
+import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.psi.search.GlobalSearchScope;
+import com.intellij.psi.search.ProjectScope;
+import com.intellij.vcsUtil.VcsUtil;
 
 /**
  * @author Thibaut Fagart
@@ -170,7 +178,7 @@ public class SandboxCacheImpl implements SandboxCache {
 	 */
 	private boolean doesSandboxIntersectProject(@NotNull File sandboxFile) {
 		File sandboxFolder = sandboxFile.getParentFile();
-		GlobalSearchScope projectScope = project.getProjectScope();
+		GlobalSearchScope projectScope = ProjectScope.getProjectScope(project);
 		VirtualFile sandboxVFile = VcsUtil.getVirtualFile(sandboxFile);
 		boolean sandboxRelevant = (sandboxVFile != null) && projectScope.contains(sandboxVFile);
 		if (!sandboxRelevant) {
@@ -374,11 +382,13 @@ public class SandboxCacheImpl implements SandboxCache {
 	 * @return
 	 */
 	private boolean checkSandboxContains(@NotNull MksSandboxInfo sandbox, @NotNull VirtualFile virtualFile) {
-		final FilePath filePath = PeerFactory.getInstance().getVcsContextFactory().createFilePathOn(virtualFile);
+        VcsContextFactory vcsContextFactory =
+            VcsContextFactory.SERVICE.getInstance();
+        final FilePath filePath = vcsContextFactory.createFilePathOn(virtualFile);
 		if (!filePath.getIOFile().exists() || sandbox.sandboxPjFile == null) {
 			return false;
 		}
-		final FilePath sandboxFolderFilePath = PeerFactory.getInstance().getVcsContextFactory().createFilePathOn(sandbox.sandboxPjFile.getParent());
+		final FilePath sandboxFolderFilePath = vcsContextFactory.createFilePathOn(sandbox.sandboxPjFile.getParent());
 
 		AbstractViewSandboxCommand command = new AbstractViewSandboxCommand(new ArrayList<VcsException>(), project.getComponent(MksVcs.class),
 			sandbox.sandboxPath, "--filter=file:" + MKSHelper.getRelativePath(filePath, sandboxFolderFilePath)) {

@@ -1,5 +1,59 @@
 package org.intellij.vcs.mks;
 
+import java.awt.BorderLayout;
+import java.awt.Component;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
+import javax.swing.AbstractAction;
+import javax.swing.Action;
+import javax.swing.JButton;
+import javax.swing.JMenuItem;
+import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
+import javax.swing.JScrollPane;
+import javax.swing.JTabbedPane;
+import javax.swing.JTable;
+import javax.swing.JTextPane;
+import javax.swing.JToolBar;
+import javax.swing.table.AbstractTableModel;
+import javax.swing.table.TableCellRenderer;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.StyleConstants;
+import javax.swing.text.StyleContext;
+
+import org.intellij.vcs.mks.history.MksVcsHistoryProvider;
+import org.intellij.vcs.mks.realtime.LongRunningTask;
+import org.intellij.vcs.mks.realtime.LongRunningTaskRepository;
+import org.intellij.vcs.mks.realtime.MksSandboxInfo;
+import org.intellij.vcs.mks.realtime.SandboxCache;
+import org.intellij.vcs.mks.realtime.SandboxCacheImpl;
+import org.intellij.vcs.mks.realtime.SandboxListSynchronizer;
+import org.intellij.vcs.mks.sicommands.AbstractViewSandboxCommand;
+import org.intellij.vcs.mks.sicommands.GetContentRevision;
+import org.intellij.vcs.mks.sicommands.GetRevisionInfo;
+import org.intellij.vcs.mks.sicommands.ListChangePackages;
+import org.intellij.vcs.mks.sicommands.ListSandboxes;
+import org.intellij.vcs.mks.sicommands.ListServers;
+import org.intellij.vcs.mks.sicommands.LockMemberCommand;
+import org.intellij.vcs.mks.sicommands.RenameChangePackage;
+import org.intellij.vcs.mks.sicommands.SiConnectCommand;
+import org.intellij.vcs.mks.sicommands.UnlockMemberCommand;
+import org.intellij.vcs.mks.sicommands.ViewMemberHistoryCommand;
+import org.intellij.vcs.mks.sicommands.ViewNonMembersCommand;
+import org.intellij.vcs.mks.update.MksUpdateEnvironment;
+import org.jetbrains.annotations.NonNls;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 import com.intellij.ProjectTopics;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
@@ -8,7 +62,11 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.startup.StartupManager;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.util.IconLoader;
-import com.intellij.openapi.vcs.*;
+import com.intellij.openapi.vcs.AbstractVcs;
+import com.intellij.openapi.vcs.EditFileProvider;
+import com.intellij.openapi.vcs.FilePath;
+import com.intellij.openapi.vcs.ProjectLevelVcsManager;
+import com.intellij.openapi.vcs.VcsException;
 import com.intellij.openapi.vcs.changes.ChangeListManager;
 import com.intellij.openapi.vcs.changes.ChangeProvider;
 import com.intellij.openapi.vcs.changes.VcsDirtyScopeManager;
@@ -20,38 +78,13 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowAnchor;
 import com.intellij.openapi.wm.ToolWindowManager;
-import com.intellij.peer.PeerFactory;
 import com.intellij.ui.content.Content;
+import com.intellij.ui.content.ContentFactory;
 import com.intellij.util.messages.MessageBusConnection;
 import com.intellij.util.ui.AbstractTableCellEditor;
 import mks.integrations.common.TriclopsException;
 import mks.integrations.common.TriclopsSiMembers;
 import mks.integrations.common.TriclopsSiSandbox;
-import org.intellij.vcs.mks.history.MksVcsHistoryProvider;
-import org.intellij.vcs.mks.realtime.*;
-import org.intellij.vcs.mks.sicommands.*;
-import org.intellij.vcs.mks.update.MksUpdateEnvironment;
-import org.jetbrains.annotations.NonNls;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
-import javax.swing.*;
-import javax.swing.table.AbstractTableModel;
-import javax.swing.table.TableCellRenderer;
-import javax.swing.text.BadLocationException;
-import javax.swing.text.StyleConstants;
-import javax.swing.text.StyleContext;
-import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
 
 public class MksVcs extends AbstractVcs implements EncodingProvider {
 	static final Logger LOGGER = Logger.getInstance(MksVcs.class.getName());
@@ -288,8 +321,7 @@ public class MksVcs extends AbstractVcs implements EncodingProvider {
 
 	private ToolWindow registerToolWindow(final ToolWindowManager toolWindowManager, final JPanel mksPanel) {
 		ToolWindow toolWindow = toolWindowManager.registerToolWindow(MKS_TOOLWINDOW, true, ToolWindowAnchor.BOTTOM);
-		PeerFactory pf = com.intellij.peer.PeerFactory.getInstance();
-		Content content = pf.getContentFactory().createContent(mksPanel, "", false); // first arg is a JPanel
+		Content content = ContentFactory.SERVICE.getInstance().createContent(mksPanel, "", false); // first arg is a JPanel
 		content.setCloseable(false);
 		toolWindow.getContentManager().addContent(content);
 
