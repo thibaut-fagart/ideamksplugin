@@ -12,7 +12,7 @@
 	<vendor logo="/icons/mks.png" url="http://code.google.com/p/ideamksplugin/">Eric Sheffer, Thibaut Fagart</vendor>
 	<resource-bundle>org.intellij.vcs.mks.mksBundle</resource-bundle>
 	<category>VCS Integration</category>
-	<idea-version since-build="7361"/>
+	<idea-version since-build="8280" until-build="8000"/>
 
 	<change-notes><![CDATA[<ul>
 	<li>0.7  <a href="http://code.google.com/p/ideamksplugin/issues/list?q=label%3AMilestone%20label%3ARelease0.7&can=1">googlecode issues resolved in 0.7</a> <br><br/>
