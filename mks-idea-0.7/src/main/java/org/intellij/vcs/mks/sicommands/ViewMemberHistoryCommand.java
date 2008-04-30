@@ -1,5 +1,11 @@
 package org.intellij.vcs.mks.sicommands;
 
+import com.intellij.openapi.vcs.VcsException;
+import com.intellij.vcsUtil.VcsUtil;
+import org.intellij.vcs.mks.MksCLIConfiguration;
+import org.intellij.vcs.mks.model.MksMemberRevisionInfo;
+import org.jetbrains.annotations.NonNls;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
@@ -12,11 +18,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import org.intellij.vcs.mks.EncodingProvider;
-import org.intellij.vcs.mks.model.MksMemberRevisionInfo;
-import org.jetbrains.annotations.NonNls;
-import com.intellij.openapi.vcs.VcsException;
-import com.intellij.vcsUtil.VcsUtil;
 
 /**
  * This command uses tabs to separate fields ...
@@ -40,15 +41,16 @@ public class ViewMemberHistoryCommand extends SiCLICommand {
 	private List<MksMemberRevisionInfo> revisionsInfo = new ArrayList<MksMemberRevisionInfo>();
 	@NonNls
 	private static final String DATE_PATTERN = "MMM dd, yyyy - hh:mm a";
-	private final DateFormat format = new SimpleDateFormat(DATE_PATTERN);
+	private final DateFormat format;
 	private final String member;
 
-	public ViewMemberHistoryCommand(List<VcsException> errors, EncodingProvider encodingProvider, String member) {
-		super(errors, encodingProvider, COMMAND,
+	public ViewMemberHistoryCommand(List<VcsException> errors, MksCLIConfiguration mksCLIConfiguration, String member) {
+		super(errors, mksCLIConfiguration, COMMAND,
 				"--fields=revision,date,author,cpid,description",
 				member);
 		setWorkingDir(new File(member).getParentFile());
 		this.member = member;
+		format = new SimpleDateFormat(mksCLIConfiguration.getDatePattern());
 	}
 
 	@Override
@@ -113,7 +115,8 @@ public class ViewMemberHistoryCommand extends SiCLICommand {
 			errors.add(new VcsException(GetRevisionInfo.NOT_A_MEMBER));
 			return;
 		} else {
-			super.handleErrorOutput(errorOutput);	//To change body of overridden methods use File | Settings | File Templates.
+			super.handleErrorOutput(
+					errorOutput);	//To change body of overridden methods use File | Settings | File Templates.
 		}
 	}
 
@@ -121,8 +124,10 @@ public class ViewMemberHistoryCommand extends SiCLICommand {
 		try {
 			return format.parse(date);
 		} catch (ParseException e) {
-			throw new VcsException("unknown date format for " + date + " (expected [" + DATE_PATTERN + "]). " +
-					"This may be an encoding issue, encoding used was " + encodingProvider.getMksSiEncoding(COMMAND));
+			throw new VcsException(
+					"unknown date format for " + date + " (expected [" + mksCLIConfiguration.getDatePattern() + "]). " +
+							"This may be an encoding issue, encoding used was " +
+							mksCLIConfiguration.getMksSiEncoding(COMMAND));
 		}
 	}
 

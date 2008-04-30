@@ -1,12 +1,9 @@
 package org.intellij.vcs.mks.realtime;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.UnsupportedEncodingException;
-import org.intellij.vcs.mks.EncodingProvider;
 import com.intellij.openapi.diagnostic.Logger;
+import org.intellij.vcs.mks.MksCLIConfiguration;
+
+import java.io.*;
 
 /**
  * Asbtract clas for commands ran with the --persist flag that keep running until destroyed. <br/>
@@ -17,7 +14,7 @@ import com.intellij.openapi.diagnostic.Logger;
  */
 public abstract class AbstractMKSSynchronizer implements LongRunningTask {
 	protected final Logger LOGGER = Logger.getInstance(getClass().getName());
-	private final EncodingProvider encodingProvider;
+	private final MksCLIConfiguration mksCLIConfiguration;
 	private String command;
 	private String[] args;
 	private Process process;
@@ -29,9 +26,9 @@ public abstract class AbstractMKSSynchronizer implements LongRunningTask {
 	private Thread runnerThread;
 	// all lines for an update come in a close succession, should be possible to detect it using a background thread or wait with timeouts
 
-	public AbstractMKSSynchronizer(String command, EncodingProvider encodingProvider, String... args) {
+	public AbstractMKSSynchronizer(String command, MksCLIConfiguration mksCLIConfiguration, String... args) {
 		this.command = command;
-		this.encodingProvider = encodingProvider;
+		this.mksCLIConfiguration = mksCLIConfiguration;
 		if (args.length > 0) {
 			this.args = new String[args.length + 1];
 			System.arraycopy(args, 0, this.args, 0, args.length);
@@ -109,7 +106,7 @@ public abstract class AbstractMKSSynchronizer implements LongRunningTask {
 		InputStream is = process.getInputStream();
 		InputStreamReader streamReader;
 		try {
-			streamReader = new InputStreamReader(is, encodingProvider.getMksSiEncoding(command));
+			streamReader = new InputStreamReader(is, mksCLIConfiguration.getMksSiEncoding(command));
 		} catch (UnsupportedEncodingException e) {
 			LOGGER.warn("unsupported encoding specified for reading MKS process output", e);
 			stop();

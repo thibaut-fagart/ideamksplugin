@@ -16,7 +16,7 @@ import java.util.Map;
 import java.util.StringTokenizer;
 
 public class MksConfiguration
-		implements JDOMExternalizable, ApplicationComponent, EncodingProvider {
+		implements JDOMExternalizable, ApplicationComponent, MksCLIConfiguration {
 	public static final String DEFAULT_ENCODING = Charset.defaultCharset().name();
 
 	public StringMap SI_ENCODINGS;
@@ -25,6 +25,8 @@ public class MksConfiguration
 	 * (host:port(,host:port)*)?
 	 */
 	public String nonSiServers = "";
+	private String datePattern;
+	private static final String DEFAULT_DATE_PATTERN = "MMM dd, yyyy - hh:mm a";
 
 
 	public MksConfiguration() {
@@ -55,6 +57,10 @@ public class MksConfiguration
 			initDefaultEncoding();
 		}
 		simplifyIgnoredServers();
+		if (datePattern == null) {
+			datePattern = DEFAULT_DATE_PATTERN;
+		}
+
 	}
 
 	private void simplifyIgnoredServers() {
@@ -119,6 +125,15 @@ public class MksConfiguration
 	public String getMksSiEncoding(final String command) {
 		final Map<String, String> encodings = SI_ENCODINGS.getMap();
 		return (encodings.containsKey(command)) ? encodings.get(command) : this.defaultEncoding;
+	}
+
+	public void setDatePattern(String aPattern) {
+		datePattern = aPattern;
+	}
+
+	@NotNull
+	public String getDatePattern() {
+		return datePattern;
 	}
 
 	public static class StringMap implements JDOMExternalizable {

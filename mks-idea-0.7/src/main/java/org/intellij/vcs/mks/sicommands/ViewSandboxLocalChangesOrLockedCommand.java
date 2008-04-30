@@ -1,12 +1,13 @@
 package org.intellij.vcs.mks.sicommands;
 
+import com.intellij.openapi.util.io.FileUtil;
+import com.intellij.openapi.vcs.VcsException;
+import org.intellij.vcs.mks.MksCLIConfiguration;
+import org.intellij.vcs.mks.model.MksMemberState;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
-import org.intellij.vcs.mks.EncodingProvider;
-import org.intellij.vcs.mks.model.MksMemberState;
-import com.intellij.openapi.util.io.FileUtil;
-import com.intellij.openapi.vcs.VcsException;
 
 /**
  * This commands fetches any file from the given sandbox that is
@@ -24,22 +25,25 @@ public class ViewSandboxLocalChangesOrLockedCommand extends AbstractViewSandboxC
 	/**
 	 * username is available in si viewservers
 	 *
-	 * @param errors		   collects all errors encountered
-	 * @param encodingProvider provides encoding configuration for the command
-	 * @param sandboxPath	  filepath of the sandbox project file (usually
-	 *                         project.pj)
-	 * @param username		 username of the current user : allows detecting
-	 *                         which locks are checkouts of the IDEA user
+	 * @param errors			  collects all errors encountered
+	 * @param mksCLIConfiguration provides encoding configuration for the command
+	 * @param sandboxPath		 filepath of the sandbox project file (usually
+	 *                            project.pj)
+	 * @param username			username of the current user : allows detecting
+	 *                            which locks are checkouts of the IDEA user
 	 */
-	public ViewSandboxLocalChangesOrLockedCommand(final List<VcsException> errors, final EncodingProvider encodingProvider,
+	public ViewSandboxLocalChangesOrLockedCommand(final List<VcsException> errors,
+												  final MksCLIConfiguration mksCLIConfiguration,
 												  final String username, final String sandboxPath) {
-		super(errors, encodingProvider, sandboxPath,/* "--filter=changed",*/"--filter=changed:working,deferred,locked:" + username);
+		super(errors, mksCLIConfiguration, sandboxPath,/* "--filter=changed",*/
+				"--filter=changed:working,deferred,locked:" + username);
 		this.mksUsername = username;
 	}
 
 	@Override
 	protected MksMemberState createState(final String workingRev, final String memberRev, final String workingCpid,
-										 final String locker, final String lockedSandbox, final String type, final String deferred) throws VcsException {
+										 final String locker, final String lockedSandbox, final String type,
+										 final String deferred) throws VcsException {
 		// we confuse missing files and locally modified without checkout here
 		boolean isLocked = locker != null;
 		if (isDeferred(deferred)) {
@@ -60,7 +64,7 @@ public class ViewSandboxLocalChangesOrLockedCommand extends AbstractViewSandboxC
 			return new MksMemberState((createRevision(workingRev)), (createRevision(memberRev)), workingCpid,
 					status);
 
-		} else if (memberRev== null && workingRev != null && DROPPED_TYPE.equals (type)) {
+		} else if (memberRev == null && workingRev != null && DROPPED_TYPE.equals(type)) {
 			// todo check
 			return new MksMemberState((createRevision(workingRev)), (createRevision(memberRev)), workingCpid,
 					MksMemberState.Status.REMOTELY_DROPPED);

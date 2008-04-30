@@ -1,11 +1,12 @@
 package org.intellij.vcs.mks.sicommands;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import org.intellij.vcs.mks.EncodingProvider;
+import com.intellij.openapi.vcs.VcsException;
+import org.intellij.vcs.mks.MksCLIConfiguration;
 import org.intellij.vcs.mks.model.MksServerInfo;
 import org.jetbrains.annotations.NotNull;
-import com.intellij.openapi.vcs.VcsException;
+
+import java.io.IOException;
+import java.util.ArrayList;
 
 /**
  * @author Thibaut Fagart
@@ -17,9 +18,11 @@ public class SiConnectCommand extends SiCLICommand {
 	private MksServerInfo server;
 	public static final String COMMAND = "connect";
 
-	public SiConnectCommand(@NotNull EncodingProvider encodingProvider, @NotNull String host, @NotNull String port,
+	public SiConnectCommand(@NotNull MksCLIConfiguration mksCLIConfiguration, @NotNull String host,
+							@NotNull String port,
 							@NotNull String user, @NotNull String password) {
-		super(new ArrayList<VcsException>(), encodingProvider, COMMAND, "--hostname=" + host, "--port=" + port, "--user=" + user, "--password=" + password);
+		super(new ArrayList<VcsException>(), mksCLIConfiguration, COMMAND, "--hostname=" + host, "--port=" + port,
+				"--user=" + user, "--password=" + password);
 		this.host = host;
 		this.port = port;
 		this.user = user;

@@ -1,16 +1,17 @@
 package org.intellij.vcs.mks.sicommands;
 
+import com.intellij.openapi.vcs.VcsException;
+import com.intellij.vcsUtil.VcsUtil;
+import org.intellij.vcs.mks.MksCLIConfiguration;
+import org.intellij.vcs.mks.model.MksChangePackage;
+import org.intellij.vcs.mks.realtime.MksSandboxInfo;
+import org.jetbrains.annotations.NotNull;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.List;
-import org.intellij.vcs.mks.EncodingProvider;
-import org.intellij.vcs.mks.model.MksChangePackage;
-import org.intellij.vcs.mks.realtime.MksSandboxInfo;
-import org.jetbrains.annotations.NotNull;
-import com.intellij.openapi.vcs.VcsException;
-import com.intellij.vcsUtil.VcsUtil;
 
 /**
  * This command allows to lock a varying number of members.
@@ -22,8 +23,11 @@ public class LockMemberCommand extends SiCLICommand {
 	@org.jetbrains.annotations.NonNls
 	public static final String COMMAND = "lock";
 
-	public LockMemberCommand(List<VcsException> errors, EncodingProvider encodingProvider, @NotNull MksSandboxInfo sandbox, @NotNull MksChangePackage changePackage, String... members) {
-		super(errors, encodingProvider, COMMAND, createArray(members, "--sandbox=" + sandbox.sandboxPath, "--nobranch", "--nobranchvariant", "--cpid=" + changePackage.getId()));
+	public LockMemberCommand(List<VcsException> errors, MksCLIConfiguration mksCLIConfiguration,
+							 @NotNull MksSandboxInfo sandbox, @NotNull MksChangePackage changePackage,
+							 String... members) {
+		super(errors, mksCLIConfiguration, COMMAND, createArray(members, "--sandbox=" + sandbox.sandboxPath,
+				"--nobranch", "--nobranchvariant", "--cpid=" + changePackage.getId()));
 		assert members.length > 0 : "need to specify which member to lock";
 		setWorkingDir(new File(VcsUtil.getFilePath(sandbox.sandboxPath).getParentPath().getPath()));
 		this.members = members;

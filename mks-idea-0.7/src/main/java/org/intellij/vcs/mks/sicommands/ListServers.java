@@ -1,13 +1,14 @@
 package org.intellij.vcs.mks.sicommands;
 
+import com.intellij.openapi.vcs.VcsException;
+import org.intellij.vcs.mks.MksCLIConfiguration;
+import org.intellij.vcs.mks.model.MksServerInfo;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import org.intellij.vcs.mks.EncodingProvider;
-import org.intellij.vcs.mks.model.MksServerInfo;
-import com.intellij.openapi.vcs.VcsException;
 
 /**
  * @author Thibaut Fagart
@@ -19,8 +20,8 @@ public class ListServers extends SiCLICommand {
 
 	public static final String COMMAND = "servers";
 
-	public ListServers(List<VcsException> errors, EncodingProvider encodingProvider) {
-		super(errors, encodingProvider, COMMAND);
+	public ListServers(List<VcsException> errors, MksCLIConfiguration mksCLIConfiguration) {
+		super(errors, mksCLIConfiguration, COMMAND);
 	}
 
 	@Override
@@ -48,10 +49,11 @@ public class ListServers extends SiCLICommand {
 					errors.add(new VcsException("ListServers : unexpected line structure " + line));
 				}
 			}
-			servers = tempServers;
 		} catch (IOException e) {
 			//noinspection ThrowableInstanceNeverThrown
 			errors.add(new VcsException(e));
+		} finally {
+			servers = tempServers;
 		}
 	}
 

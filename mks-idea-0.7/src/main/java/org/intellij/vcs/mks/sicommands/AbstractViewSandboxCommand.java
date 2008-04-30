@@ -1,5 +1,11 @@
 package org.intellij.vcs.mks.sicommands;
 
+import com.intellij.openapi.vcs.VcsException;
+import com.intellij.vcsUtil.VcsUtil;
+import org.intellij.vcs.mks.MksCLIConfiguration;
+import org.intellij.vcs.mks.model.MksMemberState;
+import org.jetbrains.annotations.NotNull;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.StringReader;
@@ -9,11 +15,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import org.intellij.vcs.mks.EncodingProvider;
-import org.intellij.vcs.mks.model.MksMemberState;
-import org.jetbrains.annotations.NotNull;
-import com.intellij.openapi.vcs.VcsException;
-import com.intellij.vcsUtil.VcsUtil;
 
 /**
  * @author Thibaut Fagart
@@ -36,7 +37,8 @@ public abstract class AbstractViewSandboxCommand extends SiCLICommand {
 				+ " " + revisionPattern + " " + changePackageIdPattern
 				+ " " + deferredPattern + " " + typePattern
 				+ " " + namePattern
-				+ " " + revisionPattern + " " + sandboxPattern + "$"; // locked sandbox is null when member is not locked
+				+ " " + revisionPattern + " " + sandboxPattern +
+				"$"; // locked sandbox is null when member is not locked
 	}
 
 	private static final int LOCKER_GROUP_IDX = 1;
@@ -55,13 +57,15 @@ public abstract class AbstractViewSandboxCommand extends SiCLICommand {
 	protected final Map<String, MksMemberState> memberStates = new HashMap<String, MksMemberState>();
 	protected final String sandboxPath;
 
-	protected AbstractViewSandboxCommand(final List<VcsException> errors, final EncodingProvider encodingProvider,
+	protected AbstractViewSandboxCommand(final List<VcsException> errors, final MksCLIConfiguration mksCLIConfiguration,
 										 final String sandboxPath, final String... filters) {
-		super(errors, encodingProvider, COMMAND, createParams(fieldsParam, "--recurse", "--sandbox=" + sandboxPath, filters));
+		super(errors, mksCLIConfiguration, COMMAND,
+				createParams(fieldsParam, "--recurse", "--sandbox=" + sandboxPath, filters));
 		this.sandboxPath = sandboxPath;
 	}
 
-	private static String[] createParams(final String fieldsParam, final String s, final String s1, final String[] filters) {
+	private static String[] createParams(final String fieldsParam, final String s, final String s1,
+										 final String[] filters) {
 		String[] params = new String[3 + filters.length];
 		params[0] = fieldsParam;
 		params[1] = s;
@@ -97,7 +101,8 @@ public abstract class AbstractViewSandboxCommand extends SiCLICommand {
 					String lockedSandbox = matcher.group(LOCKED_SANDBOX_GROUP_IDX);
 					try {
 						if (isRelevant(type)) {
-							MksMemberState memberState = createState(workingRev, memberRev, workingCpid, locker, lockedSandbox, type, deferred);
+							MksMemberState memberState = createState(workingRev, memberRev, workingCpid, locker,
+									lockedSandbox, type, deferred);
 							setState(name, memberState);
 						} else {
 							LOGGER.debug("ignoring " + line);
@@ -126,7 +131,9 @@ public abstract class AbstractViewSandboxCommand extends SiCLICommand {
 
 	}
 
-	protected abstract MksMemberState createState(String workingRev, String memberRev, String workingCpid, final String locker, final String lockedSandbox, final String type, final String deferred) throws VcsException;
+	protected abstract MksMemberState createState(String workingRev, String memberRev, String workingCpid,
+												  final String locker, final String lockedSandbox, final String type,
+												  final String deferred) throws VcsException;
 
 	protected boolean isRelevant(final String type) {
 		return isMember(type);

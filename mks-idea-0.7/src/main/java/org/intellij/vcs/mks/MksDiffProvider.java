@@ -1,13 +1,5 @@
 package org.intellij.vcs.mks;
 
-import java.lang.reflect.InvocationTargetException;
-import java.util.ArrayList;
-
-import javax.swing.SwingUtilities;
-
-import org.intellij.vcs.mks.sicommands.GetRevisionInfo;
-import org.jetbrains.annotations.Nullable;
-
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.vcs.VcsException;
@@ -17,6 +9,12 @@ import com.intellij.openapi.vcs.diff.DiffProvider;
 import com.intellij.openapi.vcs.history.VcsRevisionNumber;
 import com.intellij.openapi.vfs.VfsUtil;
 import com.intellij.openapi.vfs.VirtualFile;
+import org.intellij.vcs.mks.sicommands.GetRevisionInfo;
+import org.jetbrains.annotations.Nullable;
+
+import javax.swing.*;
+import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
 
 /**
  * @author Thibaut Fagart
@@ -42,7 +40,8 @@ public class MksDiffProvider implements DiffProvider {
 	}
 
 	private GetRevisionInfo getRevisionInfo(final VirtualFile virtualFile, final ArrayList<VcsException> errors) {
-		GetRevisionInfo command = new GetRevisionInfo(errors, mksVcs, virtualFile.getPath(), VfsUtil.virtualToIoFile(virtualFile.getParent()));
+		GetRevisionInfo command = new GetRevisionInfo(errors, mksVcs, virtualFile.getPath(),
+				VfsUtil.virtualToIoFile(virtualFile.getParent()));
 		command.execute();
 		if (command.errors.isEmpty()) {
 			return command;
@@ -87,7 +86,8 @@ public class MksDiffProvider implements DiffProvider {
 			}
 			return null;
 		}
-		return new MksContentRevision(mksVcs, VcsContextFactory.SERVICE.getInstance().createFilePathOn(virtualFile), vcsRevisionNumber);
+		return new MksContentRevision(mksVcs, VcsContextFactory.SERVICE.getInstance().createFilePathOn(virtualFile),
+				vcsRevisionNumber);
 	}
 
 	private void showRevisionNotControlledErrorDialog() {

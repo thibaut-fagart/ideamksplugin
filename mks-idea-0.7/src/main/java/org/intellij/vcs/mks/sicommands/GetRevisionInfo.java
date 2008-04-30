@@ -1,15 +1,16 @@
 package org.intellij.vcs.mks.sicommands;
 
+import com.intellij.openapi.vcs.VcsException;
+import com.intellij.openapi.vcs.history.VcsRevisionNumber;
+import org.intellij.vcs.mks.MksCLIConfiguration;
+import org.intellij.vcs.mks.MksRevisionNumber;
+import org.jetbrains.annotations.NonNls;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import org.intellij.vcs.mks.EncodingProvider;
-import org.intellij.vcs.mks.MksRevisionNumber;
-import org.jetbrains.annotations.NonNls;
-import com.intellij.openapi.vcs.VcsException;
-import com.intellij.openapi.vcs.history.VcsRevisionNumber;
 
 /**
  * If this command is called for a file that is not a mks member branchTip,memberRev and workingRev will be null
@@ -19,7 +20,8 @@ import com.intellij.openapi.vcs.history.VcsRevisionNumber;
 public class GetRevisionInfo extends SiCLICommand {
 	public static final String COMMAND = "rlog";
 
-	public static final String patternString = revisionPattern + "(?:\\s+)" + revisionPattern + "(?:\\s+)" + revisionPattern; // 1 : branchtip, 2 : member, 3 : working
+	public static final String patternString = revisionPattern + "(?:\\s+)" + revisionPattern + "(?:\\s+)" +
+			revisionPattern; // 1 : branchtip, 2 : member, 3 : working
 	private final Pattern pattern = Pattern.compile(patternString);
 	private VcsRevisionNumber branchTip = null;
 	private VcsRevisionNumber memberRev = null;
@@ -28,8 +30,10 @@ public class GetRevisionInfo extends SiCLICommand {
 	@NonNls
 	public static final String NOT_A_MEMBER = "Not a member";
 
-	public GetRevisionInfo(List<VcsException> errors, EncodingProvider encodingProvider, String memberPath, File directory) {
-		super(errors, encodingProvider, COMMAND, "--noheaderformat", "--notrailerformat", "--fields=branchtiprev,memberrev,workingrev", memberPath);
+	public GetRevisionInfo(List<VcsException> errors, MksCLIConfiguration mksCLIConfiguration, String memberPath,
+						   File directory) {
+		super(errors, mksCLIConfiguration, COMMAND, "--noheaderformat", "--notrailerformat",
+				"--fields=branchtiprev,memberrev,workingrev", memberPath);
 		this.memberPath = memberPath;
 		setWorkingDir(directory);
 	}
@@ -72,7 +76,8 @@ public class GetRevisionInfo extends SiCLICommand {
 			errors.add(new VcsException(NOT_A_MEMBER));
 			return;
 		} else {
-			super.handleErrorOutput(errorOutput);	//To change body of overridden methods use File | Settings | File Templates.
+			super.handleErrorOutput(
+					errorOutput);	//To change body of overridden methods use File | Settings | File Templates.
 		}
 	}
 

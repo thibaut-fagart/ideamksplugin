@@ -1,18 +1,19 @@
 package org.intellij.vcs.mks.sicommands;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.Date;
-import java.util.List;
+import com.intellij.openapi.vcs.VcsException;
+import com.intellij.openapi.vcs.history.VcsRevisionNumber;
 import org.intellij.vcs.mks.AbstractMKSCommand;
-import org.intellij.vcs.mks.EncodingProvider;
+import org.intellij.vcs.mks.MksCLIConfiguration;
 import org.intellij.vcs.mks.MksRevisionNumber;
 import org.intellij.vcs.mks.io.AsyncStreamBuffer;
 import org.intellij.vcs.mks.model.MksMemberState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import com.intellij.openapi.vcs.VcsException;
-import com.intellij.openapi.vcs.history.VcsRevisionNumber;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.Date;
+import java.util.List;
 
 /**
  * @author Thibaut Fagart
@@ -30,16 +31,17 @@ public abstract class SiCLICommand extends AbstractMKSCommand implements Runnabl
 	protected static final String userPattern = "(?:(?:[^\\t]+? \\()?([^\\(\\s\\)]+)(?:\\))?)?";
 	protected static final String DEFERRED = "deferred";
 	private String commandString;
-	protected final EncodingProvider encodingProvider;
+	protected final MksCLIConfiguration mksCLIConfiguration;
 	private String command;
 	private String[] args;
 	protected String commandOutput;
 	private File workingDir;
 	protected int exitValue;
 
-	public SiCLICommand(@NotNull List<VcsException> errors, @NotNull EncodingProvider encodingProvider, @NotNull String command, String... args) {
+	public SiCLICommand(@NotNull List<VcsException> errors, @NotNull MksCLIConfiguration mksCLIConfiguration,
+						@NotNull String command, String... args) {
 		super(errors);
-		this.encodingProvider = encodingProvider;
+		this.mksCLIConfiguration = mksCLIConfiguration;
 		this.command = command;
 		this.args = args;
 	}
@@ -81,8 +83,8 @@ public abstract class SiCLICommand extends AbstractMKSCommand implements Runnabl
 			AsyncStreamBuffer stdout =
 					new AsyncStreamBuffer(process.getInputStream());
 
-			commandOutput = new String(stdout.get(), encodingProvider.getMksSiEncoding(command));
-			String errorOutput = new String(stderr.get(), encodingProvider.getMksSiEncoding(command));
+			commandOutput = new String(stdout.get(), mksCLIConfiguration.getMksSiEncoding(command));
+			String errorOutput = new String(stderr.get(), mksCLIConfiguration.getMksSiEncoding(command));
 			try {
 				exitValue = process.waitFor();
 			} catch (InterruptedException e) {
@@ -102,7 +104,8 @@ public abstract class SiCLICommand extends AbstractMKSCommand implements Runnabl
 			if (exitValue == 0) {
 				LOGGER.warn("command [" + this + "] wrote to stderr " + errorOutput);
 			} else if (exitValue == 2 && errorOutput.startsWith("Connecting to ")) {
-				LOGGER.warn("mks returned [" + errorOutput + "], you probably need to reconnect to the server manually, try executing 'si connect --hostname=$mksHost$'");
+				LOGGER.warn("mks returned [" + errorOutput +
+						"], you probably need to reconnect to the server manually, try executing 'si connect --hostname=$mksHost$'");
 			} else {
 				LOGGER.error("return code " + exitValue + " for command " + this
 						+ ", stdErr=" + errorOutput);
@@ -139,23 +142,26 @@ public abstract class SiCLICommand extends AbstractMKSCommand implements Runnabl
 		return DEFERRED.equals(deferred);
 	}
 
-	protected MksMemberState createDeferredState(String workingRev, String memberRev, String workingCpid, String type) throws VcsException {
+	protected MksMemberState createDeferredState(String workingRev, String memberRev, String workingCpid,
+												 String type) throws VcsException {
 		return createDeferredState(workingRev, memberRev, workingCpid, type, null);
 	}
 
-	protected MksMemberState createDeferredState(String workingRev, String memberRev, String workingCpid, String type, Date memberTimestamp) throws VcsException {
+	protected MksMemberState createDeferredState(String workingRev, String memberRev, String workingCpid, String type,
+												 Date memberTimestamp) throws VcsException {
 		if (DEFERRED_ADD.equals(type)) {
 			return new MksMemberState((MksRevisionNumber.createRevision(workingRev)), null, workingCpid,
 					MksMemberState.Status.ADDED, memberTimestamp);
 		} else if (DEFERRED_DROP.equals(type)) {
 			return new MksMemberState(null, (MksRevisionNumber.createRevision(memberRev)), workingCpid,
 					MksMemberState.Status.DROPPED, memberTimestamp);
-		} else if (DEFERRED_CHECKIN.equals(type))  {
+		} else if (DEFERRED_CHECKIN.equals(type)) {
 			return new MksMemberState(null, (MksRevisionNumber.createRevision(memberRev)), workingCpid,
 					MksMemberState.Status.CHECKED_OUT, memberTimestamp);
 		} else {
 			LOGGER.warn(this + " : deferred operation (" + type + ") not supported at moment, returning 'unknown'");
-			return new MksMemberState((MksRevisionNumber.createRevision(workingRev)), (MksRevisionNumber.createRevision(memberRev)), workingCpid,
+			return new MksMemberState((MksRevisionNumber.createRevision(workingRev)),
+					(MksRevisionNumber.createRevision(memberRev)), workingCpid,
 					MksMemberState.Status.UNKNOWN, memberTimestamp);
 		}
 	}
