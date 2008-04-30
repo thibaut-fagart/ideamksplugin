@@ -5,7 +5,10 @@ import org.jetbrains.annotations.NotNull;
 /**
  * @author Thibaut Fagart
  */
-public interface EncodingProvider {
+public interface MksCLIConfiguration {
 	@NotNull
 	String getMksSiEncoding(String command);
+
+	@NotNull
+	String getDatePattern();
 }

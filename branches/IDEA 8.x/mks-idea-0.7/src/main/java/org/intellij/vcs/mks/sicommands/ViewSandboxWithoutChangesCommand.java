@@ -1,10 +1,11 @@
 package org.intellij.vcs.mks.sicommands;
 
-import java.util.List;
-import org.intellij.vcs.mks.EncodingProvider;
-import org.intellij.vcs.mks.model.MksMemberState;
 import com.intellij.openapi.vcs.VcsException;
 import com.intellij.openapi.vcs.history.VcsRevisionNumber;
+import org.intellij.vcs.mks.MksCLIConfiguration;
+import org.intellij.vcs.mks.model.MksMemberState;
+
+import java.util.List;
 
 /**
  * Obtains members that HAVE NOT BEEN CHANGED LOCALLY.
@@ -15,13 +16,15 @@ import com.intellij.openapi.vcs.history.VcsRevisionNumber;
 public class ViewSandboxWithoutChangesCommand extends AbstractViewSandboxCommand {
 
 
-	public ViewSandboxWithoutChangesCommand(final List<VcsException> errors, final EncodingProvider encodingProvider, final String sandboxPath) {
-		super(errors, encodingProvider, sandboxPath, "--filter=!changed", "--filter=!deferred");
+	public ViewSandboxWithoutChangesCommand(final List<VcsException> errors,
+											final MksCLIConfiguration mksCLIConfiguration, final String sandboxPath) {
+		super(errors, mksCLIConfiguration, sandboxPath, "--filter=!changed", "--filter=!deferred");
 	}
 
 	@Override
 	protected MksMemberState createState(final String workingRev, final String memberRev, final String workingCpid,
-										 final String locker, final String lockedSandbox, final String type, final String deferred) throws VcsException {
+										 final String locker, final String lockedSandbox, final String type,
+										 final String deferred) throws VcsException {
 		VcsRevisionNumber workingRevision = createRevision(workingRev);
 		VcsRevisionNumber memberRevision = createRevision(memberRev);
 		if (!"archived".equals(type)) {

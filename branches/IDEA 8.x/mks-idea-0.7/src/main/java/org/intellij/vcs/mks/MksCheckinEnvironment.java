@@ -1,19 +1,13 @@
 package org.intellij.vcs.mks;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import org.intellij.vcs.mks.realtime.MksSandboxInfo;
-import org.jetbrains.annotations.NonNls;
-import org.jetbrains.annotations.Nullable;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.vcs.CheckinProjectPanel;
 import com.intellij.openapi.vcs.FilePath;
 import com.intellij.openapi.vcs.FileStatus;
 import com.intellij.openapi.vcs.VcsException;
 import com.intellij.openapi.vcs.changes.Change;
-import com.intellij.openapi.vcs.changes.ContentRevision;
 import com.intellij.openapi.vcs.changes.ChangeList;
+import com.intellij.openapi.vcs.changes.ContentRevision;
 import com.intellij.openapi.vcs.checkin.CheckinEnvironment;
 import com.intellij.openapi.vcs.ui.RefreshableOnComponent;
 import com.intellij.openapi.vfs.VirtualFile;
@@ -21,6 +15,13 @@ import com.intellij.vcsUtil.VcsUtil;
 import mks.integrations.common.TriclopsException;
 import mks.integrations.common.TriclopsSiMember;
 import mks.integrations.common.TriclopsSiMembers;
+import org.intellij.vcs.mks.realtime.MksSandboxInfo;
+import org.jetbrains.annotations.NonNls;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 /**
  * @author Thibaut Fagart
@@ -49,7 +50,8 @@ public class MksCheckinEnvironment implements CheckinEnvironment {
 
 			}
 		}
-		DispatchBySandboxCommand dispatchAction = new DispatchBySandboxCommand(mksVcs, new ArrayList<VcsException>(), modifiedFiles.toArray(new VirtualFile[modifiedFiles.size()]));
+		DispatchBySandboxCommand dispatchAction = new DispatchBySandboxCommand(mksVcs, new ArrayList<VcsException>(),
+				modifiedFiles.toArray(new VirtualFile[modifiedFiles.size()]));
 		dispatchAction.execute();
 
 		List<VcsException> exceptions = dispatchAction.errors;
@@ -127,7 +129,7 @@ public class MksCheckinEnvironment implements CheckinEnvironment {
 		return false;
 	}
 
-    public boolean keepChangeListAfterCommit(ChangeList changeList) {
-        return true;
-    }
+	public boolean keepChangeListAfterCommit(ChangeList changeList) {
+		return true;
+	}
 }

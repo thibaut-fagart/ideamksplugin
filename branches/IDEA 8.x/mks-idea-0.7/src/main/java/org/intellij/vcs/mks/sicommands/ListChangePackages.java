@@ -1,19 +1,20 @@
 package org.intellij.vcs.mks.sicommands;
 
-import java.awt.event.ActionEvent;
-import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
-import java.util.ArrayList;
-import java.util.List;
-import javax.swing.*;
-import org.intellij.vcs.mks.EncodingProvider;
+import com.intellij.openapi.ui.DialogWrapper;
+import com.intellij.openapi.vcs.VcsException;
+import org.intellij.vcs.mks.MksCLIConfiguration;
 import org.intellij.vcs.mks.model.MksChangePackage;
 import org.intellij.vcs.mks.model.MksServerInfo;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import com.intellij.openapi.ui.DialogWrapper;
-import com.intellij.openapi.vcs.VcsException;
+
+import javax.swing.*;
+import java.awt.event.ActionEvent;
+import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * @author Thibaut Fagart
@@ -29,8 +30,10 @@ public class ListChangePackages extends SiCLICommand {
 	public static final String ARGS = "--fields=id,user,state,summary";
 	public final MksServerInfo serverInfo;
 
-	public ListChangePackages(List<VcsException> errors, EncodingProvider encodingProvider, final MksServerInfo server) {
-		super(errors, encodingProvider, COMMAND, (server == null) ? new String[]{ARGS} : new String[]{ARGS, "--hostname", server.host});
+	public ListChangePackages(List<VcsException> errors, MksCLIConfiguration mksCLIConfiguration,
+							  final MksServerInfo server) {
+		super(errors, mksCLIConfiguration, COMMAND,
+				(server == null) ? new String[]{ARGS} : new String[]{ARGS, "--hostname", server.host});
 		serverInfo = server;
 	}
 
@@ -47,12 +50,14 @@ public class ListChangePackages extends SiCLICommand {
 				}
 				String[] parts = line.split("\t");
 				if (parts.length < 4) {
-					String errrorMessage = "unexpected command output {" + line + "}, expected 4 parts separated by \\t, while executing " + command;
+					String errrorMessage = "unexpected command output {" + line +
+							"}, expected 4 parts separated by \\t, while executing " + command;
 					LOGGER.error(errrorMessage, "");
 					//noinspection ThrowableInstanceNeverThrown
 					errors.add(new VcsException(errrorMessage));
 				} else {
-					tempChangePackages.add(new MksChangePackage(serverInfo.host, parts[ID], parts[USER], parts[STATE], parts[SUMMARY]));
+					tempChangePackages.add(new MksChangePackage(serverInfo.host, parts[ID], parts[USER], parts[STATE],
+							parts[SUMMARY]));
 				}
 			}
 			changePackages = tempChangePackages;

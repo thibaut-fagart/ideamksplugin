@@ -1,9 +1,7 @@
 package org.intellij.vcs.mks;
 
-import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.options.Configurable;
 import com.intellij.openapi.options.ConfigurationException;
-import com.intellij.openapi.project.Project;
 import org.intellij.vcs.mks.model.MksServerInfo;
 import org.jetbrains.annotations.Nls;
 import org.jetbrains.annotations.NonNls;
@@ -13,6 +11,8 @@ import org.jetbrains.annotations.Nullable;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.nio.charset.Charset;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.*;
 
 /**
@@ -22,14 +22,11 @@ public class MksConfigurableForm implements Configurable {
 	private JPanel mainPanel;
 	private JTable MKSSICommandLineTable;
 	private JTextArea ignoredServersTA;
+	private JTextField datePatternString;
 	private DefaultTableModel tableModel;
 	private MksConfiguration configuration;
 	private JComboBox charsetEditorCombo = new JComboBox();
 	private static final String DEFAULT_ENCODING_VALUE = "<DEFAULT>";
-
-	public MksConfigurableForm(final Project myProject) {
-		this(ApplicationManager.getApplication().getComponent(MksConfiguration.class));
-	}
 
 	public MksConfigurableForm(@NotNull final MksConfiguration configuration) {
 		this.configuration = configuration;
@@ -69,7 +66,8 @@ public class MksConfigurableForm implements Configurable {
 
 		@Nls final String commandColumnName = "Command";
 		@Nls final String EncodingCommandName = "Encoding";
-		return new DefaultTableModel(createTableData(getConfiguration()), new String[]{commandColumnName, EncodingCommandName}) {
+		return new DefaultTableModel(createTableData(getConfiguration()),
+				new String[]{commandColumnName, EncodingCommandName}) {
 			@Override
 			public boolean isCellEditable(final int row, final int column) {
 				return column == 1;
@@ -85,7 +83,8 @@ public class MksConfigurableForm implements Configurable {
 		int i = 1;
 		for (final String command : knownCommands) {
 			final String commandEncoding = configuration.SI_ENCODINGS.getMap().get(command);
-			result[i++] = new String[]{command, (commandEncoding == null) ? MksConfigurableForm.DEFAULT_ENCODING_VALUE : commandEncoding};
+			result[i++] = new String[]{command,
+					(commandEncoding == null) ? MksConfigurableForm.DEFAULT_ENCODING_VALUE : commandEncoding};
 		}
 		return result;
 	}
@@ -111,6 +110,14 @@ public class MksConfigurableForm implements Configurable {
 //		configuration.PROJECT = myFldProject.getText();
 		configuration.SI_ENCODINGS.setMap(getEncodingMap());
 		configuration.defaultEncoding = getDefaultEncoding();
+		try {
+			configuration.setDatePattern(validateDatePattern());
+		} catch (Exception e) {
+			throw new ConfigurationException(
+					"Bad date pattern " + this.datePatternString.getText() + ", must be a valid" +
+							" java dateFormat pattern");
+
+		}
 		final List<MksServerInfo> ignoredServersListOld = parseIgnoredServers(configuration.getIgnoredServers());
 		final List<MksServerInfo> ignoredServersListNew;
 		try {
@@ -131,13 +138,20 @@ public class MksConfigurableForm implements Configurable {
 		}
 	}
 
+	private String validateDatePattern() {
+		DateFormat format = new SimpleDateFormat(this.datePatternString.getText());
+		format.format(new Date());
+		return this.datePatternString.getText();
+	}
+
 	private List<MksServerInfo> parseIgnoredServers(final String serverList) {
 		final StringTokenizer tok = new StringTokenizer(serverList, ",", false);
 		final ArrayList<MksServerInfo> ret = new ArrayList<MksServerInfo>();
 		while (tok.hasMoreTokens()) {
 			final StringTokenizer tok2 = new StringTokenizer(tok.nextToken(), ":");
 			if (tok2.countTokens() != 2) {
-				throw new IllegalArgumentException("bad server list, it has to be a comma separated list of <host:port>, example \"myServer1:7001,myServer2:7001\"");
+				throw new IllegalArgumentException(
+						"bad server list, it has to be a comma separated list of <host:port>, example \"myServer1:7001,myServer2:7001\"");
 			}
 			ret.add(new MksServerInfo("anon", tok2.nextToken(), tok2.nextToken()));
 		}
@@ -173,6 +187,11 @@ public class MksConfigurableForm implements Configurable {
 	public final void reset() {
 		initCommands();
 		initIgnoredServers();
+		initDatePattern();
+	}
+
+	private void initDatePattern() {
+		this.datePatternString.setText(configuration.getDatePattern());
 	}
 
 	private MksConfiguration getConfiguration() {
@@ -181,14 +200,20 @@ public class MksConfigurableForm implements Configurable {
 
 	public boolean isModified() {
 		final MksConfiguration configuration = getConfiguration();
+		boolean isDateChanged;
+		try {
+			isDateChanged = !validateDatePattern().equals(configuration.getDatePattern());
+		} catch (Exception e) {
+			isDateChanged = true;
+		}
 		return isEncodingsModified(configuration)
 				|| (!configuration.getIgnoredServers().equals(ignoredServersTA.getText()))
+				|| isDateChanged
 //			&& configuration.PROJECT.equals(.getText())
 				;
 	}
 
 	private boolean isEncodingsModified(final MksConfiguration configuration) {
-		// todo
 		return true;
 	}
 
