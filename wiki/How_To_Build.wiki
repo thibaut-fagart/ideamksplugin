@@ -21,6 +21,6 @@ The file install-idea-files.bat  found at the root of the branch can act as an e
 run the mvn package comand in the sandbox
 
 If you then want to install the built plugin in your idea's current plugins (not for debugging but for actual use), you then need to 
-* delete ~/.IntelliJIdea70/config/plugins/mks-idea
-* extract the built mks-idea-dist.zip in ~/.IntelliJIdea70/config/plugins, this should recreate the mks-idea dir
-* start idea
+ * delete ~/.IntelliJIdea70/config/plugins/mks-idea
+ * extract the built mks-idea-dist.zip in ~/.IntelliJIdea70/config/plugins, this should recreate the mks-idea dir
+ * start idea
