@@ -5,6 +5,7 @@ import com.intellij.openapi.util.DefaultJDOMExternalizer;
 import com.intellij.openapi.util.InvalidDataException;
 import com.intellij.openapi.util.JDOMExternalizable;
 import com.intellij.openapi.util.WriteExternalException;
+import com.intellij.openapi.ui.InputValidator;
 import org.intellij.vcs.mks.model.MksServerInfo;
 import org.jdom.Element;
 import org.jetbrains.annotations.NonNls;
@@ -14,6 +15,9 @@ import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.StringTokenizer;
+import java.util.Date;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 
 /**
  * IMPORTANT : keep persisted properties PUBLIC or they won't be persisted !
@@ -193,4 +197,20 @@ public class MksConfiguration
 		}
 	}
 
+	public static class DatePatternValidator implements InputValidator {
+
+		public boolean checkInput(String s) {
+			try {
+				DateFormat format = new SimpleDateFormat(s);
+				format.format(new Date());
+				return true;
+			} catch (IllegalArgumentException e) {
+				return false;
+			}
+		}
+
+		public boolean canClose(String s) {
+			return checkInput(s);
+		}
+	}
 }
