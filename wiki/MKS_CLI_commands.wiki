@@ -38,3 +38,15 @@ It seems encodings need to be set differently depending on the commands.
 On my Installation (French machine, French server), it seems most of si commands (especially si viewcps, and any command that outputs dates) need to be run with IBM850 encoding. 
 
 But the encoding used to checkin files seems different : ISO-8859-1 needs to be used for si viewrevision. This encoding is indeed the one that was used to create the file initially
+
+= how --filter:file works =
+it filters all files whose relative path to the bottommost sandbox matches the provided string.
+
+examples
+ si viewsandbox --recurse --filter=file:*sr*
+> all files whose path relative to the current dir contain the sr string. Will not return files members of other subsandboxes if any
+ si viewsandbox --recurse --filter=file:src/*
+> all files belonging to the src subdir
+ si viewsandbox --recurse --filter=file:src/*.java
+> all java files belonging to the src subdir
+all of these would select all java files belong to 
