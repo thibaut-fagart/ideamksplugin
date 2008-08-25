@@ -39,7 +39,7 @@ public class SandboxListSynchronizerImpl extends AbstractMKSSynchronizer
 	}
 
 	protected SandboxListSynchronizerImpl(MksConfiguration config) {
-		super(ListSandboxes.COMMAND, config, "--displaySubs");
+		super(ListSandboxes.COMMAND, config);
 	}
 
 	public void addListener(@NotNull SandboxListListener listener) {
@@ -116,7 +116,9 @@ public class SandboxListSynchronizerImpl extends AbstractMKSSynchronizer
 			if (line.startsWith("-----")) {
 				// detection of a new update
 				LOGGER.debug("update notification : " + line);
+				System.err.println("update notification : " + line);
 				updateSandboxList();
+				System.err.println("completed update notification : " + line);
 			}
 		} catch (Exception e) {
 			LOGGER.error("error parsing mks synchronizer output [" + line + "], skipping that line  because : " +
