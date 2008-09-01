@@ -3,11 +3,11 @@
 	<groupId>mks-idea</groupId>
 	<artifactId>mks-idea</artifactId>
 	<packaging>jar</packaging>
-	<version>0.7.1_Diana</version>
+	<version>0.7.2.Diana-SNAPSHOT</version>
 	<name>IDEA MKS Plugin</name>
 	<description>Implementation of an IDEA MKS plugin.</description>
 	<properties>
-		<idea.version>8.0.8280</idea.version>
+		<idea.version>8.0.8664</idea.version> <!--8.0.M1-->
 	</properties>
 	<scm>
 		<connection>scm:svn:http://ideamksplugin.googlecode.com/svn/branches/IDEA 8.x/mks-idea-0.7</connection>
@@ -45,25 +45,25 @@
 		<!--<scope>provided</scope>-->
 		<!--</dependency>-->
 		<dependency>
-			<groupId>com.intellij.idea</groupId>
+			<groupId>com.intellij</groupId>
 			<artifactId>openapi</artifactId>
 			<version>${idea.version}</version>
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
-			<groupId>com.intellij.idea</groupId>
+			<groupId>com.intellij</groupId>
 			<artifactId>annotations</artifactId>
 			<version>${idea.version}</version>
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
-			<groupId>com.intellij.idea</groupId>
+			<groupId>com.intellij</groupId>
 			<artifactId>extensions</artifactId>
 			<version>${idea.version}</version>
 			<scope>provided</scope>
 		</dependency>
     <dependency>
-      <groupId>com.intellij.idea</groupId>
+      <groupId>com.intellij</groupId>
       <artifactId>util</artifactId>
       <version>${idea.version}</version>
       <scope>provided</scope>
@@ -152,15 +152,4 @@
 			</plugin>
 		</plugins>
 	</build>
-	<repositories>
-		<!-- mevenide provides com.intellij.idea group with 6.0.4 versions-->
-		<repository>
-			<id>mevenide</id>
-			<name>Mevenide's M2 repo</name>
-			<url>http://mevenide.codehaus.org/m2-repository</url>
-			<!--<snapshots>-->
-			<!--<updatePolicy>always</updatePolicy>-->
-			<!--</snapshots-->
-		</repository>
-	</repositories>
 </project>

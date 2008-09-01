@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<module relativePaths="true" type="PLUGIN_MODULE" version="4">
+<module relativePaths="true" MavenProjectsManager.isMavenModule="true" type="PLUGIN_MODULE" version="4">
   <component name="DevKit.ModuleBuildProperties" url="file://$MODULE_DIR$/src/main/resources/META-INF/plugin.xml" />
   <component name="NewModuleRootManager" LANGUAGE_LEVEL="JDK_1_5" inherit-compiler-output="false">
     <output url="file://$MODULE_DIR$/target/classes" />
@@ -15,33 +15,30 @@
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="module-library" exported="">
-      <library name="junit:junit:3.8.1">
+    <orderEntry type="module-library">
+      <library name="org.easymock:easymock:2.2">
         <CLASSES>
-          <root url="jar://$MODULE_DIR$/../../../../.m2/repository/junit/junit/3.8.1/junit-3.8.1.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/org/easymock/easymock/2.2/easymock-2.2.jar!/" />
         </CLASSES>
-        <JAVADOC />
+        <JAVADOC>
+          <root url="jar://$MAVEN_REPOSITORY$/org/easymock/easymock/2.2/easymock-2.2-javadoc.jar!/" />
+        </JAVADOC>
         <SOURCES>
-          <root url="jar://$MODULE_DIR$/../../../../.m2/repository/junit/junit/3.8.1/junit-3.8.1-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/org/easymock/easymock/2.2/easymock-2.2-sources.jar!/" />
         </SOURCES>
       </library>
     </orderEntry>
     <orderEntry type="module-library" exported="">
-      <library name="org.easymock:easymock:2.2">
+      <library name="com.mks:mkscmapi:8.3.2392">
         <CLASSES>
-          <root url="jar://$MODULE_DIR$/../../../../.m2/repository/org/easymock/easymock/2.2/easymock-2.2.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/com/mks/mkscmapi/8.3.2392/mkscmapi-8.3.2392.jar!/" />
         </CLASSES>
-        <JAVADOC />
-        <SOURCES />
-      </library>
-    </orderEntry>
-    <orderEntry type="module-library">
-      <library>
-        <CLASSES>
-          <root url="jar://$MODULE_DIR$/lib/8.3.2392/mkscmapi.jar!/" />
-        </CLASSES>
-        <JAVADOC />
-        <SOURCES />
+        <JAVADOC>
+          <root url="jar://$MAVEN_REPOSITORY$/com/mks/mkscmapi/8.3.2392/mkscmapi-8.3.2392-javadoc.jar!/" />
+        </JAVADOC>
+        <SOURCES>
+          <root url="jar://$MAVEN_REPOSITORY$/com/mks/mkscmapi/8.3.2392/mkscmapi-8.3.2392-sources.jar!/" />
+        </SOURCES>
       </library>
     </orderEntry>
     <orderEntryProperties />
