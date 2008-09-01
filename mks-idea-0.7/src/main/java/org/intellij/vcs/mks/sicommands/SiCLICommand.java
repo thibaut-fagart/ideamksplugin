@@ -9,6 +9,7 @@ import org.intellij.vcs.mks.io.AsyncStreamBuffer;
 import org.intellij.vcs.mks.model.MksMemberState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.NonNls;
 
 import java.io.File;
 import java.io.IOException;
@@ -39,11 +40,18 @@ public abstract class SiCLICommand extends AbstractMKSCommand implements Runnabl
 	protected int exitValue;
 
 	public SiCLICommand(@NotNull List<VcsException> errors, @NotNull MksCLIConfiguration mksCLIConfiguration,
-						@NotNull String command, String... args) {
+						@NotNull String command, @NonNls String... args) {
 		super(errors);
 		this.mksCLIConfiguration = mksCLIConfiguration;
 		this.command = command;
 		this.args = args;
+	}
+
+	public void addArg(String arg) {
+		String[] newArgs = new String[args.length + 1];
+		System.arraycopy(args, 0, newArgs, 0, args.length);
+		newArgs[args.length] = arg;
+		args = newArgs;
 	}
 
 	public void setWorkingDir(File aDir) {

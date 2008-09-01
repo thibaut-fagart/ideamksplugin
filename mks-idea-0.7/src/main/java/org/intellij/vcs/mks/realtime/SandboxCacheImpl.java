@@ -9,6 +9,7 @@ import com.intellij.openapi.vcs.FilePath;
 import com.intellij.openapi.vcs.ProjectLevelVcsManager;
 import com.intellij.openapi.vcs.VcsException;
 import com.intellij.openapi.vcs.actions.VcsContextFactory;
+import com.intellij.openapi.vcs.actions.VcsContextFactory;
 import com.intellij.openapi.vcs.changes.VcsDirtyScopeManager;
 import com.intellij.openapi.vfs.VfsUtil;
 import com.intellij.openapi.vfs.VirtualFile;
@@ -90,6 +91,75 @@ public class SandboxCacheImpl implements SandboxCache {
 		return sandboxVFiles.contains(virtualFile) || virtualFile.getName().equals("project.pj");
 	}
 
+	public void removeSandboxPath(@NotNull String sandboxPath, boolean isSubSandbox) {
+		if (doesSandboxIntersectProject(new File(sandboxPath))) {
+			VirtualFile sandboxVFile = VcsUtil.getVirtualFile(sandboxPath);
+			if (sandboxVFile == null) {
+				LOGGER.warn("trying to remove a sandbox with a null virtual file " + sandboxPath);
+				return;
+			}
+			synchronized (lock) {
+				if (!sandboxVFiles.contains(sandboxVFile)) {
+					LOGGER.warn("trying to remove a sandbox not in sandboxVFiles " + sandboxPath);
+				} else {
+					sandboxVFiles.remove(sandboxVFile);
+					final VirtualFile parent = sandboxVFile.getParent();
+					final List<MksSandboxInfo> infoList = sandboxByFolder.get(parent);
+
+					for (Iterator<MksSandboxInfo> it = infoList.iterator(); it.hasNext();) {
+						MksSandboxInfo sandboxInfo = it.next();
+						if (sandboxInfo.sandboxPath.equals(sandboxPath)) {
+							it.remove();
+							break;
+						}
+					}
+				}
+			}
+		} else {
+			for (Iterator<MksSandboxInfo> it = outOfScopeSandboxes.iterator(); it.hasNext();) {
+				MksSandboxInfo sandbox = it.next();
+				if (sandboxPath.equals(sandbox.sandboxPath)) {
+					it.remove();
+					return;
+				}
+			}
+		}
+	}
+
+	public void updateSandboxPath(@NotNull String sandboxPath, @NotNull String serverHostAndPort,
+								  @NotNull String mksProject, @Nullable String devPath, boolean isSubSandbox) {
+		if (doesSandboxIntersectProject(new File(sandboxPath))) {
+			VirtualFile sandboxVFile = VcsUtil.getVirtualFile(sandboxPath);
+			synchronized (lock) {
+				if (!sandboxVFiles.contains(sandboxVFile)) {
+					LOGGER.warn("trying to remove a sandbox not in sandboxVFiles " + sandboxPath);
+				} else if (sandboxVFile == null) {
+					LOGGER.warn("trying to update a sandbox with no sandboxVFile " + sandboxPath);
+				} else {
+					final List<MksSandboxInfo> infoList = sandboxByFolder.get(sandboxVFile.getParent());
+
+					for (MksSandboxInfo sandboxInfo : infoList) {
+						if (sandboxInfo.sandboxPath.equals(sandboxPath)) {
+							infoList.remove(sandboxInfo);
+							infoList.add(new MksSandboxInfo(sandboxPath, serverHostAndPort, mksProject, devPath,
+									sandboxVFile, isSubSandbox));
+							break;
+						}
+					}
+				}
+			}
+		} else {
+			for (MksSandboxInfo sandbox : outOfScopeSandboxes) {
+				if (sandboxPath.equals(sandbox.sandboxPath)) {
+					outOfScopeSandboxes.remove(sandbox);
+					outOfScopeSandboxes.add(new MksSandboxInfo(sandboxPath, serverHostAndPort, mksProject, devPath,
+							null, isSubSandbox));
+					return;
+				}
+			}
+		}
+	}
+
 	public void addSandboxPath(@NotNull String sandboxPath, @NotNull final String mksHostAndPort,
 							   @NotNull String mksProject, @Nullable String devPath, boolean isSubSandbox) {
 
@@ -121,6 +191,10 @@ public class SandboxCacheImpl implements SandboxCache {
 		sandboxPath = sandboxInfo.sandboxPath;
 		sandboxVFile = sandboxInfo.sandboxPjFile == null ? VcsUtil.getVirtualFile(sandboxInfo.sandboxPath) :
 				sandboxInfo.sandboxPjFile;
+		if (sandboxVFiles.contains(sandboxVFile)) {
+			LOGGER.warn("trying to add an already monitored sandbox " + sandboxInfo);
+			return;
+		}
 		VirtualFile sandboxFolder;
 		if (sandboxVFile != null) {
 			sandboxFolder = (sandboxVFile.isDirectory()) ? sandboxVFile : sandboxVFile.getParent();
@@ -141,35 +215,35 @@ public class SandboxCacheImpl implements SandboxCache {
 				LOGGER.debug("updated sandbox in cache : " + sandboxVFile);
 				if (!sandboxInfo.isSubSandbox) {
 					final VirtualFile sandboxParentFolderVFile = sandboxVFile.getParent();
-					LOGGER.info("marking " + sandboxParentFolderVFile + "as dirty");
-					ApplicationManager.getApplication().invokeLater(new Runnable() {
-						public void run() {
-							ApplicationManager.getApplication().runReadAction(new Runnable() {
-								public void run() {
-									if (!project.isDisposed()) {
-										VcsDirtyScopeManager.getInstance(project)
-												.dirDirtyRecursively(sandboxParentFolderVFile);
-									}
-								}
-							});
-						}
-					});
+					LOGGER.info("marking " + sandboxParentFolderVFile + " as dirty");
+					dirDirtyRecursively(sandboxParentFolderVFile);
 				}
-
-//				} catch (TriclopsException e) {
-//					LOGGER.error("invalid sandbox ? (" + sandboxPath + ")", e);
-//					addRejected(sandboxInfo);
-//				}
 			}
 		} else {
 			LOGGER.warn("unable to find the virtualFile for " + sandboxPath);
 			VirtualFile sandboxPjFile = VcsUtil.getVirtualFile(sandboxPath);
 			if (sandboxPjFile != null) {
-				sandboxInfo = new MksSandboxInfo(sandboxInfo.sandboxPath, sandboxInfo.hostAndPort,
-						sandboxInfo.mksProject, sandboxInfo.devPath, sandboxPjFile, sandboxInfo.isSubSandbox);
+				sandboxInfo =
+						new MksSandboxInfo(sandboxInfo.sandboxPath, sandboxInfo.hostAndPort, sandboxInfo.mksProject,
+								sandboxInfo.devPath, sandboxPjFile, sandboxInfo.isSubSandbox);
 			}
 			addRejected(sandboxInfo);
 		}
+	}
+
+	private void dirDirtyRecursively(final VirtualFile sandboxParentFolderVFile) {
+		ApplicationManager.getApplication().invokeLater(new Runnable() {
+			public void run() {
+				ApplicationManager.getApplication().runReadAction(new Runnable() {
+					public void run() {
+						if (!project.isDisposed()) {
+							VcsDirtyScopeManager.getInstance(project)
+									.dirDirtyRecursively(sandboxParentFolderVFile);
+						}
+					}
+				});
+			}
+		});
 	}
 
 	/**
@@ -206,14 +280,6 @@ public class SandboxCacheImpl implements SandboxCache {
 		}
 	}
 
-	public void clear() {
-		synchronized (lock) {
-			sandboxByFolder.clear();
-			sandboxVFiles.clear();
-			outOfScopeSandboxes.clear();
-		}
-	}
-
 	// for mks monitoring
 	public void dumpStateOn(@NotNull PrintWriter pw) {
 		pw.println("in project sandboxes");
@@ -226,18 +292,17 @@ public class SandboxCacheImpl implements SandboxCache {
 				}
 			}
 		}
-		Comparator<MksSandboxInfo> comparator =
-				new Comparator<MksSandboxInfo>() {
-					public int compare(final MksSandboxInfo first, final MksSandboxInfo other) {
-						if (first == null) {
-							return -1;
-						} else if (other == null) {
-							return 1;
-						} else {
-							return first.sandboxPath.compareTo(other.sandboxPath);
-						}
-					}
-				};
+		Comparator<MksSandboxInfo> comparator = new Comparator<MksSandboxInfo>() {
+			public int compare(final MksSandboxInfo first, final MksSandboxInfo other) {
+				if (first == null) {
+					return -1;
+				} else if (other == null) {
+					return 1;
+				} else {
+					return first.sandboxPath.compareTo(other.sandboxPath);
+				}
+			}
+		};
 		Collections.sort(sortList, comparator);
 		for (MksSandboxInfo sandboxInfo : sortList) {
 			pw.println(sandboxInfo);
@@ -266,15 +331,34 @@ public class SandboxCacheImpl implements SandboxCache {
 	private void determineSandboxesInProject() {
 		LOGGER.info("rootsChanged, re computing in/out of project sandboxes");
 		synchronized (lock) {
-			List<MksSandboxInfo> allSandboxes =
-					new ArrayList<MksSandboxInfo>(sandboxVFiles.size() + outOfScopeSandboxes.size());
-			for (List<MksSandboxInfo> infoList : sandboxByFolder.values()) {
-				allSandboxes.addAll(infoList);
+			List<MksSandboxInfo> newSandboxesInProject = new ArrayList<MksSandboxInfo>();
+			for (MksSandboxInfo sandbox : outOfScopeSandboxes) {
+				if (this.doesSandboxIntersectProject(new File(sandbox.sandboxPath))) {
+					newSandboxesInProject.add(sandbox);
+				}
 			}
-			allSandboxes.addAll(outOfScopeSandboxes);
-			clear();
-			for (MksSandboxInfo sandbox : allSandboxes) {
-				addSandbox(sandbox);
+			List<MksSandboxInfo> sandboxesRemovedFromProject = new ArrayList<MksSandboxInfo>();
+			List<VirtualFile> foldersToRemove = new ArrayList<VirtualFile>();
+			for (Map.Entry<VirtualFile, List<MksSandboxInfo>> entry : sandboxByFolder.entrySet()) {
+				List<MksSandboxInfo> sandboxes = entry.getValue();
+				for (Iterator<MksSandboxInfo> it = sandboxes.iterator(); it.hasNext();) {
+					MksSandboxInfo sandbox = it.next();
+					if (!this.doesSandboxIntersectProject(new File(sandbox.sandboxPath))) {
+						sandboxesRemovedFromProject.add(sandbox);
+						it.remove();
+					}
+				}
+				if (sandboxes.isEmpty()) {
+					foldersToRemove.add(entry.getKey());
+				}
+			}
+			outOfScopeSandboxes.removeAll(newSandboxesInProject);
+			for (MksSandboxInfo sandboxInfo : newSandboxesInProject) {
+				addSandboxBelongingToProject(sandboxInfo);
+			}
+			outOfScopeSandboxes.addAll(sandboxesRemovedFromProject);
+			for (VirtualFile virtualFile : foldersToRemove) {
+				sandboxByFolder.remove(virtualFile);
 			}
 		}
 	}
@@ -346,7 +430,7 @@ public class SandboxCacheImpl implements SandboxCache {
 	/**
 	 * returns the highest level non ambiguous sandbox for the given file
 	 *
-	 * @param virtualFile the virtual file we want the parent sandbox for
+	 * @param virtualFile the virtual file we want the parent sandbox for (may be a directory)
 	 * @return the sandbox containing  the give file if one exists, null otherwise
 	 */
 	@Nullable
@@ -354,16 +438,23 @@ public class SandboxCacheImpl implements SandboxCache {
 		return getSandbox(virtualFile, false);
 	}
 
-	private MksSandboxInfo getSandbox(VirtualFile virtualFile, boolean closest) {
+	/**
+	 * @param virtualFile a file or a directory
+	 * @param closest	 if true, then the deepest (sub)sandbox will be returned, if false only top level sandboxes will match
+	 * @return
+	 */
+	private MksSandboxInfo getSandbox(@NotNull VirtualFile virtualFile, boolean closest) {
 		MksSandboxInfo sandbox = null;
 		VirtualFile cursorDir = (virtualFile.isDirectory() ? virtualFile : virtualFile.getParent());
 		MksSandboxInfo foundSubSandbox = null;
+		// walk up directory hierarchy until we find a (or several) sandbox
 		for (; cursorDir != null && sandbox == null; cursorDir = cursorDir.getParent()) {
 			List<MksSandboxInfo> infoList = sandboxByFolder.get(cursorDir);
-			if (infoList == null) {
+			if (infoList == null || infoList.isEmpty()) {
 				// no sandbox for this folder
 				continue;
 			} else if (infoList.size() == 1) {
+				// only one sandbox
 				MksSandboxInfo sandboxInfo = infoList.get(0);
 				if (sandboxInfo.isSubSandbox) {
 					foundSubSandbox = sandboxInfo;
@@ -371,16 +462,19 @@ public class SandboxCacheImpl implements SandboxCache {
 					sandbox = sandboxInfo;
 				}
 			} else {
+				// several sandboxes in this directory
 				if (foundSubSandbox != null) {
 					sandbox = foundSubSandbox;
-				} else {
-					// ambiguous sandbox, try to find the good one
+				} else if (!virtualFile.isDirectory()) {
+					// ambiguous sandbox, check them all
 					for (MksSandboxInfo mksSandboxInfo : infoList) {
 						if (checkSandboxContains(mksSandboxInfo, virtualFile)) {
 							sandbox = mksSandboxInfo;
 							break;
 						}
 					}
+				} else {
+					LOGGER.warn("unable to find sandbox for " + virtualFile);
 				}
 			}
 			if (closest && foundSubSandbox != null) {
@@ -408,17 +502,25 @@ public class SandboxCacheImpl implements SandboxCache {
 		}
 		final FilePath sandboxFolderFilePath = vcsContextFactory.createFilePathOn(sandbox.sandboxPjFile.getParent());
 
-		AbstractViewSandboxCommand command = new AbstractViewSandboxCommand(new ArrayList<VcsException>(),
-				project.getComponent(MksVcs.class), sandbox.sandboxPath,
-				"--filter=file:" + MKSHelper.getRelativePath(filePath, sandboxFolderFilePath)) {
-			@Override
-			protected MksMemberState createState(String workingRev, String memberRev, String workingCpid, String locker,
-												 String lockedSandbox, String type, String deferred)
-					throws VcsException {
-				return new MksMemberState(MksRevisionNumber.createRevision(workingRev),
-						MksRevisionNumber.createRevision(memberRev), workingCpid, MksMemberState.Status.UNKNOWN);
-			}
-		};
+		final String relativePath = MKSHelper.getRelativePath(filePath, sandboxFolderFilePath);
+		if ("".equals(relativePath.trim())) {
+			LOGGER.warn("no relative path for " + virtualFile + " from " + sandboxFolderFilePath +
+					", assuming different sandboxes");
+			return false;
+		}
+		AbstractViewSandboxCommand command =
+				new AbstractViewSandboxCommand(new ArrayList<VcsException>(), MksVcs.getInstance(project),
+						sandbox.sandboxPath,
+						"--filter=file:" + relativePath) {
+					@Override
+					protected MksMemberState createState(String workingRev, String memberRev, String workingCpid,
+														 String locker, String lockedSandbox, String type,
+														 String deferred) throws VcsException {
+						return new MksMemberState(MksRevisionNumber.createRevision(workingRev),
+								MksRevisionNumber.createRevision(memberRev), workingCpid,
+								MksMemberState.Status.UNKNOWN);
+					}
+				};
 		command.execute();
 		if (command.foundError()) {
 			LOGGER.error("error while checking if sandbox " + sandbox + " contains " + virtualFile);

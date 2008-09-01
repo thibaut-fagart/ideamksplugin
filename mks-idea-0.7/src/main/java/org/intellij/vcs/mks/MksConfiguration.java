@@ -5,6 +5,7 @@ import com.intellij.openapi.util.DefaultJDOMExternalizer;
 import com.intellij.openapi.util.InvalidDataException;
 import com.intellij.openapi.util.JDOMExternalizable;
 import com.intellij.openapi.util.WriteExternalException;
+import com.intellij.openapi.ui.InputValidator;
 import org.intellij.vcs.mks.model.MksServerInfo;
 import org.jdom.Element;
 import org.jetbrains.annotations.NonNls;
@@ -14,7 +15,13 @@ import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.StringTokenizer;
+import java.util.Date;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 
+/**
+ * IMPORTANT : keep persisted properties PUBLIC or they won't be persisted !
+ */
 public class MksConfiguration
 		implements JDOMExternalizable, ApplicationComponent, MksCLIConfiguration {
 	public static final String DEFAULT_ENCODING = Charset.defaultCharset().name();
@@ -25,7 +32,8 @@ public class MksConfiguration
 	 * (host:port(,host:port)*)?
 	 */
 	public String nonSiServers = "";
-	private String datePattern;
+	public String datePattern;
+	public boolean synchronizeNonMembers = true;
 	private static final String DEFAULT_DATE_PATTERN = "MMM dd, yyyy - hh:mm a";
 
 
@@ -136,6 +144,14 @@ public class MksConfiguration
 		return datePattern;
 	}
 
+	public boolean isSynchronizeNonMembers() {
+		return synchronizeNonMembers;
+	}
+
+	public void setSynchronizeNonMembers(boolean synchronizeNonMembers) {
+		this.synchronizeNonMembers = synchronizeNonMembers;
+	}
+
 	public static class StringMap implements JDOMExternalizable {
 		@NonNls
 		private static final String LEN_STRING = "len";
@@ -181,4 +197,20 @@ public class MksConfiguration
 		}
 	}
 
+	public static class DatePatternValidator implements InputValidator {
+
+		public boolean checkInput(String s) {
+			try {
+				DateFormat format = new SimpleDateFormat(s);
+				format.format(new Date());
+				return true;
+			} catch (IllegalArgumentException e) {
+				return false;
+			}
+		}
+
+		public boolean canClose(String s) {
+			return checkInput(s);
+		}
+	}
 }
