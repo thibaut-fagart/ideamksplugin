@@ -15,6 +15,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.StringReader;
 import java.text.DateFormat;
+import java.text.MessageFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -92,10 +93,8 @@ public class ViewMemberHistoryCommand extends SiCLICommand {
 							info.setDescription(description);
 							revisionsInfo.add(info);
 						} else if (line.startsWith("Member added")) {
-							// ignore this line and any following
-							//noinspection StatementWithEmptyBody
-							while (reader.readLine() != null) {
-							}
+							// ignore this line
+							// Don't ignore the following ones
 						} else if (revisionsInfo.size() >= 1) {
 							LOGGER.debug("assuming multiline comment :" + line);
 							final MksMemberRevisionInfo info = revisionsInfo.get(revisionsInfo.size() - 1);
@@ -115,13 +114,11 @@ public class ViewMemberHistoryCommand extends SiCLICommand {
 		}
 	}
 
-	protected void handleErrorOutput(String errorOutput) {
+	protected void handleErrorOutput(@NonNls String errorOutput) {
 		if (exitValue == 128 && errorOutput.contains("is not a current or destined or pending member")) {
 			errors.add(new VcsException(GetRevisionInfo.NOT_A_MEMBER));
-			return;
 		} else {
-			super.handleErrorOutput(
-					errorOutput);	//To change body of overridden methods use File | Settings | File Templates.
+			super.handleErrorOutput(errorOutput);
 		}
 	}
 
@@ -145,10 +142,11 @@ public class ViewMemberHistoryCommand extends SiCLICommand {
 
 			} else {
 				throw new VcsException(
-						"unknown date format for " + date + " (expected [" + mksCLIConfiguration.getDatePattern() +
-								"]). " +
-								"This may be an encoding issue, encoding used was " +
-								mksCLIConfiguration.getMksSiEncoding(COMMAND));
+						MessageFormat
+								.format(
+								"unknown date format for {0} (expected [{1}]). This may be an encoding issue, encoding used was {2}",
+								date, mksCLIConfiguration.getDatePattern(),
+								mksCLIConfiguration.getMksSiEncoding(COMMAND)));
 
 			}
 		}
