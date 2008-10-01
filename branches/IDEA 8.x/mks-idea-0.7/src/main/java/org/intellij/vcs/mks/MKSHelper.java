@@ -244,7 +244,10 @@ public class MKSHelper {
 	}
 
 	public static String getRelativePath(@NotNull FilePath filePath, @NotNull FilePath parentPath) {
-		return VfsUtil.getRelativePath(filePath.getVirtualFile(), parentPath.getVirtualFile(), File.separatorChar);
-//		return filePath.getPath().substring(parentPath.getPath().length() + 1);
+		return VfsUtil.getRelativePath(filePath.getVirtualFile(), parentPath.getVirtualFile(), '/');
+	}
+
+	public static String getRelativePath(@NotNull VirtualFile virtualFile, @NotNull VirtualFile parentVirtualFile) {
+		return VfsUtil.getRelativePath(virtualFile, parentVirtualFile, '/');
 	}
 }

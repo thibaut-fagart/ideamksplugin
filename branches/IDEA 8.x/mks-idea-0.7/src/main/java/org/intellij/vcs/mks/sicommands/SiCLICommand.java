@@ -32,24 +32,30 @@ public abstract class SiCLICommand extends AbstractMKSCommand implements Runnabl
 	protected static final String userPattern = "(?:(?:[^\\t]+? \\()?([^\\(\\s\\)]+)(?:\\))?)?";
 	protected static final String DEFERRED = "deferred";
 	private String commandString;
-	protected final MksCLIConfiguration mksCLIConfiguration;
-	private String command;
 	private String[] args;
 	protected String commandOutput;
 	private File workingDir;
 	protected int exitValue;
+	private static final int SI_IDX = 0;
+	private static final int COMMAND_IDX = 1;
+	private static final int BATCH_IDX = 2;
+	private boolean batchMode;
 
 	public SiCLICommand(@NotNull List<VcsException> errors, @NotNull MksCLIConfiguration mksCLIConfiguration,
 						@NotNull String command, @NonNls String... args) {
-		super(errors);
-		this.mksCLIConfiguration = mksCLIConfiguration;
-		this.command = command;
+		this(errors, mksCLIConfiguration, command, true, args);
+	}
+
+	public SiCLICommand(@NotNull List<VcsException> errors, @NotNull MksCLIConfiguration mksCLIConfiguration,
+						@NotNull String command, boolean batch, @NonNls String... args) {
+		super(errors, command, mksCLIConfiguration);
+		this.batchMode = batch;
 		this.args = args;
 	}
 
 	public void addArg(String arg) {
-		String[] newArgs = new String[args.length + 1];
-		System.arraycopy(args, 0, newArgs, 0, args.length);
+		String[] newArgs = new String[args.length + COMMAND_IDX];
+		System.arraycopy(args, SI_IDX, newArgs, SI_IDX, args.length);
 		newArgs[args.length] = arg;
 		args = newArgs;
 	}
@@ -59,18 +65,14 @@ public abstract class SiCLICommand extends AbstractMKSCommand implements Runnabl
 	}
 
 	protected String executeCommand() throws IOException {
-		String[] processArgs = new String[args.length + 3];
-		processArgs[0] = "si";
-		processArgs[1] = command;
-		processArgs[2] = "--batch";
-		System.arraycopy(args, 0, processArgs, 3, args.length);
+		String[] processArgs = createCommand();
 		ProcessBuilder builder = new ProcessBuilder(processArgs);
 		if (workingDir != null) {
 			builder.directory(workingDir);
 		}
 		StringBuffer buf = new StringBuffer();
 		for (String s : builder.command()) {
-			boolean surroundWithQuotes = s.indexOf(' ') >= 0;
+			boolean surroundWithQuotes = s.contains(" ");
 			if (surroundWithQuotes) {
 				buf.append("\"");
 			}
@@ -102,16 +104,29 @@ public abstract class SiCLICommand extends AbstractMKSCommand implements Runnabl
 			}
 			handleErrorOutput(errorOutput);
 		} finally {
-			LOGGER.debug(toString() + " finished in " + (System.currentTimeMillis() - start + " ms"));
+			fireCommandCompleted(start);
 		}
 		return buf.toString();
 	}
 
+
+	private String[] createCommand() {
+		final int implicitArgCount = (batchMode) ? BATCH_IDX + 1 : BATCH_IDX;
+		String[] processArgs = new String[args.length + implicitArgCount];
+		processArgs[SI_IDX] = "si";
+		processArgs[COMMAND_IDX] = command;
+		if (batchMode) {
+			processArgs[BATCH_IDX] = "--batch";
+		}
+		System.arraycopy(args, SI_IDX, processArgs, implicitArgCount, args.length);
+		return processArgs;
+	}
+
 	protected void handleErrorOutput(String errorOutput) {
 		if (!"".equals(errorOutput)) {
-			if (exitValue == 0) {
+			if (exitValue == SI_IDX) {
 				LOGGER.warn("command [" + this + "] wrote to stderr " + errorOutput);
-			} else if (exitValue == 2 && errorOutput.startsWith("Connecting to ")) {
+			} else if (exitValue == BATCH_IDX && errorOutput.startsWith("Connecting to ")) {
 				LOGGER.warn("mks returned [" + errorOutput +
 						"], you probably need to reconnect to the server manually, try executing 'si connect --hostname=$mksHost$'");
 			} else {
