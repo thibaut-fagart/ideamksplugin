@@ -169,6 +169,20 @@ public class MksVcsHistoryProvider implements VcsHistoryProvider {
 		return vcs.getSandboxCache().getSubSandbox(filePath.getVirtualFile());
 	}
 
+	public ColumnInfo[] getRevisionColumns(VcsHistorySession vcsHistorySession) {
+		return new ColumnInfo[]{new CpidColumnInfo()};
+	}
+	private static final class CpidColumnInfo extends ColumnInfo<VcsFileRevision, String> {
+		private CpidColumnInfo() {
+			super("Cpid");
+		}
+
+		public String valueOf(VcsFileRevision vcsFileRevision) {
+			return (vcsFileRevision instanceof MksMemberRevisionInfo) ?
+					((MksMemberRevisionInfo)vcsFileRevision).getCpid() : "";
+		}
+	}
+
 	public AnAction[] getAdditionalActions(FileHistoryPanel panel) {
 		return new AnAction[0];
 	}
@@ -202,6 +216,10 @@ public class MksVcsHistoryProvider implements VcsHistoryProvider {
 	@Nullable
 	public HistoryAsTreeProvider getTreeHistoryProvider() {
 		return new MksMemberHistoryAsTreeProvider();
+	}
+
+	public boolean supportsHistoryForDirectories() {
+		return false;
 	}
 
 	public boolean isDateOmittable() {

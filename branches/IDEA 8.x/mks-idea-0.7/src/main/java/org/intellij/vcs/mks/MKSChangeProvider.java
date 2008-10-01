@@ -672,6 +672,10 @@ class MKSChangeProvider extends AbstractProjectComponent
 		return false;
 	}
 
+	public void doCleanup(List<VirtualFile> virtualFiles) {
+
+	}
+
 	@NotNull
 	public MksChangeListAdapter getChangeListAdapter() {
 		return getMksvcs().getChangeListAdapter();
