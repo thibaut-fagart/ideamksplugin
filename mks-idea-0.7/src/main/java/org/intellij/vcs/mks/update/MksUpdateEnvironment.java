@@ -150,4 +150,8 @@ public class MksUpdateEnvironment implements UpdateEnvironment {
 			}
 		};
 	}
+
+	public boolean validateOptions(Collection<FilePath> filePaths) {
+		return true;  //To change body of implemented methods use File | Settings | File Templates.
+	}
 }
