@@ -1,38 +1,46 @@
 package org.intellij.vcs.mks;
 
-import com.intellij.openapi.vcs.VcsException;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.vfs.VirtualFile;
 import org.intellij.vcs.mks.realtime.MksSandboxInfo;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 /**
  * @author Thibaut Fagart
  */
-public class DispatchBySandboxCommand extends AbstractMKSCommand {
+public class DispatchBySandboxCommand {
+	protected final Logger LOGGER = Logger.getInstance(getClass().getName());
 	private final MksVcs mksVcs;
 	private VirtualFile[] virtualFiles;
 	protected Map<MksSandboxInfo, ArrayList<VirtualFile>> filesBySandbox =
 			new HashMap<MksSandboxInfo, ArrayList<VirtualFile>>();
 	protected ArrayList<VirtualFile> notInSandboxFiles = new ArrayList<VirtualFile>();
+	/**
+	 * if false, dispatching will be done using subsandboxes
+	 */
+	private boolean basedOnTopSanbox;
 
-	public DispatchBySandboxCommand(MksVcs mksVcs, List<VcsException> errors, VirtualFile[] virtualFiles) {
-		super(errors);
-		this.mksVcs = mksVcs;
-		this.virtualFiles = virtualFiles;
+	public DispatchBySandboxCommand(MksVcs mksVcs, VirtualFile[] virtualFiles) {
+		this(mksVcs, virtualFiles, true);
 	}
 
-	@Override
+	public DispatchBySandboxCommand(MksVcs mksVcs, VirtualFile[] virtualFiles, boolean topSandboxOnly) {
+		this.mksVcs = mksVcs;
+		this.virtualFiles = virtualFiles;
+		this.basedOnTopSanbox = topSandboxOnly;
+	}
+
 	public void execute() {
 		for (VirtualFile file : virtualFiles) {
 			if (file == null) {
 				LOGGER.warn("null virtual file passed to DispatchBySandboxCommand#execute");
 			} else {
 
-				final MksSandboxInfo sandbox = mksVcs.getSandboxCache().getSandboxInfo(file);
+				final MksSandboxInfo sandbox = (basedOnTopSanbox) ? mksVcs.getSandboxCache().getSandboxInfo(file) :
+						mksVcs.getSandboxCache().getSubSandbox(file);
 				if (sandbox == null) {
 					notInSandboxFiles.add(file);
 				} else {

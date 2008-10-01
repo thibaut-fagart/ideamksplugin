@@ -1,23 +1,23 @@
 package org.intellij.vcs.mks;
 
 import com.intellij.openapi.components.ApplicationComponent;
+import com.intellij.openapi.ui.InputValidator;
 import com.intellij.openapi.util.DefaultJDOMExternalizer;
 import com.intellij.openapi.util.InvalidDataException;
 import com.intellij.openapi.util.JDOMExternalizable;
 import com.intellij.openapi.util.WriteExternalException;
-import com.intellij.openapi.ui.InputValidator;
 import org.intellij.vcs.mks.model.MksServerInfo;
 import org.jdom.Element;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 
 import java.nio.charset.Charset;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.StringTokenizer;
-import java.util.Date;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 
 /**
  * IMPORTANT : keep persisted properties PUBLIC or they won't be persisted !
@@ -25,16 +25,16 @@ import java.text.SimpleDateFormat;
 public class MksConfiguration
 		implements JDOMExternalizable, ApplicationComponent, MksCLIConfiguration {
 	public static final String DEFAULT_ENCODING = Charset.defaultCharset().name();
+	private static final String DEFAULT_DATE_PATTERN = "MMM dd, yyyy - hh:mm a";
 
 	public StringMap SI_ENCODINGS;
-	public String defaultEncoding;
+	public String defaultEncoding = DEFAULT_ENCODING;
 	/**
 	 * (host:port(,host:port)*)?
 	 */
 	public String nonSiServers = "";
-	public String datePattern;
+	public String datePattern = DEFAULT_DATE_PATTERN;
 	public boolean synchronizeNonMembers = true;
-	private static final String DEFAULT_DATE_PATTERN = "MMM dd, yyyy - hh:mm a";
 
 
 	public MksConfiguration() {
@@ -142,6 +142,10 @@ public class MksConfiguration
 	@NotNull
 	public String getDatePattern() {
 		return datePattern;
+	}
+
+	public CommandExecutionListener getCommandExecutionListener() {
+		return CommandExecutionListener.IDLE;
 	}
 
 	public boolean isSynchronizeNonMembers() {

@@ -3,11 +3,11 @@
 	<groupId>mks-idea</groupId>
 	<artifactId>mks-idea</artifactId>
 	<packaging>jar</packaging>
-	<version>0.7.2.Diana-SNAPSHOT</version>
+	<version>0.7.3-Diana-RC1</version>
 	<name>IDEA MKS Plugin</name>
 	<description>Implementation of an IDEA MKS plugin.</description>
 	<properties>
-		<idea.version>8.0.8664</idea.version> <!--8.0.M1-->
+		<idea.version>8.0.8823</idea.version> <!--8.0.M1-->
 	</properties>
 	<scm>
 		<connection>scm:svn:http://ideamksplugin.googlecode.com/svn/branches/IDEA 8.x/mks-idea-0.7</connection>

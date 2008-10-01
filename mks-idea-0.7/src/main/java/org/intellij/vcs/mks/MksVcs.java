@@ -25,6 +25,7 @@ import com.intellij.ui.content.ContentFactory;
 import com.intellij.util.messages.MessageBusConnection;
 import com.intellij.util.ui.AbstractTableCellEditor;
 import mks.integrations.common.TriclopsException;
+import mks.integrations.common.TriclopsSiMember;
 import mks.integrations.common.TriclopsSiMembers;
 import mks.integrations.common.TriclopsSiSandbox;
 import org.intellij.vcs.mks.history.MksVcsHistoryProvider;
@@ -55,11 +56,7 @@ import java.util.Map;
 
 public class MksVcs extends AbstractVcs implements MksCLIConfiguration {
 	static final Logger LOGGER = Logger.getInstance(MksVcs.class.getName());
-	public static final String TOOL_WINDOW_ID = "MKS";
 	static final boolean DEBUG = false;
-	public static final String DATA_CONTEXT_PROJECT = "project";
-	public static final String DATA_CONTEXT_MODULE = "module";
-	public static final String DATA_CONTEXT_VIRTUAL_FILE_ARRAY = "virtualFileArray";
 
 	private JTextPane mksTextArea;
 	private final SandboxCache sandboxCache;
@@ -76,6 +73,10 @@ public class MksVcs extends AbstractVcs implements MksCLIConfiguration {
 	@NonNls
 	public static final String VCS_NAME = "MKS";
 	private static final String MKS_TOOLWINDOW = "MKS";
+	@NonNls
+	public static final String PROJECT_PJ_FILE = "project.pj";
+	@NonNls
+	private static final String ICONS_MKS_GIF = "/icons/mks.gif";
 
 	public MksVcs(Project project) {
 		super(project);
@@ -139,6 +140,7 @@ public class MksVcs extends AbstractVcs implements MksCLIConfiguration {
 		tabbedPane.add(panelDebug, "Log", 0);
 
 
+		tabbedPane.add(createCommandStatisticsPanel(), "Command statistics");
 		tabbedPane.add(createTasksPanel(), "Daemon processes");
 		mksPanel.add(tabbedPane, BorderLayout.CENTER);
 		registerToolWindow(toolWindowManager, mksPanel);
@@ -246,7 +248,6 @@ public class MksVcs extends AbstractVcs implements MksCLIConfiguration {
 														   final boolean b1, final int i, final int i1) {
 				return new JButton(new AbstractAction("restart") {
 					public void actionPerformed(ActionEvent e) {
-						System.err.println("restarting sandbox list listener");
 						final SandboxListSynchronizer synchronizer =
 								ApplicationManager.getApplication().getComponent(SandboxListSynchronizer.class);
 						synchronizer.restart();
@@ -276,15 +277,40 @@ public class MksVcs extends AbstractVcs implements MksCLIConfiguration {
 
 	}
 
+	private final CommandExecutionAdapter commandExecutionAdapter = new CommandExecutionAdapter();
+
+	public CommandExecutionListener getCommandExecutionListener() {
+		return commandExecutionAdapter;
+	}
+
+	private Component createCommandStatisticsPanel() {
+		JTable commandsTable = new JTable();
+
+		JPanel jPanel = new JPanel();
+		JPanel buttonsPanel = new JPanel();
+		buttonsPanel.setLayout(new BoxLayout(buttonsPanel, BoxLayout.X_AXIS));
+		buttonsPanel.add(new JButton(new AbstractAction("Clear statistics") {
+			public void actionPerformed(final ActionEvent event) {
+				commandExecutionAdapter.clear();
+			}
+		}));
+		jPanel.setLayout(new BorderLayout());
+		jPanel.add(buttonsPanel, BorderLayout.NORTH);
+		jPanel.add(new JScrollPane(commandsTable), BorderLayout.CENTER);
+		commandsTable.setModel(commandExecutionAdapter);
+		return jPanel;
+
+	}
+
 	private JTextPane createMksLogTextPane() {
 		JTextPane mksTextArea = new JTextPane();
 		mksTextArea.setEditable(false);
 		javax.swing.text.Style def = StyleContext.getDefaultStyleContext().getStyle("default");
 		javax.swing.text.Style regular = mksTextArea.addStyle("REGULAR", def);
 		StyleConstants.setFontFamily(def, "SansSerif");
-		javax.swing.text.Style s = mksTextArea.addStyle("ITALIC", regular);
+		javax.swing.text.Style s = mksTextArea.addStyle(StyleConstants.Italic.toString(), regular);
 		StyleConstants.setItalic(s, true);
-		s = mksTextArea.addStyle("BOLD", regular);
+		s = mksTextArea.addStyle(StyleConstants.Bold.toString(), regular);
 		StyleConstants.setBold(s, true);
 		return mksTextArea;
 	}
@@ -296,7 +322,7 @@ public class MksVcs extends AbstractVcs implements MksCLIConfiguration {
 		content.setCloseable(false);
 		toolWindow.getContentManager().addContent(content);
 
-		toolWindow.setIcon(IconLoader.getIcon("/icons/mks.gif", getClass()));
+		toolWindow.setIcon(IconLoader.getIcon(ICONS_MKS_GIF, getClass()));
 		return toolWindow;
 	}
 
@@ -394,9 +420,9 @@ public class MksVcs extends AbstractVcs implements MksCLIConfiguration {
 
 		public void editFiles(VirtualFile[] virtualFiles) throws VcsException {
 			List<VcsException> errors = new ArrayList<VcsException>();
-			DispatchBySandboxCommand dispatchCommand = new DispatchBySandboxCommand(mksVcs, errors, virtualFiles);
+			DispatchBySandboxCommand dispatchCommand = new DispatchBySandboxCommand(mksVcs, virtualFiles);
 			dispatchCommand.execute();
-			if (!dispatchCommand.errors.isEmpty()) {
+			if (!dispatchCommand.getNotInSandboxFiles().isEmpty()) {
 				Messages.showErrorDialog(MksBundle.message("unable.to.find.the.sandboxes.for.the.files.title"),
 						MksBundle.message("could.not.start.checkout"));
 				return;
@@ -405,7 +431,8 @@ public class MksVcs extends AbstractVcs implements MksCLIConfiguration {
 				MksSandboxInfo sandbox = entry.getKey();
 				ArrayList<VirtualFile> files = entry.getValue();
 				errors = new ArrayList<VcsException>();
-				CheckoutFilesCommand command = new CheckoutFilesCommand(errors, sandbox.getSiSandbox(), files);
+				CheckoutFilesCommand command = new CheckoutFilesCommand(errors, sandbox.getSiSandbox(), files,
+						this.mksVcs);
 				synchronized (MksVcs.this) {
 					command.execute();
 				}
@@ -427,13 +454,12 @@ public class MksVcs extends AbstractVcs implements MksCLIConfiguration {
 		private ArrayList<VirtualFile> files;
 
 		public CheckoutFilesCommand(List<VcsException> errors, TriclopsSiSandbox sandbox,
-									ArrayList<VirtualFile> files) {
-			super(errors);
+									ArrayList<VirtualFile> files, MksCLIConfiguration mksCLIConfiguration) {
+			super(errors, "co", mksCLIConfiguration);
 			this.sandbox = sandbox;
 			this.files = files;
 		}
 
-		@Override
 		public void execute() {
 			try {
 				TriclopsSiMembers members = queryMksMemberStatus(files, sandbox);
@@ -444,6 +470,17 @@ public class MksVcs extends AbstractVcs implements MksCLIConfiguration {
 			}
 		}
 
+		@NotNull
+		private TriclopsSiMembers queryMksMemberStatus(@NotNull ArrayList<VirtualFile> files,
+													   @NotNull TriclopsSiSandbox sandbox) throws TriclopsException {
+			TriclopsSiMembers members = MKSHelper.createMembers(sandbox);
+			for (VirtualFile virtualFile : files) {
+				members.addMember(new TriclopsSiMember(virtualFile.getPresentableUrl()));
+			}
+			MKSHelper.getMembersStatus(members);
+			return members;
+		}
+
 	}
 
 	@Override
@@ -452,11 +489,15 @@ public class MksVcs extends AbstractVcs implements MksCLIConfiguration {
 		return editFileProvider;
 	}
 
-	public Map<MksSandboxInfo, ArrayList<VirtualFile>> dispatchBySandbox(VirtualFile[] files) {
-		ArrayList<VcsException> dispatchErrors = new ArrayList<VcsException>();
-		DispatchBySandboxCommand dispatchCommand = new DispatchBySandboxCommand(this, dispatchErrors, files);
+	public Map<MksSandboxInfo, ArrayList<VirtualFile>> dispatchBySandbox(VirtualFile[] files, boolean topSandboxOnly) {
+		DispatchBySandboxCommand dispatchCommand =
+				new DispatchBySandboxCommand(this, files, topSandboxOnly);
 		dispatchCommand.execute();
 		return dispatchCommand.filesBySandbox;
+	}
+
+	public Map<MksSandboxInfo, ArrayList<VirtualFile>> dispatchBySandbox(VirtualFile[] files) {
+		return dispatchBySandbox(files, true);
 	}
 
 	/**
@@ -565,5 +606,11 @@ public class MksVcs extends AbstractVcs implements MksCLIConfiguration {
 	@Nullable
 	public UpdateEnvironment getStatusEnvironment() {
 		return updateEnvironment;
+	}
+
+	public boolean isVersionedDirectory(VirtualFile virtualFile) {
+		// does not work currently as the vcs is not initialized yet ...
+		final VirtualFile child = virtualFile.findChild(PROJECT_PJ_FILE);
+		return null != child && child.exists();
 	}
 }
