@@ -59,9 +59,15 @@ class MKSChangeProvider extends AbstractProjectComponent
 		return getMksvcs().getProject();
 	}
 
-
-	public void getChanges(final VcsDirtyScope dirtyScope, ChangelistBuilder builder,
-						   final ProgressIndicator progress) throws VcsException {
+	/**
+	 * todo what's the ChangeListManagerGate for ?
+	 * @param dirtyScope
+	 * @param builder
+	 * @param progress
+	 * @param addGate
+	 * @throws VcsException
+	 */
+	public void getChanges(final VcsDirtyScope dirtyScope, ChangelistBuilder builder, final ProgressIndicator progress, ChangeListManagerGate addGate) throws VcsException {
 		ArrayList<VcsException> errors = new ArrayList<VcsException>();
 		logger.debug("start getChanges");
 		final JLabel statusLabel = new JLabel();
@@ -407,8 +413,12 @@ class MKSChangeProvider extends AbstractProjectComponent
 		}
 	}
 
-	private void setStatusInfo(JLabel statusLabel, String message) {
-		statusLabel.setText(message);
+	private void setStatusInfo(final JLabel statusLabel, final String message) {
+		SwingUtilities.invokeLater(new Runnable() {
+			public void run() {
+				statusLabel.setText(message);
+			}
+		});
 	}
 
 	private ChangelistBuilder createBuilderLoggingProxy(final ChangelistBuilder myBuilder) {
