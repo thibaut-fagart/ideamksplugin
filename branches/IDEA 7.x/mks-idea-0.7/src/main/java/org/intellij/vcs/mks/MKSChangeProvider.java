@@ -406,8 +406,12 @@ class MKSChangeProvider extends AbstractProjectComponent
 		}
 	}
 
-	private void setStatusInfo(JLabel statusLabel, String message) {
-		statusLabel.setText(message);
+	private void setStatusInfo(final JLabel statusLabel, final String message) {
+		SwingUtilities.invokeLater(new Runnable() {
+			public void run() {
+				statusLabel.setText(message);
+			}
+		});
 	}
 
 	private ChangelistBuilder createBuilderLoggingProxy(final ChangelistBuilder myBuilder) {
