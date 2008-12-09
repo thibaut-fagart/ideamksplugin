@@ -14,6 +14,8 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
@@ -32,6 +34,19 @@ public class SandboxListSynchronizerImpl extends AbstractMKSSynchronizer
 
 	private ArrayList<SandboxesCommand.SandboxInfo> currentList = new ArrayList<SandboxesCommand.SandboxInfo>();
 	private final ReentrantLock sandboxCacheLock = new ReentrantLock();
+
+	/**
+	 * used to not process sandbox list update immediately to avoid doing it for every subsandbox being checkedout
+	 */
+	private Timer timer;
+	/**
+	 * delay while new update may be ignored
+	 */
+	private static final int DELAY = 5000;
+	/**
+	 * lock to manipulate the timer
+	 */
+	private final Object fireUpdateLock = new Object();
 
 	public SandboxListSynchronizerImpl() {
 		this(ApplicationManager.getApplication().getComponent(MksConfiguration.class));
@@ -116,11 +131,31 @@ public class SandboxListSynchronizerImpl extends AbstractMKSSynchronizer
 			if (line.startsWith("-----")) {
 				// detection of a new update
 				LOGGER.debug("update notification : " + line);
-				updateSandboxList();
+				fireUpdateSandboxList();
 			}
 		} catch (Exception e) {
 			LOGGER.error("error parsing mks synchronizer output [" + line + "], skipping that line  because : " +
 					e.getMessage(), e);
+		}
+	}
+
+	/**
+	 * don't process the update right now, only do it after a bit, to avoid updating sandbox list for every subsandbox
+	 */
+	private void fireUpdateSandboxList() {
+		synchronized (this.fireUpdateLock) {
+			if (timer != null) {
+				timer.cancel();
+			}
+			timer = new Timer(true);
+			final TimerTask task = new TimerTask() {
+				@Override
+				public void run() {
+					updateSandboxList();
+				}
+			};
+			timer = new Timer();
+			timer.schedule(task, DELAY);
 		}
 	}
 
