@@ -24,7 +24,7 @@ public class SourceIntegrityPreferencesAction extends AnAction {
 		ApplicationManager.getApplication().runReadAction(new Runnable() {
 			public void run() {
 				try {
-					MKSHelper.aboutBox();
+					MKSHelper.openConfigurationView();
 				} catch (TriclopsException e) {
 					final Project project = anActionEvent.getData(DataKeys.PROJECT);
 					ArrayList<VcsException> errors = new ArrayList<VcsException>();
