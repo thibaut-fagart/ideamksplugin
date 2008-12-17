@@ -146,10 +146,12 @@
 					class="org.intellij.vcs.mks.actions.AboutMksAction"
 					text="About MKS..."
 					description="Information about MKS Source Integrity"/>
+<!--
            <action id="MKS.DiffAction"
                    class="org.intellij.vcs.mks.actions.RevertNotModifiedAction"
                    text="Revert Not modified"
                    description="Reverts files if they are not different from the member revision"/>
+-->
 			<separator/>
 			<reference id="UpdateFiles"/>
 			<reference id="CheckStatusForFiles"/>
