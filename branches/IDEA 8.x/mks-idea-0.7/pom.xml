@@ -1,10 +1,9 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>mks-idea</groupId>
     <artifactId>mks-idea</artifactId>
     <packaging>jar</packaging>
-    <version>0.7.4-Diana-SNAPSHOT</version>
+    <version>0.7.4-Diana</version>
     <name>IDEA MKS Plugin</name>
     <description>Implementation of an IDEA MKS plugin.</description>
     <properties>
@@ -12,10 +11,10 @@
         <!--8.1.EAP-->
     </properties>
     <scm>
-        <connection>scm:svn:http://ideamksplugin.googlecode.com/svn/branches/IDEA 8.x/mks-idea-0.7</connection>
-        <developerConnection>scm:svn:https://ideamksplugin.googlecode.com/svn/branches/IDEA 8.x/mks-idea-0.7
+        <connection>scm:svn:http://ideamksplugin.googlecode.com/svn/tags/mks-idea-0.7.4-Diana</connection>
+        <developerConnection>scm:svn:https://ideamksplugin.googlecode.com/svn/tags/mks-idea-0.7.4-Diana
         </developerConnection>
-        <url>http://ideamksplugin.googlecode.com/svn/branches/IDEA 8.x/mks-idea-0.7</url>
+        <url>http://ideamksplugin.googlecode.com/svn/tags/mks-idea-0.7.4-Diana</url>
     </scm>
     <dependencies>
         <dependency>
