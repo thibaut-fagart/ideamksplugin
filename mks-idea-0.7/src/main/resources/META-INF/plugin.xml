@@ -166,14 +166,5 @@
 			<add-to-group group-id="VcsGroups" anchor="last"/>
 			<add-to-group group-id="UpdateActionGroup" anchor="last"/>
 		</group>
-
-		<group id="MKS.Vcs.CheckinProjectPopup" text="_MKS" popup="true"
-			   class="org.intellij.vcs.mks.actions.MksGroup">
-			<reference id="MKS.MemberDiffsAction"/>
-			<add-to-group group-id="Vcs.CheckinProjectPopup" anchor="last"/>
-		</group>
-        <action id="mks.importChangePackages" class="org.intellij.vcs.mks.actions.ImportChangePackagesAction" text="Import ChangePackage ...">
-            <add-to-group group-id="ChangesViewPopupMenu" anchor="after" relative-to-action="ChangesView.NewChangeList" />
-        </action>
 	</actions>
 </idea-plugin>
