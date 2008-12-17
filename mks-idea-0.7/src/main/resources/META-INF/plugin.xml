@@ -12,7 +12,7 @@
 	<vendor logo="/icons/mks.png" url="http://code.google.com/p/ideamksplugin/">Eric Sheffer, Thibaut Fagart</vendor>
 	<resource-bundle>org.intellij.vcs.mks.mksBundle</resource-bundle>
 	<category>VCS Integration</category>
-	<idea-version since-build="8890" until-build="9000"/>
+	<idea-version since-build="8890"/>
 
 	<change-notes><![CDATA[<ul>
 	<li>0.7.3 This a bugfix release. See  <a href="http://code.google.com/p/ideamksplugin/issues/list?q=label%3AMilestone%20label%3ARelease0.7.3&can=1">googlecode issues resolved in 0.7.3</a> <br><br/>
@@ -146,12 +146,10 @@
 					class="org.intellij.vcs.mks.actions.AboutMksAction"
 					text="About MKS..."
 					description="Information about MKS Source Integrity"/>
-			<!--
-			   <action id="MKS.DiffAction"
-			   class="org.intellij.vcs.mks.actions.RevertNotModifiedAction"
-			   text="Revert Not modified"
-			   description="Revert Not modified"/>
-   -->
+           <action id="MKS.DiffAction"
+                   class="org.intellij.vcs.mks.actions.RevertNotModifiedAction"
+                   text="Revert Not modified"
+                   description="Reverts files if they are not different from the member revision"/>
 			<separator/>
 			<reference id="UpdateFiles"/>
 			<reference id="CheckStatusForFiles"/>
@@ -172,5 +170,8 @@
 			<reference id="MKS.MemberDiffsAction"/>
 			<add-to-group group-id="Vcs.CheckinProjectPopup" anchor="last"/>
 		</group>
+        <action id="mks.importChangePackages" class="org.intellij.vcs.mks.actions.ImportChangePackagesAction" text="Import ChangePackage ...">
+            <add-to-group group-id="ChangesViewPopupMenu" anchor="after" relative-to-action="ChangesView.NewChangeList" />
+        </action>
 	</actions>
 </idea-plugin>
