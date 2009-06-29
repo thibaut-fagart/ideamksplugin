@@ -34,6 +34,19 @@ public class MksCheckinEnvironment implements CheckinEnvironment {
 		this.mksVcs = mksVcs;
 	}
 
+	/**
+	 * todo
+	 *
+	 * @param changes
+	 * @param preparedComment
+	 * @param parameters
+	 * @return
+	 */
+	public List<VcsException> commit(List<Change> changes,
+									 String preparedComment, Object parameters) {
+		return commit(changes, preparedComment);
+	}
+
 	public List<VcsException> commit(List<Change> changes, String preparedComment) {
 		// todo find the appropriate change package
 		// commit the changes using the change package
@@ -129,7 +142,12 @@ public class MksCheckinEnvironment implements CheckinEnvironment {
 		return false;
 	}
 
+	/**
+	 * todo
+	 * @param changeList
+	 * @return
+	 */
 	public boolean keepChangeListAfterCommit(ChangeList changeList) {
-		return true;
+		return false;
 	}
 }
